@@ -3,16 +3,16 @@
 import { useState, FormEvent } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
-import { FaBolt, FaEnvelope, FaLock, FaSignInAlt, FaUserPlus } from 'react-icons/fa';
+import { FaBolt, FaUser, FaLock, FaSignInAlt, FaUserPlus } from 'react-icons/fa';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
+  const [userId, setUserId] = useState('');
   const [password, setPassword] = useState('');
   const { handleLogin, error, isLoading } = useAuth();
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    await handleLogin(email, password);
+    await handleLogin(userId, password);
   };
 
   return (
@@ -48,23 +48,23 @@ export default function LoginPage() {
         <form className="mt-8 space-y-6 relative z-10" onSubmit={onSubmit}>
           <div className="rounded-md shadow-sm space-y-4">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                メールアドレス
+              <label htmlFor="userId" className="block text-sm font-medium text-gray-700 mb-1">
+                ユーザーID
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FaEnvelope className="h-5 w-5 text-indigo-400" />
+                  <FaUser className="h-5 w-5 text-indigo-400" />
                 </div>
                 <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
+                  id="userId"
+                  name="userId"
+                  type="text"
+                  autoComplete="username"
                   required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  value={userId}
+                  onChange={(e) => setUserId(e.target.value)}
                   className="form-input pl-10"
-                  placeholder="メールアドレスを入力"
+                  placeholder="ユーザーIDを入力"
                 />
               </div>
             </div>

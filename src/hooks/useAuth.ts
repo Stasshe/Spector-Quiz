@@ -10,11 +10,11 @@ export function useAuth() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
-  const handleLogin = async (email: string, password: string) => {
+  const handleLogin = async (userId: string, password: string) => {
     try {
       setIsLoading(true);
       setError(null);
-      await login(email, password);
+      await login(userId, password);
       router.push('/quiz');
     } catch (err: any) {
       setError(err.message || 'ログイン中にエラーが発生しました。');
@@ -24,11 +24,16 @@ export function useAuth() {
     }
   };
 
-  const handleRegister = async (email: string, password: string, username: string, iconId: number) => {
+  const handleRegister = async (password: string, username: string, iconId: number) => {
     try {
       setIsLoading(true);
       setError(null);
-      await register(email, password, username, iconId);
+      // register関数を呼び出して、自動生成されたユーザーIDを取得
+      const userId = await register(password, username, iconId);
+      
+      // 登録成功のメッセージ表示
+      alert(`登録が完了しました！\nあなたのユーザーID: ${userId}\n\nこのIDはログインに必要です。必ずメモしておいてください。`);
+      
       router.push('/quiz');
     } catch (err: any) {
       setError(err.message || 'アカウント作成中にエラーが発生しました。');

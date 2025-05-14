@@ -3,7 +3,7 @@
 import { useState, FormEvent } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
-import { FaBolt, FaEnvelope, FaLock, FaUser, FaImage, FaArrowLeft, FaUserPlus } from 'react-icons/fa';
+import { FaBolt, FaUser, FaLock, FaImage, FaArrowLeft, FaUserPlus } from 'react-icons/fa';
 
 // アバターアイコン選択肢のサンプル
 const avatarOptions = [
@@ -15,7 +15,6 @@ const avatarOptions = [
 ];
 
 export default function RegisterPage() {
-  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
   const [iconId, setIconId] = useState(1);
@@ -23,7 +22,7 @@ export default function RegisterPage() {
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    await handleRegister(email, password, username, iconId);
+    await handleRegister(password, username, iconId);
   };
 
   return (
@@ -58,31 +57,24 @@ export default function RegisterPage() {
 
         <form className="mt-6 space-y-6 relative z-10" onSubmit={onSubmit}>
           <div className="space-y-4">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                メールアドレス
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FaEnvelope className="h-5 w-5 text-indigo-400" />
+            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2h-1V9z" clipRule="evenodd" />
+                  </svg>
                 </div>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="form-input pl-10"
-                  placeholder="メールアドレスを入力"
-                />
+                <div className="ml-3">
+                  <p className="text-sm text-yellow-800">
+                    ユーザーIDは登録後に自動的に発行されます。登録後に表示されるIDを忘れないようにメモしておいてください。
+                  </p>
+                </div>
               </div>
             </div>
             
             <div>
               <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
-                ユーザー名
+                ニックネーム
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
