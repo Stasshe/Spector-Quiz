@@ -5,38 +5,56 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { db } from '@/config/firebase'; 
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { FaArrowLeft, FaSave, FaUpload, FaTrash, FaSpinner, FaCheckCircle } from 'react-icons/fa';
-import { Quiz, QuizType } from '@/types/quiz';
+import { collection, addDoc, serverTimestamp, doc, getDoc, setDoc, updateDoc, getDocs, query, where } from 'firebase/firestore';
+import { FaArrowLeft, FaSave, FaUpload, FaTrash, FaSpinner, FaCheckCircle, FaPlus, FaPen, FaCheck } from 'react-icons/fa';
+import { Quiz, QuizType, QuizUnit } from '@/types/quiz';
 import { genreClasses } from '@/constants/genres';
+import { useQuizUnit } from '@/hooks/useQuizUnit';
 
 // QuizDifficultyを定義
 export type QuizDifficulty = 1 | 2 | 3 | 4 | 5;
 
 // IndexedDB用の定数
-const DB_NAME = 'quiz-drafts-db';
-const STORE_NAME = 'quiz-drafts';
+const DB_NAME = 'quiz-units-db';
+const STORE_NAME = 'quiz-units';
 const DB_VERSION = 1;
 
-interface DraftQuiz extends Omit<Quiz, 'quizId' | 'createdAt' | 'useCount' | 'correctCount'> {
+interface DraftUnit {
   draftId: string;
+  title: string;
+  description: string;
+  genre: string;
+  quizzes: Quiz[];
+  isPublic: boolean;
+  subgenre?: string; // オプショナルプロパティとして追加
+  createdBy: string;
   updatedAt: Date;
 }
 
-export default function CreateQuizPage() {
+export default function CreateQuizUnitPage() {
   const { currentUser } = useAuth();
   const router = useRouter();
 
-  // クイズの状態
+  // 単元の状態
   const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [genre, setGenre] = useState('');
+  const [isPublic, setIsPublic] = useState(true);
+  
+  // クイズの状態管理
+  const [quizzes, setQuizzes] = useState<Quiz[]>([]);
+  const [currentQuiz, setCurrentQuiz] = useState<Quiz | null>(null);
+  const [editingQuizIndex, setEditingQuizIndex] = useState<number | null>(null);
+  const [showQuizForm, setShowQuizForm] = useState(false);
+  
+  // クイズフォームの状態
+  const [quizTitle, setQuizTitle] = useState('');
   const [question, setQuestion] = useState('');
   const [type, setType] = useState<QuizType>('multiple_choice');
   const [choices, setChoices] = useState<string[]>(['', '', '', '']);
   const [correctAnswer, setCorrectAnswer] = useState('');
   const [acceptableAnswers, setAcceptableAnswers] = useState<string[]>(['']);
   const [explanation, setExplanation] = useState('');
-  const [genre, setGenre] = useState('');
-  const [subgenre, setSubgenre] = useState('');
   const [difficulty, setDifficulty] = useState<QuizDifficulty>(3);
   
   // UI関連の状態
@@ -44,15 +62,16 @@ export default function CreateQuizPage() {
   const [saving, setSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
-  const [availableSubgenres, setAvailableSubgenres] = useState<string[]>([]);
   const [draftId, setDraftId] = useState<string | null>(null);
-  const [drafts, setDrafts] = useState<DraftQuiz[]>([]);
+  const [drafts, setDrafts] = useState<DraftUnit[]>([]);
   const [showDrafts, setShowDrafts] = useState(false);
+  const [availableQuizzes, setAvailableQuizzes] = useState<Quiz[]>([]);
+  const [showAvailableQuizzes, setShowAvailableQuizzes] = useState(false);
   
   // タイマー参照
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // IndexedDBの初期化
+  // IndexedDBの初期化と下書き読み込み
   useEffect(() => {
     if (!currentUser) {
       router.push('/auth/login');
@@ -64,7 +83,7 @@ export default function CreateQuizPage() {
     
     // 自動保存タイマーの設定
     autoSaveTimerRef.current = setInterval(() => {
-      if (title || question) {
+      if (title || quizzes.length > 0) {
         saveDraft(false);
       }
     }, 30000); // 30秒ごとに自動保存
@@ -76,21 +95,39 @@ export default function CreateQuizPage() {
     };
   }, [currentUser, router]);
 
-  // ジャンルが変更されたときにサブジャンルのリストを更新
+  // ジャンルが変更されたときに、そのジャンルのクイズを取得
   useEffect(() => {
     if (genre) {
-      const subgenresList = getSubgenresForGenre(genre);
-      setAvailableSubgenres(subgenresList);
-      
-      // サブジャンルのリストが変わったら選択を解除
-      if (!subgenresList.includes(subgenre)) {
-        setSubgenre('');
-      }
-    } else {
-      setAvailableSubgenres([]);
-      setSubgenre('');
+      fetchAvailableQuizzes(genre);
     }
-  }, [genre, subgenre]);
+  }, [genre]);
+
+  // 利用可能なクイズを取得
+  const fetchAvailableQuizzes = async (selectedGenre: string) => {
+    try {
+      setLoading(true);
+      const quizQuery = query(
+        collection(db, 'quizzes'),
+        where('genre', '==', selectedGenre),
+        where('createdBy', '==', currentUser?.uid)
+      );
+      
+      const quizSnapshot = await getDocs(quizQuery);
+      const quizList: Quiz[] = [];
+      
+      quizSnapshot.forEach(doc => {
+        const quizData = doc.data() as Omit<Quiz, 'quizId'>;
+        quizList.push({ ...quizData, quizId: doc.id } as Quiz);
+      });
+      
+      setAvailableQuizzes(quizList);
+      setLoading(false);
+    } catch (err) {
+      console.error('Error fetching quizzes:', err);
+      setErrorMessage('クイズの取得中にエラーが発生しました');
+      setLoading(false);
+    }
+  };
 
   // IndexedDBの初期化関数
   const initIndexedDB = () => {
@@ -124,7 +161,7 @@ export default function CreateQuizPage() {
       const query = userIndex.getAll(currentUser?.uid);
       
       query.onsuccess = () => {
-        const userDrafts = query.result as DraftQuiz[];
+        const userDrafts = query.result as DraftUnit[];
         // 更新日時で降順にソート
         userDrafts.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
         setDrafts(userDrafts);
@@ -143,18 +180,17 @@ export default function CreateQuizPage() {
     setSaving(true);
     
     const now = new Date();
-    const draftQuiz: DraftQuiz = {
-      draftId: draftId || `draft_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    const draftUnit: DraftUnit = {
+      draftId: draftId || `draft_unit_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       title,
-      question,
-      type,
-      choices,
-      correctAnswer,
-      acceptableAnswers,
-      explanation,
+      description,
       genre,
-      subgenre,
-      difficulty,
+      quizzes: currentQuiz ? 
+        (editingQuizIndex !== null ? 
+          [...quizzes.slice(0, editingQuizIndex), {...currentQuiz}, ...quizzes.slice(editingQuizIndex + 1)] : 
+          [...quizzes, {...currentQuiz}]
+        ) : quizzes,
+      isPublic,
       createdBy: currentUser.uid,
       updatedAt: now
     };
@@ -166,10 +202,10 @@ export default function CreateQuizPage() {
       const transaction = db.transaction(STORE_NAME, 'readwrite');
       const store = transaction.objectStore(STORE_NAME);
       
-      const saveRequest = store.put(draftQuiz);
+      const saveRequest = store.put(draftUnit);
       
       saveRequest.onsuccess = () => {
-        setDraftId(draftQuiz.draftId);
+        setDraftId(draftUnit.draftId);
         if (showMessage) {
           setSuccessMessage('下書きを保存しました');
           setTimeout(() => setSuccessMessage(''), 3000);
@@ -195,18 +231,16 @@ export default function CreateQuizPage() {
   };
 
   // 下書きを読み込む
-  const loadDraft = (draft: DraftQuiz) => {
+  const loadDraft = (draft: DraftUnit) => {
     setDraftId(draft.draftId);
     setTitle(draft.title);
-    setQuestion(draft.question);
-    setType(draft.type);
-    setChoices(draft.choices);
-    setCorrectAnswer(draft.correctAnswer);
-    setAcceptableAnswers(draft.acceptableAnswers);
-    setExplanation(draft.explanation);
+    setDescription(draft.description);
     setGenre(draft.genre);
-    setSubgenre(draft.subgenre);
-    setDifficulty(draft.difficulty as QuizDifficulty);
+    setQuizzes(draft.quizzes || []);
+    setIsPublic(draft.isPublic);
+    
+    // フォームをリセット
+    resetQuizForm();
     setShowDrafts(false);
   };
 
@@ -240,39 +274,64 @@ export default function CreateQuizPage() {
     };
   };
 
-  // 新しいクイズを公開
-  const publishQuiz = async () => {
-    if (!validateForm()) return;
+  // 新しい単元を公開
+  const publishUnit = async () => {
+    if (!validateUnitForm()) return;
     
     setLoading(true);
     
     try {
-      // Firestoreにクイズを追加
-      const quizData = {
+      // クイズを公開する前に、まだFirestoreに存在しないクイズを追加
+      const quizIds = [];
+      
+      for (const quiz of quizzes) {
+        if (!quiz.quizId || quiz.quizId.startsWith('temp_')) {
+          // 一時的なIDを持つ新しいクイズはFirestoreに追加
+          const quizData = {
+            title: quiz.title,
+            question: quiz.question,
+            type: quiz.type,
+            choices: quiz.choices,
+            correctAnswer: quiz.correctAnswer,
+            acceptableAnswers: quiz.acceptableAnswers,
+            explanation: quiz.explanation,
+            genre: genre,
+            subgenre: title, // 単元のタイトルをサブジャンル名として使用
+            difficulty: quiz.difficulty,
+            createdBy: currentUser!.uid,
+            createdAt: serverTimestamp() as any, // as any で型エラーを回避
+            useCount: 0,
+            correctCount: 0
+          };
+          
+          const docRef = await addDoc(collection(db, 'quizzes'), quizData);
+          quizIds.push(docRef.id);
+        } else {
+          // 既存のクイズはそのままIDを使用
+          quizIds.push(quiz.quizId);
+        }
+      }
+      
+      // 単元をFirestoreに追加
+      const unitData: Omit<QuizUnit, 'unitId'> = {
         title,
-        question,
-        type,
-        choices,
-        correctAnswer,
-        acceptableAnswers,
-        explanation,
+        description,
         genre,
-        subgenre,
-        difficulty,
         createdBy: currentUser!.uid,
-        createdAt: serverTimestamp(),
+        createdAt: serverTimestamp() as any, // as any で型エラーを回避
+        quizIds,
         useCount: 0,
-        correctCount: 0
+        isPublic
       };
       
-      const docRef = await addDoc(collection(db, 'quizzes'), quizData);
+      const unitRef = await addDoc(collection(db, 'quiz_units'), unitData);
       
       // 公開成功したら下書きを削除
       if (draftId) {
         deleteDraft(draftId);
       }
       
-      setSuccessMessage('クイズを公開しました！');
+      setSuccessMessage('単元を公開しました！');
       clearForm();
       
       // 3秒後にクイズプレイページに遷移
@@ -280,17 +339,38 @@ export default function CreateQuizPage() {
         router.push('/quiz');
       }, 3000);
     } catch (error) {
-      console.error('Error publishing quiz:', error);
-      setErrorMessage('クイズの公開に失敗しました。');
+      console.error('Error publishing unit:', error);
+      setErrorMessage('単元の公開に失敗しました。');
     }
     
     setLoading(false);
   };
 
-  // フォームの検証
-  const validateForm = () => {
+  // 単元フォームの検証
+  const validateUnitForm = () => {
     if (!title.trim()) {
-      setErrorMessage('タイトルを入力してください');
+      setErrorMessage('単元のタイトルを入力してください');
+      return false;
+    }
+    
+    if (quizzes.length === 0) {
+      setErrorMessage('少なくとも1つのクイズを追加してください');
+      return false;
+    }
+    
+    if (!genre) {
+      setErrorMessage('ジャンルを選択してください');
+      return false;
+    }
+    
+    setErrorMessage('');
+    return true;
+  };
+
+  // クイズフォームの検証
+  const validateQuizForm = () => {
+    if (!quizTitle.trim()) {
+      setErrorMessage('クイズのタイトルを入力してください');
       return false;
     }
     
@@ -319,33 +399,112 @@ export default function CreateQuizPage() {
       }
     }
     
-    if (!genre) {
-      setErrorMessage('ジャンルを選択してください');
-      return false;
-    }
-    
-    if (!subgenre) {
-      setErrorMessage('単元を選択してください');
-      return false;
-    }
-    
     setErrorMessage('');
     return true;
+  };
+
+  // クイズを追加
+  const addQuiz = () => {
+    if (!validateQuizForm()) return;
+    
+    const newQuiz: Quiz = {
+      quizId: `temp_${Date.now()}`, // 一時的なID、Firestoreに保存時に更新
+      title: quizTitle,
+      question,
+      type,
+      choices,
+      correctAnswer,
+      acceptableAnswers,
+      explanation,
+      genre,
+      subgenre: title, // 単元のタイトルをサブジャンル名として使用
+      difficulty,
+      createdBy: currentUser!.uid,
+      createdAt: null as any, // サーバータイムスタンプで更新
+      useCount: 0,
+      correctCount: 0
+    };
+    
+    if (editingQuizIndex !== null) {
+      // 既存のクイズを更新
+      const updatedQuizzes = [...quizzes];
+      updatedQuizzes[editingQuizIndex] = newQuiz;
+      setQuizzes(updatedQuizzes);
+      setEditingQuizIndex(null);
+    } else {
+      // 新しいクイズを追加
+      setQuizzes([...quizzes, newQuiz]);
+    }
+    
+    resetQuizForm();
+    setShowQuizForm(false);
+    setCurrentQuiz(null);
+    
+    // 変更を下書き保存
+    setTimeout(() => saveDraft(false), 100);
+  };
+
+  // クイズを編集
+  const editQuiz = (index: number) => {
+    const quiz = quizzes[index];
+    setQuizTitle(quiz.title);
+    setQuestion(quiz.question);
+    setType(quiz.type);
+    setChoices(quiz.choices);
+    setCorrectAnswer(quiz.correctAnswer);
+    setAcceptableAnswers(quiz.acceptableAnswers);
+    setExplanation(quiz.explanation);
+    setDifficulty(quiz.difficulty as QuizDifficulty);
+    setEditingQuizIndex(index);
+    setShowQuizForm(true);
+  };
+
+  // クイズを削除
+  const removeQuiz = (index: number) => {
+    const updatedQuizzes = [...quizzes];
+    updatedQuizzes.splice(index, 1);
+    setQuizzes(updatedQuizzes);
+    
+    // 変更を下書き保存
+    setTimeout(() => saveDraft(false), 100);
+  };
+
+  // 既存のクイズを選択して追加
+  const selectExistingQuiz = (quiz: Quiz) => {
+    if (quizzes.some(q => q.quizId === quiz.quizId)) {
+      setErrorMessage('このクイズは既に単元に追加されています');
+      return;
+    }
+    
+    setQuizzes([...quizzes, quiz]);
+    setShowAvailableQuizzes(false);
+    
+    // 変更を下書き保存
+    setTimeout(() => saveDraft(false), 100);
   };
 
   // フォームをクリア
   const clearForm = () => {
     setDraftId(null);
     setTitle('');
+    setDescription('');
+    setGenre('');
+    setQuizzes([]);
+    setIsPublic(true);
+    resetQuizForm();
+  };
+
+  // クイズフォームをリセット
+  const resetQuizForm = () => {
+    setQuizTitle('');
     setQuestion('');
     setType('multiple_choice');
     setChoices(['', '', '', '']);
     setCorrectAnswer('');
     setAcceptableAnswers(['']);
     setExplanation('');
-    setGenre('');
-    setSubgenre('');
     setDifficulty(3);
+    setEditingQuizIndex(null);
   };
 
   // 選択肢の更新
@@ -374,26 +533,6 @@ export default function CreateQuizPage() {
       newAnswers.splice(index, 1);
       setAcceptableAnswers(newAnswers);
     }
-  };
-
-  // ジャンルに対応するサブジャンルのリストを取得
-  const getSubgenresForGenre = (selectedGenre: string): string[] => {
-    const allSubgenres: string[] = [];
-    
-    // 「ユーザー作成」のサブジャンルのみ返す
-    for (const classType of genreClasses) {
-      if (classType.name === 'ユーザー作成') {
-        for (const genreInfo of classType.genres) {
-          if (genreInfo.name === selectedGenre) {
-            for (const categorySubgenres of Object.values(genreInfo.subgenres)) {
-              allSubgenres.push(...categorySubgenres);
-            }
-          }
-        }
-      }
-    }
-    
-    return allSubgenres;
   };
 
   // フォーマットされた日時を返す
@@ -486,7 +625,7 @@ export default function CreateQuizPage() {
                       <div>
                         <h3 className="font-medium">{draft.title || '無題のクイズ'}</h3>
                         <p className="text-sm text-gray-500">
-                          {draft.genre} {draft.subgenre && `- ${draft.subgenre}`} • 
+                          {draft.genre} {/* subgenreは存在しない場合があるのでオプショナルチェーン */}
                           更新: {formatDate(new Date(draft.updatedAt))}
                         </p>
                       </div>
@@ -504,8 +643,8 @@ export default function CreateQuizPage() {
             </div>
           )}
 
-          {/* クイズ作成フォーム */}
-          <form onSubmit={(e) => { e.preventDefault(); publishQuiz(); }}>
+          {/* クイズ単元作成フォーム */}
+          <form onSubmit={(e) => { e.preventDefault(); publishUnit(); }}>
             <div className="space-y-6">
               {/* 基本情報 */}
               <div>
@@ -531,200 +670,383 @@ export default function CreateQuizPage() {
                   </div>
                   
                   <div>
-                    <label htmlFor="subgenre" className="form-label">単元</label>
-                    <select
-                      id="subgenre"
-                      className="form-select"
-                      value={subgenre}
-                      onChange={(e) => setSubgenre(e.target.value)}
-                      required
-                      disabled={!genre}
-                    >
-                      <option value="">単元を選択</option>
-                      {availableSubgenres.map(sg => (
-                        <option key={sg} value={sg}>{sg}</option>
-                      ))}
-                    </select>
+                    <label htmlFor="isPublic" className="form-label">公開設定</label>
+                    <div className="mt-2">
+                      <label className="inline-flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={isPublic}
+                          onChange={(e) => setIsPublic(e.target.checked)}
+                          className="form-checkbox"
+                        />
+                        <span className="ml-2">公開する</span>
+                      </label>
+                    </div>
                   </div>
                 </div>
 
                 <div className="mb-6">
-                  <label htmlFor="title" className="form-label">タイトル</label>
+                  <label htmlFor="title" className="form-label">単元タイトル</label>
                   <input
                     type="text"
                     id="title"
                     className="form-input"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    placeholder="クイズのタイトルを入力"
+                    placeholder="単元のタイトルを入力（例：定期テスト対策6月）"
                     required
                   />
                 </div>
                 
                 <div className="mb-6">
-                  <label htmlFor="question" className="form-label">問題文</label>
+                  <label htmlFor="description" className="form-label">説明 (省略可)</label>
                   <textarea
-                    id="question"
+                    id="description"
                     className="form-textarea"
-                    value={question}
-                    onChange={(e) => setQuestion(e.target.value)}
-                    placeholder="問題文を入力"
-                    rows={4}
-                    required
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="この単元についての説明"
+                    rows={3}
                   ></textarea>
-                </div>
-                
-                <div className="mb-6">
-                  <label className="form-label">難易度</label>
-                  <div className="flex items-center space-x-2">
-                    {[1, 2, 3, 4, 5].map((level) => (
-                      <button
-                        key={level}
-                        type="button"
-                        className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                          level <= difficulty
-                            ? 'bg-yellow-400 text-white'
-                            : 'bg-gray-200 text-gray-600'
-                        }`}
-                        onClick={() => setDifficulty(level as QuizDifficulty)}
-                      >
-                        {level}
-                      </button>
-                    ))}
-                  </div>
                 </div>
               </div>
               
-              {/* 問題タイプ */}
+              {/* クイズ一覧 */}
               <div>
-                <h2 className="text-xl font-semibold mb-4">問題タイプ</h2>
-                
-                <div className="flex space-x-4 mb-6">
-                  <label className="flex items-center">
-                    <input
-                      type="radio"
-                      name="type"
-                      value="multiple_choice"
-                      checked={type === 'multiple_choice'}
-                      onChange={() => setType('multiple_choice')}
-                      className="mr-2"
-                    />
-                    選択式
-                  </label>
-                  <label className="flex items-center">
-                    <input
-                      type="radio"
-                      name="type"
-                      value="input"
-                      checked={type === 'input'}
-                      onChange={() => setType('input')}
-                      className="mr-2"
-                    />
-                    入力式
-                  </label>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-semibold">クイズ一覧</h2>
+                  <div className="flex space-x-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowAvailableQuizzes(!showAvailableQuizzes)}
+                      className="btn-outline-sm flex items-center"
+                      disabled={!genre}
+                    >
+                      <FaPlus className="mr-1" size={12} /> 既存のクイズから追加
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCurrentQuiz(null);
+                        setEditingQuizIndex(null);
+                        resetQuizForm();
+                        setShowQuizForm(true);
+                      }}
+                      className="btn-outline-sm flex items-center"
+                    >
+                      <FaPlus className="mr-1" size={12} /> 新しいクイズを作成
+                    </button>
+                  </div>
                 </div>
                 
-                {/* 選択式の場合の選択肢 */}
-                {type === 'multiple_choice' && (
-                  <div className="space-y-4 mb-6">
-                    <p className="form-label">選択肢</p>
+                {/* 既存のクイズ選択ダイアログ */}
+                {showAvailableQuizzes && (
+                  <div className="mb-6 border border-gray-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="font-medium">既存のクイズ</h3>
+                      <button
+                        type="button"
+                        onClick={() => setShowAvailableQuizzes(false)}
+                        className="text-gray-500 hover:text-gray-700"
+                      >
+                        閉じる
+                      </button>
+                    </div>
                     
-                    {choices.map((choice, index) => (
-                      <div key={index} className="flex items-center">
-                        <label className="inline-flex items-center mr-4">
-                          <input
-                            type="radio"
-                            name="correctAnswer"
-                            value={choice}
-                            checked={correctAnswer === choice}
-                            onChange={() => setCorrectAnswer(choice)}
-                            className="mr-2"
-                            disabled={!choice.trim()}
-                          />
-                          <span className="w-6 h-6 flex items-center justify-center bg-indigo-100 text-indigo-800 rounded-full mr-2">
-                            {String.fromCharCode(65 + index)}
-                          </span>
-                        </label>
+                    {loading ? (
+                      <div className="flex justify-center py-4">
+                        <FaSpinner className="animate-spin text-indigo-600" />
+                      </div>
+                    ) : availableQuizzes.length === 0 ? (
+                      <p className="text-gray-500">このジャンルにはまだクイズがありません</p>
+                    ) : (
+                      <div className="space-y-3 max-h-80 overflow-y-auto">
+                        {availableQuizzes.map(quiz => (
+                          <div
+                            key={quiz.quizId}
+                            className={`border ${
+                              quizzes.some(q => q.quizId === quiz.quizId)
+                                ? 'border-green-200 bg-green-50'
+                                : 'border-gray-200'
+                            } rounded-lg p-3 hover:bg-gray-50 cursor-pointer`}
+                            onClick={() => selectExistingQuiz(quiz)}
+                          >
+                            <div className="flex justify-between">
+                              <h4 className="font-medium">{quiz.title}</h4>
+                              <span className="text-sm bg-gray-100 px-2 py-1 rounded">
+                                難易度: {quiz.difficulty}
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-700 mt-1">{quiz.question.substring(0, 100)}...</p>
+                            {quizzes.some(q => q.quizId === quiz.quizId) && (
+                              <div className="mt-2 text-green-600 flex items-center">
+                                <FaCheck className="mr-1" /> 単元に追加済み
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                {/* クイズフォーム */}
+                {showQuizForm && (
+                  <div className="mb-6 border border-gray-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="font-medium">{editingQuizIndex !== null ? 'クイズを編集' : '新しいクイズ'}</h3>
+                      <button
+                        type="button"
+                        onClick={() => setShowQuizForm(false)}
+                        className="text-gray-500 hover:text-gray-700"
+                      >
+                        キャンセル
+                      </button>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <div>
+                        <label htmlFor="quizTitle" className="form-label">クイズタイトル</label>
                         <input
                           type="text"
-                          value={choice}
-                          onChange={(e) => updateChoice(index, e.target.value)}
+                          id="quizTitle"
                           className="form-input"
-                          placeholder={`選択肢 ${String.fromCharCode(65 + index)}`}
+                          value={quizTitle}
+                          onChange={(e) => setQuizTitle(e.target.value)}
+                          placeholder="クイズのタイトルを入力"
                           required
                         />
                       </div>
-                    ))}
+                      
+                      <div>
+                        <label htmlFor="question" className="form-label">問題文</label>
+                        <textarea
+                          id="question"
+                          className="form-textarea"
+                          value={question}
+                          onChange={(e) => setQuestion(e.target.value)}
+                          placeholder="問題文を入力"
+                          rows={3}
+                          required
+                        ></textarea>
+                      </div>
+                      
+                      <div>
+                        <label className="form-label">難易度</label>
+                        <div className="flex items-center space-x-2">
+                          {[1, 2, 3, 4, 5].map((level) => (
+                            <button
+                              key={level}
+                              type="button"
+                              className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                                level <= difficulty
+                                  ? 'bg-yellow-400 text-white'
+                                  : 'bg-gray-200 text-gray-600'
+                              }`}
+                              onClick={() => setDifficulty(level as QuizDifficulty)}
+                            >
+                              {level}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <label className="form-label">問題タイプ</label>
+                        <div className="flex space-x-4">
+                          <label className="flex items-center">
+                            <input
+                              type="radio"
+                              name="type"
+                              value="multiple_choice"
+                              checked={type === 'multiple_choice'}
+                              onChange={() => setType('multiple_choice')}
+                              className="mr-2"
+                            />
+                            選択式
+                          </label>
+                          <label className="flex items-center">
+                            <input
+                              type="radio"
+                              name="type"
+                              value="input"
+                              checked={type === 'input'}
+                              onChange={() => setType('input')}
+                              className="mr-2"
+                            />
+                            入力式
+                          </label>
+                        </div>
+                      </div>
+                      
+                      {/* 選択式の場合の選択肢 */}
+                      {type === 'multiple_choice' && (
+                        <div className="space-y-3">
+                          <p className="form-label">選択肢</p>
+                          
+                          {choices.map((choice, index) => (
+                            <div key={index} className="flex items-center">
+                              <label className="inline-flex items-center mr-4">
+                                <input
+                                  type="radio"
+                                  name="correctAnswer"
+                                  value={choice}
+                                  checked={correctAnswer === choice}
+                                  onChange={() => setCorrectAnswer(choice)}
+                                  className="mr-2"
+                                  disabled={!choice.trim()}
+                                />
+                                <span className="w-6 h-6 flex items-center justify-center bg-indigo-100 text-indigo-800 rounded-full mr-2">
+                                  {String.fromCharCode(65 + index)}
+                                </span>
+                              </label>
+                              <input
+                                type="text"
+                                value={choice}
+                                onChange={(e) => updateChoice(index, e.target.value)}
+                                className="form-input"
+                                placeholder={`選択肢 ${String.fromCharCode(65 + index)}`}
+                                required
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      
+                      {/* 入力式の場合の正解と許容回答 */}
+                      {type === 'input' && (
+                        <div className="space-y-4">
+                          <div>
+                            <label htmlFor="correctAnswer" className="form-label">正解</label>
+                            <input
+                              type="text"
+                              id="correctAnswer"
+                              className="form-input"
+                              value={correctAnswer}
+                              onChange={(e) => setCorrectAnswer(e.target.value)}
+                              placeholder="正解を入力"
+                              required
+                            />
+                          </div>
+                          
+                          <div>
+                            <div className="flex items-center justify-between mb-2">
+                              <label className="form-label">許容される他の回答 (省略可)</label>
+                              <button
+                                type="button"
+                                onClick={addAcceptableAnswer}
+                                className="text-sm text-indigo-600 hover:text-indigo-800"
+                              >
+                                + 追加
+                              </button>
+                            </div>
+                            
+                            {acceptableAnswers.map((answer, index) => (
+                              <div key={index} className="flex items-center mb-2">
+                                <input
+                                  type="text"
+                                  value={answer}
+                                  onChange={(e) => updateAcceptableAnswer(index, e.target.value)}
+                                  className="form-input mr-2"
+                                  placeholder="別の正解を入力"
+                                />
+                                {acceptableAnswers.length > 1 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => removeAcceptableAnswer(index)}
+                                    className="text-red-500 hover:text-red-700"
+                                  >
+                                    <FaTrash />
+                                  </button>
+                                )}
+                              </div>
+                            ))}
+                            <p className="text-sm text-gray-500">
+                              入力式の問題では表記ゆれを考慮して複数の回答を許容できます
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                      
+                      <div>
+                        <label htmlFor="quizExplanation" className="form-label">解説 (省略可)</label>
+                        <textarea
+                          id="quizExplanation"
+                          className="form-textarea"
+                          value={explanation}
+                          onChange={(e) => setExplanation(e.target.value)}
+                          placeholder="解説を入力"
+                          rows={3}
+                        ></textarea>
+                      </div>
+                      
+                      <div className="flex justify-end pt-2">
+                        <button
+                          type="button"
+                          onClick={addQuiz}
+                          className="btn-primary flex items-center"
+                        >
+                          {editingQuizIndex !== null ? (
+                            <>
+                              <FaCheck className="mr-2" /> 更新する
+                            </>
+                          ) : (
+                            <>
+                              <FaPlus className="mr-2" /> 追加する
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 )}
                 
-                {/* 入力式の場合の正解と許容回答 */}
-                {type === 'input' && (
-                  <div className="space-y-6 mb-6">
-                    <div>
-                      <label htmlFor="correctAnswer" className="form-label">正解</label>
-                      <input
-                        type="text"
-                        id="correctAnswer"
-                        className="form-input"
-                        value={correctAnswer}
-                        onChange={(e) => setCorrectAnswer(e.target.value)}
-                        placeholder="正解を入力"
-                        required
-                      />
-                    </div>
-                    
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <label className="form-label">許容される他の回答 (省略可)</label>
-                        <button
-                          type="button"
-                          onClick={addAcceptableAnswer}
-                          className="text-sm text-indigo-600 hover:text-indigo-800"
-                        >
-                          + 追加
-                        </button>
-                      </div>
-                      
-                      {acceptableAnswers.map((answer, index) => (
-                        <div key={index} className="flex items-center mb-2">
-                          <input
-                            type="text"
-                            value={answer}
-                            onChange={(e) => updateAcceptableAnswer(index, e.target.value)}
-                            className="form-input mr-2"
-                            placeholder="別の正解を入力"
-                          />
-                          {acceptableAnswers.length > 1 && (
+                {/* 追加済みクイズ一覧 */}
+                {quizzes.length === 0 ? (
+                  <div className="text-center py-8 border border-dashed border-gray-300 rounded-lg">
+                    <p className="text-gray-500">クイズがまだ追加されていません</p>
+                    <p className="text-sm text-gray-400 mt-1">「新しいクイズを作成」または「既存のクイズから追加」を使って、単元にクイズを追加してください</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4 mb-6">
+                    {quizzes.map((quiz, index) => (
+                      <div key={index} className="border border-gray-200 rounded-lg p-4 relative">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h3 className="font-medium">{quiz.title || '無題のクイズ'}</h3>
+                            <p className="text-sm text-gray-700 mt-1">{quiz.question.substring(0, 100)}...</p>
+                            <div className="flex items-center mt-2 text-sm">
+                              <span className="bg-gray-100 px-2 py-1 rounded mr-2">
+                                {quiz.type === 'multiple_choice' ? '選択式' : '入力式'}
+                              </span>
+                              <span className="bg-yellow-100 px-2 py-1 rounded">
+                                難易度: {quiz.difficulty}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex space-x-1">
                             <button
                               type="button"
-                              onClick={() => removeAcceptableAnswer(index)}
-                              className="text-red-500 hover:text-red-700"
+                              onClick={() => editQuiz(index)}
+                              className="p-2 text-indigo-600 hover:text-indigo-800"
+                              title="編集"
+                            >
+                              <FaPen />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => removeQuiz(index)}
+                              className="p-2 text-red-500 hover:text-red-700"
+                              title="削除"
                             >
                               <FaTrash />
                             </button>
-                          )}
+                          </div>
                         </div>
-                      ))}
-                      <p className="text-sm text-gray-500">
-                        入力式の問題では表記ゆれを考慮して複数の回答を許容できます
-                      </p>
-                    </div>
+                      </div>
+                    ))}
                   </div>
                 )}
-              </div>
-              
-              {/* 解説 */}
-              <div>
-                <h2 className="text-xl font-semibold mb-4">解説 (省略可)</h2>
-                <textarea
-                  id="explanation"
-                  className="form-textarea"
-                  value={explanation}
-                  onChange={(e) => setExplanation(e.target.value)}
-                  placeholder="解説を入力"
-                  rows={4}
-                ></textarea>
               </div>
               
               {/* 送信ボタン */}
@@ -740,7 +1062,7 @@ export default function CreateQuizPage() {
                     </>
                   ) : (
                     <>
-                      <FaUpload className="mr-2" /> クイズを公開する
+                      <FaUpload className="mr-2" /> 単元を公開する
                     </>
                   )}
                 </button>

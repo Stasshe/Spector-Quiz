@@ -22,10 +22,12 @@ import { QuizRoom } from '@/types/room';
 import { Quiz } from '@/types/quiz';
 import { useQuiz } from '@/context/QuizContext';
 import { useAuth } from '@/context/AuthContext';
+import { useQuizHook } from '@/hooks/useQuiz';
 
 export function useLeader(roomId: string) {
   const { isLeader, quizRoom, currentQuiz, setCurrentQuiz } = useQuiz();
   const { currentUser } = useAuth();
+  const { updateGenreStats } = useQuizHook();
 
   // 現在の問題を取得してセット
   const fetchCurrentQuiz = useCallback(async () => {
@@ -43,6 +45,14 @@ export function useLeader(roomId: string) {
         const quizData = quizSnap.data() as Quiz;
         setCurrentQuiz({ ...quizData, quizId: quizSnap.id });
         
+        // クイズの使用回数を更新
+        await updateDoc(quizRef, {
+          useCount: increment(1)
+        });
+        
+        // ジャンルと単元の統計も更新
+        await updateGenreStats(quizData.genre, quizData.subgenre);
+        
         // ルームの現在のクイズ状態を更新
         await updateDoc(doc(db, 'quiz_rooms', roomId), {
           'currentState.quizId': currentQuizId,
@@ -56,7 +66,7 @@ export function useLeader(roomId: string) {
     } catch (error) {
       console.error('Error fetching current quiz:', error);
     }
-  }, [quizRoom, isLeader, roomId, setCurrentQuiz]);
+  }, [quizRoom, isLeader, roomId, setCurrentQuiz, updateGenreStats]);
 
   // クイズゲームを開始する
   const startQuizGame = useCallback(async () => {

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useQuiz as useQuizContext } from '@/context/QuizContext';
 import { db } from '@/config/firebase';
-import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs, updateDoc, increment, setDoc } from 'firebase/firestore';
 import { Quiz } from '@/types/quiz';
 
 export function useQuizHook() {
@@ -112,6 +112,46 @@ export function useQuizHook() {
     }
   }, []);
 
+  // ジャンルと単元の利用回数を更新
+  const updateGenreStats = useCallback(async (genre: string, subgenre: string) => {
+    try {
+      // ジャンル統計のドキュメントを取得または作成
+      const genreStatsRef = doc(db, 'genreStats', genre);
+      const genreStatsSnap = await getDoc(genreStatsRef);
+      
+      if (genreStatsSnap.exists()) {
+        // 既存のジャンル統計を更新
+        const genreData = genreStatsSnap.data();
+        const subgenres = genreData.subgenres || {};
+        
+        if (subgenres[subgenre]) {
+          // 既存の単元の利用回数を増加
+          await updateDoc(genreStatsRef, {
+            useCount: increment(1),
+            [`subgenres.${subgenre}.useCount`]: increment(1)
+          });
+        } else {
+          // 新しい単元を追加して利用回数を1に設定
+          subgenres[subgenre] = { useCount: 1 };
+          await updateDoc(genreStatsRef, {
+            useCount: increment(1),
+            subgenres
+          });
+        }
+      } else {
+        // ジャンル統計を新規作成
+        await setDoc(genreStatsRef, {
+          useCount: 1,
+          subgenres: {
+            [subgenre]: { useCount: 1 }
+          }
+        });
+      }
+    } catch (err) {
+      console.error('Error updating genre stats:', err);
+    }
+  }, []);
+
   // クイズルームでの現在のクイズ状態を監視
   useEffect(() => {
     if (!quizRoom) return;
@@ -132,7 +172,8 @@ export function useQuizHook() {
     error,
     fetchGenres,
     fetchQuiz,
-    searchQuizzes
+    searchQuizzes,
+    updateGenreStats
   };
 }
 

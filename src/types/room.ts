@@ -13,6 +13,7 @@ export interface QuizRoom {
   };
   currentQuizIndex: number;
   quizIds: string[];
+  unitId?: string; // 使用するクイズ単元のID（オプション）
   totalQuizCount: number;
   startedAt: Timestamp;
   updatedAt: Timestamp;
@@ -47,6 +48,7 @@ export interface RoomListing {
   name: string;
   genre: string;
   subgenre: string;
+  unitId?: string; // 使用するクイズ単元のID（オプション）
   participantCount: number;
   status: RoomStatus;
 }

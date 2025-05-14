@@ -38,3 +38,24 @@ export interface QuizStatistics {
   correctAnswers: number;
   averageAnswerTime: number;
 }
+
+export interface GenreStats {
+  useCount: number;
+  subgenres: {
+    [subgenre: string]: {
+      useCount: number;
+    }
+  };
+}
+
+export interface QuizUnit {
+  unitId: string;
+  title: string;
+  description?: string;
+  genre: string;
+  createdBy: string;
+  createdAt: Timestamp;
+  quizIds: string[];
+  useCount: number;
+  isPublic: boolean;
+}

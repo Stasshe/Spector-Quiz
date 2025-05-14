@@ -1,0 +1,80 @@
+.
+├── CERTIFICATION.md
+├── Certificate2.md
+├── LICENSE
+├── README.md
+├── next-env.d.ts
+├── next.config.ts
+├── package-lock.json
+├── package.json
+├── postcss.config.js
+├── public
+│   ├── file.svg
+│   ├── globe.svg
+│   ├── next.svg
+│   ├── vercel.svg
+│   └── window.svg
+├── re.txt
+├── src
+│   ├── app
+│   │   ├── auth
+│   │   │   ├── login
+│   │   │   │   └── page.tsx
+│   │   │   └── register
+│   │   │       └── page.tsx
+│   │   ├── favicon.ico
+│   │   ├── globals.css
+│   │   ├── layout.tsx
+│   │   ├── page.tsx
+│   │   ├── profile
+│   │   │   ├── page.tsx
+│   │   │   └── user
+│   │   │       └── page.tsx
+│   │   ├── quiz
+│   │   │   ├── create
+│   │   │   │   └── page.tsx
+│   │   │   ├── create-quiz
+│   │   │   │   └── page.tsx
+│   │   │   ├── page.tsx
+│   │   │   ├── room
+│   │   │   │   └── page.tsx
+│   │   │   └── rooms
+│   │   │       └── page.tsx
+│   │   └── ranking
+│   │       └── page.tsx
+│   ├── components
+│   │   ├── layout
+│   │   │   ├── Footer.tsx
+│   │   │   └── Header.tsx
+│   │   └── quiz
+│   │       ├── AnswerInput
+│   │       │   └── index.tsx
+│   │       ├── ParticipantList
+│   │       │   └── index.tsx
+│   │       ├── QuizQuestion
+│   │       │   └── index.tsx
+│   │       ├── QuizResult
+│   │       │   └── index.tsx
+│   │       └── ScoreBoard
+│   │           └── index.tsx
+│   ├── config
+│   │   └── firebase.ts
+│   ├── constants
+│   │   └── genres.ts
+│   ├── context
+│   │   ├── AuthContext.tsx
+│   │   └── QuizContext.tsx
+│   ├── hooks
+│   │   ├── useAuth.ts
+│   │   ├── useLeader.ts
+│   │   ├── useQuiz.ts
+│   │   └── useQuizRoom.ts
+│   └── types
+│       ├── quiz.ts
+│       ├── room.ts
+│       └── user.ts
+├── tailwind.config.ts
+├── tree.txt
+└── tsconfig.json
+
+27 directories, 50 files
