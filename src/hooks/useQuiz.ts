@@ -23,16 +23,32 @@ export function useQuizHook() {
       const genresSnap = await getDocs(genresRef);
       
       const genreArray: string[] = [];
+      const unitMap: { [genre: string]: string[] } = {};
       
       // 各ジャンルについて処理
       for (const genreDoc of genresSnap.docs) {
         const genreId = genreDoc.id;
         genreArray.push(genreId);
+        
+        // 各ジャンルの単元を取得
+        const unitsRef = collection(db, 'genres', genreId, 'quiz_units');
+        const unitsSnap = await getDocs(unitsRef);
+        
+        // 単元名の配列を作成
+        const unitNames: string[] = [];
+        unitsSnap.forEach(unitDoc => {
+          const unitData = unitDoc.data();
+          if (unitData.title) {
+            unitNames.push(unitData.title);
+          }
+        });
+        
+        // ジャンルごとの単元マップを更新
+        unitMap[genreId] = unitNames;
       }
       
       setGenres(genreArray);
-      // サブジャンルは廃止されたため空オブジェクトをセット
-      setSubgenres({});
+      setSubgenres(unitMap); // 単元情報を格納（互換性のため変数名は subgenres のまま）
     } catch (err) {
       console.error('Error fetching genres:', err);
       setError('ジャンル一覧の取得中にエラーが発生しました');

@@ -285,25 +285,8 @@ export default function CreateQuizUnitPage() {
       
       for (const quiz of quizzes) {
         if (!quiz.quizId || quiz.quizId.startsWith('temp_')) {
-          // 一時的なIDを持つ新しいクイズはFirestoreに追加
-          const quizData = {
-            title: quiz.title,
-            question: quiz.question,
-            type: quiz.type,
-            choices: quiz.choices || [],
-            correctAnswer: quiz.correctAnswer || '',
-            acceptableAnswers: quiz.acceptableAnswers || [],
-            explanation: quiz.explanation || '',
-            genre: genre,
-            difficulty: quiz.difficulty || 3,
-            createdBy: currentUser!.uid,
-            createdAt: serverTimestamp() as any, // as any で型エラーを回避
-            useCount: 0,
-            correctCount: 0
-          };
-          
-          const docRef = await addDoc(collection(db, 'quizzes'), quizData);
-          quizIds.push(docRef.id);
+          // 一時的なIDを持つ新しいクイズはFirestoreに追加する必要はない
+          // 直接単元内のクイズとして追加するので何もしない
         } else {
           // 既存のクイズはそのままIDを使用
           quizIds.push(quiz.quizId);
