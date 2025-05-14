@@ -67,13 +67,16 @@ export function useQuizHook() {
       
       quizzesSnap.forEach(doc => {
         const quizData = doc.data() as Quiz;
-        genreSet.add(quizData.genre);
-        
-        if (!subgenreMap[quizData.genre]) {
-          subgenreMap[quizData.genre] = new Set<string>();
+        // genreとsubgenreが存在する場合のみ処理
+        if (quizData.genre && quizData.subgenre) {
+          genreSet.add(quizData.genre);
+          
+          if (!subgenreMap[quizData.genre]) {
+            subgenreMap[quizData.genre] = new Set<string>();
+          }
+          
+          subgenreMap[quizData.genre].add(quizData.subgenre);
         }
-        
-        subgenreMap[quizData.genre].add(quizData.subgenre);
       });
       
       const genreArray = Array.from(genreSet);
@@ -224,29 +227,35 @@ export function useQuizHook() {
       if (genreStatsSnap.exists()) {
         // 既存のジャンル統計を更新
         const genreData = genreStatsSnap.data();
-        const subgenres = genreData.subgenres || {};
+        const subgenreMap = genreData.subgenres || {};
         
-        if (subgenres[subgenre]) {
+        if (subgenre && subgenreMap[subgenre]) {
           // 既存の単元の利用回数を増加
           await updateDoc(genreStatsRef, {
             useCount: increment(1),
             [`subgenres.${subgenre}.useCount`]: increment(1)
           });
-        } else {
+        } else if (subgenre) {
           // 新しい単元を追加して利用回数を1に設定
-          subgenres[subgenre] = { useCount: 1 };
+          const updatedSubgenres = { ...subgenreMap };
+          updatedSubgenres[subgenre] = { useCount: 1 };
           await updateDoc(genreStatsRef, {
             useCount: increment(1),
-            subgenres
+            subgenres: updatedSubgenres
+          });
+        } else {
+          // サブジャンルがない場合は単にカウントアップ
+          await updateDoc(genreStatsRef, {
+            useCount: increment(1)
           });
         }
       } else {
         // ジャンル統計を新規作成
         await setDoc(genreStatsRef, {
           useCount: 1,
-          subgenres: {
+          subgenres: subgenre ? {
             [subgenre]: { useCount: 1 }
-          }
+          } : {}
         });
       }
     } catch (err) {
@@ -263,8 +272,12 @@ export function useQuizHook() {
     
     if (currentQuizId && (!currentQuiz || currentQuiz.quizId !== currentQuizId)) {
       // 単元IDがある場合は新しい階層構造から取得
-      if (quizRoom.unitId && quizRoom.genre && quizRoom.subgenre) {
-        fetchQuiz(quizRoom.genre, quizRoom.subgenre, quizRoom.unitId, currentQuizId);
+      const genre = quizRoom.genre;
+      const subgenre = quizRoom.subgenre;
+      const unitId = quizRoom.unitId;
+      
+      if (unitId && genre && subgenre) {
+        fetchQuiz(genre, subgenre, unitId, currentQuizId);
       } else {
         // 旧構造の場合は従来のメソッドを使用
         fetchQuizLegacy(currentQuizId);

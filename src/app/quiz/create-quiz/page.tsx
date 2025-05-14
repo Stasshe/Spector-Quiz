@@ -39,6 +39,7 @@ export default function CreateQuizUnitPage() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [genre, setGenre] = useState('');
+  const [subgenre, setSubgenre] = useState(''); // サブジャンルの状態を追加
   const [isPublic, setIsPublic] = useState(true);
   
   // クイズの状態管理
