@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useQuiz } from '@/hooks/useQuiz';
@@ -14,7 +14,17 @@ import QuizResult from '@/components/quiz/QuizResult';
 import ScoreBoard from '@/components/quiz/ScoreBoard';
 import { FaSignOutAlt, FaPlay } from 'react-icons/fa';
 
-export default function QuizRoomPage() {
+// ローディングフォールバックコンポーネント
+function QuizRoomLoading() {
+  return (
+    <div className="flex justify-center items-center min-h-[calc(100vh-64px)]">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+    </div>
+  );
+}
+
+// クイズルームのメインコンテンツコンポーネント
+function QuizRoomContent() {
   const { currentUser } = useAuth();
   const params = useSearchParams();
   const roomId = params.get('id') || '';
@@ -215,5 +225,14 @@ export default function QuizRoomPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// メインのクイズルームページコンポーネント
+export default function QuizRoomPage() {
+  return (
+    <Suspense fallback={<QuizRoomLoading />}>
+      <QuizRoomContent />
+    </Suspense>
   );
 }

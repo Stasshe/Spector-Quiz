@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { doc, getDoc } from 'firebase/firestore';
@@ -9,7 +9,17 @@ import { User, UserProfile } from '@/types/user';
 import { FaUser, FaTrophy, FaGamepad, FaCheck, FaArrowLeft } from 'react-icons/fa';
 import Link from 'next/link';
 
-export default function ProfilePage() {
+// ローディングフォールバックコンポーネント
+function ProfileLoading() {
+  return (
+    <div className="flex justify-center items-center min-h-[calc(100vh-64px)]">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+    </div>
+  );
+}
+
+// プロフィールコンテンツコンポーネント
+function UserProfileContent() {
   const { currentUser } = useAuth();
   const searchParams = useSearchParams();
   const userId = searchParams.get('id');
@@ -200,5 +210,14 @@ export default function ProfilePage() {
         )}
       </div>
     </div>
+  );
+}
+
+// メインのプロフィールページコンポーネント
+export default function ProfilePage() {
+  return (
+    <Suspense fallback={<ProfileLoading />}>
+      <UserProfileContent />
+    </Suspense>
   );
 }

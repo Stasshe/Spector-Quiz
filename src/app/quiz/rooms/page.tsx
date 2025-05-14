@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { FaArrowLeft, FaPlay, FaPlus, FaUsers, FaSync } from 'react-icons/fa';
@@ -8,7 +8,16 @@ import { useAuth } from '@/hooks/useAuth';
 import { useQuizRoom } from '@/hooks/useQuizRoom';
 import { RoomListing } from '@/types/room';
 
-export default function RoomsPage() {
+// ローディングフォールバックコンポーネント
+function RoomsLoading() {
+  return (
+    <div className="flex justify-center items-center min-h-[calc(100vh-64px)]">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+    </div>
+  );
+}
+
+function RoomsContent() {
   const { currentUser } = useAuth();
   const { availableRooms, fetchAvailableRooms, joinRoom, loading, error } = useQuizRoom();
   const [joinLoading, setJoinLoading] = useState(false);
@@ -162,5 +171,14 @@ export default function RoomsPage() {
         )}
       </div>
     </div>
+  );
+}
+
+// メインのルーム一覧ページコンポーネント
+export default function RoomsPage() {
+  return (
+    <Suspense fallback={<RoomsLoading />}>
+      <RoomsContent />
+    </Suspense>
   );
 }
