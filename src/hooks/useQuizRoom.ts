@@ -1,0 +1,307 @@
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import { db } from '@/config/firebase';
+import { 
+  collection, 
+  doc, 
+  getDoc, 
+  getDocs, 
+  query, 
+  where, 
+  orderBy, 
+  addDoc, 
+  updateDoc, 
+  deleteDoc, 
+  deleteField,
+  onSnapshot, 
+  serverTimestamp 
+} from 'firebase/firestore';
+import { useAuth } from '@/context/AuthContext';
+import { QuizRoom, RoomListing, RoomStatus } from '@/types/room';
+import { useQuiz } from '@/context/QuizContext';
+
+export function useQuizRoom() {
+  const { currentUser, userProfile } = useAuth();
+  const { setQuizRoom, setIsLeader, setCurrentQuiz } = useQuiz();
+  const [availableRooms, setAvailableRooms] = useState<RoomListing[]>([]);
+  const [currentRoom, setCurrentRoom] = useState<QuizRoom | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+
+  // 利用可能なルーム一覧を取得
+  const fetchAvailableRooms = useCallback(async () => {
+    try {
+      setLoading(true);
+      const roomsQuery = query(
+        collection(db, 'quiz_rooms'),
+        where('status', '==', 'waiting'),
+        orderBy('createdAt', 'desc')
+      );
+      
+      const roomsSnapshot = await getDocs(roomsQuery);
+      const rooms: RoomListing[] = [];
+      
+      roomsSnapshot.forEach(doc => {
+        const roomData = doc.data() as QuizRoom;
+        rooms.push({
+          roomId: doc.id,
+          name: roomData.name,
+          genre: roomData.genre,
+          subgenre: roomData.subgenre,
+          participantCount: Object.keys(roomData.participants).length,
+          status: roomData.status
+        });
+      });
+      
+      setAvailableRooms(rooms);
+    } catch (err) {
+      console.error('Error fetching rooms:', err);
+      setError('ルーム一覧の取得中にエラーが発生しました');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // ルームを作成
+  const createRoom = useCallback(async (name: string, genre: string, subgenre: string) => {
+    if (!currentUser || !userProfile) {
+      setError('ログインが必要です');
+      return null;
+    }
+    
+    try {
+      setLoading(true);
+      
+      const quizQuery = query(
+        collection(db, 'quizzes'),
+        where('genre', '==', genre),
+        where('subgenre', '==', subgenre),
+        orderBy('useCount')
+      );
+      
+      const quizSnapshot = await getDocs(quizQuery);
+      const quizIds: string[] = [];
+      
+      quizSnapshot.forEach(doc => {
+        quizIds.push(doc.id);
+      });
+      
+      if (quizIds.length === 0) {
+        throw new Error('選択したジャンルにクイズがありません');
+      }
+      
+      // 最大10問までランダムに選択
+      const selectedQuizIds = quizIds.sort(() => 0.5 - Math.random()).slice(0, 10);
+      
+      const newRoom: Omit<QuizRoom, 'roomId'> = {
+        name,
+        genre,
+        subgenre,
+        roomLeaderId: currentUser.uid,
+        participants: {
+          [currentUser.uid]: {
+            username: userProfile.username,
+            iconId: userProfile.iconId,
+            score: 0,
+            isReady: false,
+            isOnline: true
+          }
+        },
+        currentQuizIndex: 0,
+        quizIds: selectedQuizIds,
+        totalQuizCount: selectedQuizIds.length,
+        startedAt: serverTimestamp() as any,
+        updatedAt: serverTimestamp() as any,
+        status: 'waiting',
+        currentState: {
+          quizId: '',
+          startTime: serverTimestamp() as any,
+          endTime: null,
+          currentAnswerer: null,
+          answerStatus: 'waiting',
+          isRevealed: false
+        }
+      };
+      
+      const roomRef = await addDoc(collection(db, 'quiz_rooms'), newRoom);
+      const roomId = roomRef.id;
+      
+      // ユーザーの現在のルーム情報を更新
+      await updateDoc(doc(db, 'users', currentUser.uid), {
+        currentRoomId: roomId
+      });
+      
+      // 作成したルームを返す
+      const createdRoom = {
+        ...newRoom,
+        roomId
+      } as QuizRoom;
+      
+      setCurrentRoom(createdRoom);
+      setQuizRoom(createdRoom);
+      setIsLeader(true);
+      
+      router.push(`/quiz/${roomId}`);
+      
+      return createdRoom;
+    } catch (err: any) {
+      console.error('Error creating room:', err);
+      setError(err.message || 'ルームの作成中にエラーが発生しました');
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, [currentUser, userProfile, router, setQuizRoom, setIsLeader]);
+
+  // ルームに参加
+  const joinRoom = useCallback(async (roomId: string) => {
+    if (!currentUser || !userProfile) {
+      setError('ログインが必要です');
+      return false;
+    }
+    
+    try {
+      setLoading(true);
+      
+      const roomRef = doc(db, 'quiz_rooms', roomId);
+      const roomSnap = await getDoc(roomRef);
+      
+      if (!roomSnap.exists()) {
+        throw new Error('ルームが見つかりません');
+      }
+      
+      const roomData = roomSnap.data() as QuizRoom;
+      
+      if (roomData.status !== 'waiting') {
+        throw new Error('このルームは既に開始されているか終了しています');
+      }
+      
+      // ルームの参加者に追加
+      await updateDoc(roomRef, {
+        [`participants.${currentUser.uid}`]: {
+          username: userProfile.username,
+          iconId: userProfile.iconId,
+          score: 0,
+          isReady: false,
+          isOnline: true
+        },
+        updatedAt: serverTimestamp()
+      });
+      
+      // ユーザーの現在のルーム情報を更新
+      await updateDoc(doc(db, 'users', currentUser.uid), {
+        currentRoomId: roomId
+      });
+      
+      const joinedRoom = {
+        ...roomData,
+        roomId
+      } as QuizRoom;
+      
+      setCurrentRoom(joinedRoom);
+      setQuizRoom(joinedRoom);
+      setIsLeader(currentUser.uid === roomData.roomLeaderId);
+      
+      router.push(`/quiz/${roomId}`);
+      
+      return true;
+    } catch (err: any) {
+      console.error('Error joining room:', err);
+      setError(err.message || 'ルームへの参加中にエラーが発生しました');
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, [currentUser, userProfile, router, setQuizRoom, setIsLeader]);
+
+  // ルームから退出
+  const leaveRoom = useCallback(async () => {
+    if (!currentUser || !currentRoom) return false;
+    
+    try {
+      setLoading(true);
+      
+      const roomRef = doc(db, 'quiz_rooms', currentRoom.roomId);
+      
+      if (currentUser.uid === currentRoom.roomLeaderId) {
+        // リーダーが退出する場合、ルームを削除
+        await deleteDoc(roomRef);
+      } else {
+        // 一般参加者の場合は参加者リストから削除
+        await updateDoc(roomRef, {
+          [`participants.${currentUser.uid}`]: deleteField(),
+          updatedAt: serverTimestamp()
+        });
+      }
+      
+      // ユーザーのルーム情報をクリア
+      await updateDoc(doc(db, 'users', currentUser.uid), {
+        currentRoomId: null
+      });
+      
+      setCurrentRoom(null);
+      setQuizRoom(null);
+      setIsLeader(false);
+      setCurrentQuiz(null);
+      
+      router.push('/quiz');
+      
+      return true;
+    } catch (err) {
+      console.error('Error leaving room:', err);
+      setError('ルームからの退出中にエラーが発生しました');
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, [currentUser, currentRoom, router, setQuizRoom, setIsLeader, setCurrentQuiz]);
+
+  // 特定のルームを監視するフック
+  const useRoomListener = (roomId: string) => {
+    const [room, setRoom] = useState<QuizRoom | null>(null);
+    
+    useEffect(() => {
+      if (!roomId) return;
+      
+      const roomRef = doc(db, 'quiz_rooms', roomId);
+      const unsubscribe = onSnapshot(roomRef, (doc) => {
+        if (doc.exists()) {
+          const roomData = doc.data() as Omit<QuizRoom, 'roomId'>;
+          setRoom({ ...roomData, roomId: doc.id } as QuizRoom);
+          setQuizRoom({ ...roomData, roomId: doc.id } as QuizRoom);
+          
+          if (currentUser) {
+            setIsLeader(currentUser.uid === roomData.roomLeaderId);
+          }
+        } else {
+          // ルームが削除された場合
+          setRoom(null);
+          setQuizRoom(null);
+          setIsLeader(false);
+          router.push('/quiz');
+        }
+      }, (error) => {
+        console.error('Room listener error:', error);
+      });
+      
+      return () => unsubscribe();
+    }, [roomId, currentUser, setQuizRoom, setIsLeader, router]);
+    
+    return room;
+  };
+
+  return {
+    availableRooms,
+    currentRoom,
+    loading,
+    error,
+    fetchAvailableRooms,
+    createRoom,
+    joinRoom,
+    leaveRoom,
+    useRoomListener
+  };
+}
