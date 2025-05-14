@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/config/firebase';
@@ -11,14 +11,20 @@ import Link from 'next/link';
 
 export default function ProfilePage() {
   const { currentUser } = useAuth();
-  const params = useParams<{ userId: string }>();
-  const userId = params.userId as string;
+  const searchParams = useSearchParams();
+  const userId = searchParams.get('id');
   const router = useRouter();
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // IDがない場合はクイズページにリダイレクト
+    if (!userId) {
+      router.push('/quiz');
+      return;
+    }
+
     const fetchUserProfile = async () => {
       try {
         setLoading(true);
@@ -47,7 +53,7 @@ export default function ProfilePage() {
     };
 
     fetchUserProfile();
-  }, [userId]);
+  }, [userId, router]);
 
   if (loading) {
     return (

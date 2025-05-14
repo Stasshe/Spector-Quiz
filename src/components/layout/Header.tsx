@@ -67,7 +67,7 @@ export default function Header() {
                     </div>
                   </div>
                   <div className="flex space-x-2 pl-2 border-l border-gray-200">
-                    <Link href={`/profile/${currentUser.uid}`} className="hover:text-indigo-600 p-1">
+                    <Link href={`/profile/user?id=${currentUser.uid}`} className="hover:text-indigo-600 p-1">
                       <FaUser />
                     </Link>
                     <button onClick={handleLogout} className="hover:text-red-600 p-1">
@@ -141,7 +141,7 @@ export default function Header() {
                   </div>
                 
                   <Link
-                    href={`/profile/${currentUser.uid}`}
+                    href={`/profile/user?id=${currentUser.uid}`}
                     className="flex items-center space-x-3 text-gray-700 hover:text-indigo-600"
                     onClick={closeMenu}
                   >

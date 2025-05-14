@@ -146,7 +146,7 @@ export default function RankingPage() {
               return (
                 <Link
                   key={user.userId}
-                  href={`/profile/${user.userId}`}
+                  href={`/profile/user?id=${user.userId}`}
                   style={podiumStyles}
                   className={`card hover:shadow-xl transition-all duration-300 p-6 flex flex-col items-center relative overflow-hidden transform hover:-translate-y-1`}
                 >
@@ -210,7 +210,7 @@ export default function RankingPage() {
               {users.slice(3).map((user, index) => (
                 <li key={user.userId} className="hover:bg-indigo-50 transition-colors duration-150">
                   <Link
-                    href={`/profile/${user.userId}`}
+                    href={`/profile/user?id=${user.userId}`}
                     className="grid grid-cols-12 gap-4 px-4 py-3 items-center"
                   >
                     <div className="col-span-1 text-center font-semibold text-gray-500">

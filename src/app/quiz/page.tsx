@@ -107,7 +107,7 @@ export default function QuizPage() {
           </div>
           
           <Link
-            href={`/profile/${userProfile.userId}`}
+            href={`/profile/user?id=${userProfile.userId}`}
             className="btn-outline flex items-center"
           >
             プロフィール <FaChevronRight className="ml-2" />
