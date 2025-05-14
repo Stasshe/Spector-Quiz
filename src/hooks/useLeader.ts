@@ -34,7 +34,9 @@ export function useLeader(roomId: string) {
     if (!quizRoom || !isLeader) return;
     
     try {
-      const currentQuizId = quizRoom.quizIds[quizRoom.currentQuizIndex];
+      // quizIdsがundefinedの可能性を考慮
+      const quizIds = quizRoom.quizIds || [];
+      const currentQuizId = quizIds[quizRoom.currentQuizIndex];
       
       if (!currentQuizId) return;
       
@@ -93,8 +95,10 @@ export function useLeader(roomId: string) {
     
     try {
       const nextIndex = quizRoom.currentQuizIndex + 1;
+      // quizIdsがundefinedの可能性を考慮
+      const quizIds = quizRoom.quizIds || [];
       
-      if (nextIndex >= quizRoom.quizIds.length) {
+      if (nextIndex >= quizIds.length) {
         // 全問題が終了した場合
         await updateDoc(doc(db, 'quiz_rooms', roomId), {
           status: 'completed',

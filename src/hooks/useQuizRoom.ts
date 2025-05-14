@@ -69,6 +69,7 @@ export function useQuizRoom() {
             name: roomData.name,
             genre: roomData.genre,
             subgenre: roomData.subgenre,
+            unitId: roomData.unitId || '',  // unitIdが存在しない場合は空文字を設定
             participantCount: Object.keys(roomData.participants).length,
             status: roomData.status
           });
@@ -174,6 +175,119 @@ export function useQuizRoom() {
       return createdRoom;
     } catch (err: any) {
       console.error('Error creating room:', err);
+      setError(err.message || 'ルームの作成中にエラーが発生しました');
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, [currentUser, userProfile, router, setQuizRoom, setIsLeader]);
+
+  // 単元を使ってルームを作成
+  const createRoomWithUnit = useCallback(async (genreId: string, subgenreId: string, unitId: string, classType: string) => {
+    if (!currentUser || !userProfile) {
+      setError('ログインが必要です');
+      return null;
+    }
+    
+    try {
+      setLoading(true);
+      
+      // 単元データを取得
+      const unitRef = doc(db, 'genres', genreId, 'subgenres', subgenreId, 'quiz_units', unitId);
+      const unitSnap = await getDoc(unitRef);
+      
+      if (!unitSnap.exists()) {
+        throw new Error('指定された単元が見つかりません');
+      }
+      
+      const unitData = unitSnap.data();
+      
+      // 単元内のクイズを取得
+      const quizzesQuery = collection(db, 'genres', genreId, 'subgenres', subgenreId, 'quiz_units', unitId, 'quizzes');
+      const quizzesSnapshot = await getDocs(quizzesQuery);
+      
+      const quizIds: string[] = [];
+      quizzesSnapshot.forEach(doc => {
+        quizIds.push(doc.id);
+      });
+      
+      if (quizIds.length === 0) {
+        throw new Error('選択した単元にクイズがありません');
+      }
+      
+      // 単元のサブジャンル名（表示用）
+      const subgenreRef = doc(db, 'genres', genreId, 'subgenres', subgenreId);
+      const subgenreSnap = await getDoc(subgenreRef);
+      const subgenreName = subgenreSnap.exists() ? subgenreSnap.data().name : subgenreId;
+      
+      // ジャンル名（表示用）
+      const genreRef = doc(db, 'genres', genreId);
+      const genreSnap = await getDoc(genreRef);
+      const genreName = genreSnap.exists() ? genreSnap.data().name : genreId;
+      
+      // クラスタイプに基づいてルーム名を設定
+      const name = `${genreName} - ${unitData.title} (${classType})`;
+      
+      const newRoom: Omit<QuizRoom, 'roomId'> = {
+        name,
+        genre: genreId,
+        subgenre: subgenreId,
+        unitId,  // 単元IDを保存
+        classType,
+        roomLeaderId: currentUser.uid,
+        participants: {
+          [currentUser.uid]: {
+            username: userProfile.username,
+            iconId: userProfile.iconId,
+            score: 0,
+            isReady: false,
+            isOnline: true
+          }
+        },
+        currentQuizIndex: 0,
+        quizIds,
+        totalQuizCount: quizIds.length,
+        startedAt: serverTimestamp() as any,
+        updatedAt: serverTimestamp() as any,
+        status: 'waiting',
+        currentState: {
+          quizId: '',
+          startTime: serverTimestamp() as any,
+          endTime: null,
+          currentAnswerer: null,
+          answerStatus: 'waiting',
+          isRevealed: false
+        }
+      };
+      
+      const roomRef = await addDoc(collection(db, 'quiz_rooms'), newRoom);
+      const roomId = roomRef.id;
+      
+      // ユーザーの現在のルーム情報を更新
+      await updateDoc(doc(db, 'users', currentUser.uid), {
+        currentRoomId: roomId
+      });
+      
+      // 単元の使用回数を増やす
+      await updateDoc(unitRef, {
+        useCount: (unitData.useCount || 0) + 1
+      });
+      
+      // 作成したルームを返す
+      const createdRoom = {
+        ...newRoom,
+        roomId
+      } as QuizRoom;
+      
+      setCurrentRoom(createdRoom);
+      setQuizRoom(createdRoom);
+      setIsLeader(true);
+      
+      router.push(`/quiz/room?id=${roomId}`);
+      
+      return createdRoom;
+    } catch (err: any) {
+      console.error('Error creating room with unit:', err);
       setError(err.message || 'ルームの作成中にエラーが発生しました');
       return null;
     } finally {
@@ -377,6 +491,7 @@ export function useQuizRoom() {
     joinRoom,
     leaveRoom,
     findOrCreateRoom,
-    useRoomListener
+    useRoomListener,
+    createRoomWithUnit  // 新しい関数をエクスポート
   };
 }

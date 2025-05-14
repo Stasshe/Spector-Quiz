@@ -1,6 +1,7 @@
 import { Timestamp } from "firebase/firestore";
 import { ParticipantInfo } from "./user";
 
+// メインルーム情報
 export interface QuizRoom {
   roomId: string;
   name: string;
@@ -8,21 +9,23 @@ export interface QuizRoom {
   subgenre: string;
   classType: string; // 'ユーザー作成' または '公式'
   roomLeaderId: string;
-  participants: {
-    [userId: string]: ParticipantInfo;
-  };
+  unitId?: string;    // 使用する単元ID
+  participants: ParticipantsMap;
   currentQuizIndex: number;
-  quizIds: string[];
-  unitId?: string; // 使用するクイズ単元のID（オプション）
   totalQuizCount: number;
   startedAt: Timestamp;
   updatedAt: Timestamp;
   status: RoomStatus;
   currentState: QuizRoomState;
+  
+  // 移行期間中は互換性のためquizIdsも保持
+  quizIds?: string[];
 }
 
+// ルームのステータス
 export type RoomStatus = 'waiting' | 'in_progress' | 'completed';
 
+// ルームの現在の状態
 export interface QuizRoomState {
   quizId: string;
   startTime: Timestamp;
@@ -32,8 +35,10 @@ export interface QuizRoomState {
   isRevealed: boolean;
 }
 
+// 解答状態
 export type AnswerStatus = 'waiting' | 'answering' | 'correct' | 'incorrect' | 'timeout';
 
+// ルーム参加者情報（サブコレクション用）
 export interface RoomParticipant {
   userId: string;
   username: string;
@@ -41,14 +46,33 @@ export interface RoomParticipant {
   score: number;
   isReady: boolean;
   isOnline: boolean;
+  joinedAt: Timestamp;
 }
 
+// 回答データ（サブコレクション用）
+export interface RoomAnswer {
+  answerId: string;
+  userId: string;
+  quizId: string;
+  clickTime: Timestamp;
+  answerTime: number;
+  answer: string;
+  isCorrect: boolean;
+  processingStatus: 'pending' | 'processed';
+}
+
+// ルーム一覧表示用
 export interface RoomListing {
   roomId: string;
   name: string;
   genre: string;
   subgenre: string;
-  unitId?: string; // 使用するクイズ単元のID（オプション）
+  unitId: string;
   participantCount: number;
   status: RoomStatus;
+}
+
+// 移行期間中の互換性のため
+export interface ParticipantsMap {
+  [userId: string]: ParticipantInfo;
 }

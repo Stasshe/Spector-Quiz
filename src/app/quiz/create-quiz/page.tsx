@@ -317,9 +317,10 @@ export default function CreateQuizUnitPage() {
         title,
         description,
         genre,
+        subgenre, // サブジャンルを追加
         createdBy: currentUser!.uid,
         createdAt: serverTimestamp() as any, // as any で型エラーを回避
-        quizIds,
+        quizCount: quizzes.length, // 代わりにquizCountを使用
         useCount: 0,
         isPublic
       };

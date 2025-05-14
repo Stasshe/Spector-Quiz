@@ -22,9 +22,9 @@ export function useQuizUnit() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // ジャンルに基づいてクイズ単元を検索
-  const fetchUnitsByGenre = useCallback(async (genre: string) => {
-    if (!genre) {
+  // ジャンルとサブジャンルに基づいてクイズ単元を検索
+  const fetchUnitsByGenreAndSubgenre = useCallback(async (genreId: string, subgenreId: string) => {
+    if (!genreId || !subgenreId) {
       setAvailableUnits([]);
       return [];
     }
@@ -33,13 +33,20 @@ export function useQuizUnit() {
       setLoading(true);
       const units: QuizUnit[] = [];
       
+      // サブジャンル内の単元コレクションへの参照
+      const unitsCollectionRef = collection(
+        db, 
+        'genres', genreId, 
+        'subgenres', subgenreId, 
+        'quiz_units'
+      );
+      
       if (currentUser) {
         // ログイン時は、公開単元と自分が作成した単元を両方取得する
         
         // 1. 公開単元を取得
         const publicUnitsQuery = query(
-          collection(db, 'quiz_units'),
-          where('genre', '==', genre),
+          unitsCollectionRef,
           where('isPublic', '==', true)
         );
         const publicUnitsSnapshot = await getDocs(publicUnitsQuery);
@@ -47,14 +54,15 @@ export function useQuizUnit() {
         publicUnitsSnapshot.forEach(doc => {
           units.push({
             ...doc.data(),
-            unitId: doc.id
+            unitId: doc.id,
+            genre: genreId,      // 参照用に追加
+            subgenre: subgenreId // 参照用に追加
           } as QuizUnit);
         });
         
         // 2. 自分の単元を取得（重複は除外）
         const myUnitsQuery = query(
-          collection(db, 'quiz_units'),
-          where('genre', '==', genre),
+          unitsCollectionRef,
           where('createdBy', '==', currentUser.uid)
         );
         const myUnitsSnapshot = await getDocs(myUnitsQuery);
@@ -64,15 +72,16 @@ export function useQuizUnit() {
           if (!units.some(unit => unit.unitId === doc.id)) {
             units.push({
               ...doc.data(),
-              unitId: doc.id
+              unitId: doc.id,
+              genre: genreId,      // 参照用に追加
+              subgenre: subgenreId // 参照用に追加
             } as QuizUnit);
           }
         });
       } else {
         // 非ログイン時は公開単元のみ取得
         const unitsQuery = query(
-          collection(db, 'quiz_units'),
-          where('genre', '==', genre),
+          unitsCollectionRef,
           where('isPublic', '==', true)
         );
         const unitsSnapshot = await getDocs(unitsQuery);
@@ -80,7 +89,9 @@ export function useQuizUnit() {
         unitsSnapshot.forEach(doc => {
           units.push({
             ...doc.data(),
-            unitId: doc.id
+            unitId: doc.id,
+            genre: genreId,      // 参照用に追加
+            subgenre: subgenreId // 参照用に追加
           } as QuizUnit);
         });
       }
@@ -100,10 +111,10 @@ export function useQuizUnit() {
   }, [currentUser]);
   
   // 特定の単元を取得
-  const fetchUnitById = useCallback(async (unitId: string) => {
+  const fetchUnitById = useCallback(async (genreId: string, subgenreId: string, unitId: string) => {
     try {
       setLoading(true);
-      const unitRef = doc(db, 'quiz_units', unitId);
+      const unitRef = doc(db, 'genres', genreId, 'subgenres', subgenreId, 'quiz_units', unitId);
       const unitSnap = await getDoc(unitRef);
       
       if (!unitSnap.exists()) {
@@ -112,7 +123,9 @@ export function useQuizUnit() {
       
       const unitData = {
         ...unitSnap.data(),
-        unitId: unitSnap.id
+        unitId: unitSnap.id,
+        genre: genreId,      // 参照用に追加
+        subgenre: subgenreId // 参照用に追加
       } as QuizUnit;
       
       setLoading(false);
@@ -129,26 +142,50 @@ export function useQuizUnit() {
   const fetchPopularUnits = useCallback(async (limitCount: number = 5) => {
     try {
       setLoading(true);
-      
-      const unitsQuery = query(
-        collection(db, 'quiz_units'),
-        where('isPublic', '==', true),
-        orderBy('useCount', 'desc'),
-        firestoreLimit(limitCount)
-      );
-      
-      const unitsSnapshot = await getDocs(unitsQuery);
       const units: QuizUnit[] = [];
       
-      unitsSnapshot.forEach(doc => {
-        units.push({
-          ...doc.data(),
-          unitId: doc.id
-        } as QuizUnit);
-      });
+      // ジャンル一覧を取得
+      const genresSnapshot = await getDocs(collection(db, 'genres'));
+      
+      // 各ジャンルのサブジャンルを取得
+      for (const genreDoc of genresSnapshot.docs) {
+        const genreId = genreDoc.id;
+        
+        // サブジャンル一覧を取得
+        const subgenresSnapshot = await getDocs(collection(db, 'genres', genreId, 'subgenres'));
+        
+        // 各サブジャンルの単元を取得
+        for (const subgenreDoc of subgenresSnapshot.docs) {
+          const subgenreId = subgenreDoc.id;
+          
+          // サブジャンル内の公開単元を取得（使用回数順）
+          const unitsQuery = query(
+            collection(db, 'genres', genreId, 'subgenres', subgenreId, 'quiz_units'),
+            where('isPublic', '==', true),
+            orderBy('useCount', 'desc'),
+            firestoreLimit(limitCount)
+          );
+          
+          const unitsSnapshot = await getDocs(unitsQuery);
+          
+          unitsSnapshot.forEach(doc => {
+            units.push({
+              ...doc.data(),
+              unitId: doc.id,
+              genre: genreId,
+              subgenre: subgenreId
+            } as QuizUnit);
+          });
+        }
+      }
+      
+      // 全ての単元を使用回数順に並べ替え、上位limitCount件を返す
+      const sortedUnits = units
+        .sort((a, b) => b.useCount - a.useCount)
+        .slice(0, limitCount);
       
       setLoading(false);
-      return units;
+      return sortedUnits;
     } catch (err) {
       console.error('Error fetching popular units:', err);
       setError('人気単元の取得中にエラーが発生しました');
@@ -161,7 +198,7 @@ export function useQuizUnit() {
     availableUnits,
     loading,
     error,
-    fetchUnitsByGenre,
+    fetchUnitsByGenreAndSubgenre,
     fetchUnitById,
     fetchPopularUnits
   };

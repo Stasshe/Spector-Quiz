@@ -1,0 +1,73 @@
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ユーザードキュメント
+    match /users/{userId} {
+      allow read;
+      allow create: if request.auth != null;
+      allow update: if request.auth.uid == userId;
+      
+      // ユーザー統計情報
+      match /user_stats/{document=**} {
+        allow read;
+        allow write: if request.auth.uid == userId;
+      }
+    }
+    
+    // ジャンル情報
+    match /genres/{genreId} {
+      allow read;
+      allow write: if request.auth != null && (
+                     request.auth.token.admin == true || 
+                     resource.data.isUserCreated == true && request.auth.uid == resource.data.createdBy
+                   );
+      
+      // サブジャンル
+      match /subgenres/{subgenreId} {
+        allow read;
+        allow write: if request.auth != null && (
+                       request.auth.token.admin == true || 
+                       get(/databases/$(database)/documents/genres/$(genreId)).data.isUserCreated == true && 
+                       request.auth.uid == get(/databases/$(database)/documents/genres/$(genreId)).data.createdBy
+                     );
+        
+        // クイズ単元
+        match /quiz_units/{unitId} {
+          allow read;
+          allow create: if request.auth != null;
+          allow update, delete: if request.auth.uid == resource.data.createdBy;
+          
+          // 単元内のクイズ
+          match /quizzes/{quizId} {
+            allow read;
+            allow write: if request.auth.uid == get(/databases/$(database)/documents/genres/$(genreId)/subgenres/$(subgenreId)/quiz_units/$(unitId)).data.createdBy;
+          }
+        }
+      }
+    }
+    
+    // クイズルーム
+    match /quiz_rooms/{roomId} {
+      allow read;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null;
+      allow delete: if request.auth.uid == resource.data.roomLeaderId;
+      
+      // 参加者
+      match /participants/{userId} {
+        allow read;
+        allow create, update: if request.auth.uid == userId || 
+                               request.auth.uid == get(/databases/$(database)/documents/quiz_rooms/$(roomId)).data.roomLeaderId;
+        allow delete: if request.auth.uid == userId || 
+                       request.auth.uid == get(/databases/$(database)/documents/quiz_rooms/$(roomId)).data.roomLeaderId;
+      }
+      
+      // 回答データ
+      match /answers/{answerId} {
+        allow read;
+        allow create: if request.auth != null;
+        allow update: if request.auth.uid == resource.data.userId || 
+                       request.auth.uid == get(/databases/$(database)/documents/quiz_rooms/$(roomId)).data.roomLeaderId;
+      }
+    }
+  }
+}
