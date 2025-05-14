@@ -26,22 +26,24 @@ export default function Header() {
   ];
 
   return (
-    <header className="bg-indigo-600 text-white">
-      <div className="container mx-auto px-4">
-        <div className="flex justify-between items-center py-4">
+    <header className="sticky top-0 z-50">
+      <div className="app-container">
+        <div className="navbar">
           <Link href="/" className="flex items-center space-x-2 text-xl font-bold">
-            <FaBolt className="text-yellow-300" />
-            <span>Zap!</span>
+            <div className="bg-indigo-600 text-white p-2 rounded-lg transform rotate-12">
+              <FaBolt className="text-yellow-300" />
+            </div>
+            <span className="bg-gradient-to-r from-indigo-600 to-indigo-500 text-transparent bg-clip-text">Zap!</span>
           </Link>
 
           {/* デスクトップナビゲーション */}
-          <nav className="hidden md:flex space-x-6">
+          <nav className="hidden md:flex space-x-8">
             {navigation.map((item) => (
               <Link
                 key={item.name}
                 href={item.href}
-                className={`hover:text-yellow-300 transition ${
-                  pathname === item.href ? 'text-yellow-300 font-medium' : ''
+                className={`nav-link ${
+                  pathname === item.href ? 'nav-link-active' : ''
                 }`}
               >
                 {item.name}
@@ -53,28 +55,31 @@ export default function Header() {
           <div className="hidden md:flex items-center space-x-4">
             {currentUser ? (
               <>
-                <div className="flex items-center space-x-2">
-                  <div className="bg-indigo-700 rounded-full p-2">
-                    <FaUser className="text-yellow-300" />
+                <div className="flex items-center space-x-3 bg-gray-50 rounded-xl px-3 py-2 shadow-sm">
+                  <div className="avatar w-8 h-8 bg-indigo-100 flex items-center justify-center">
+                    <FaUser className="text-indigo-600" />
                   </div>
                   <div>
-                    <p className="font-medium">{userProfile?.username}</p>
-                    <p className="text-xs text-indigo-200">Lv. {Math.floor((userProfile?.exp || 0) / 100) + 1}</p>
+                    <p className="font-medium text-gray-800">{userProfile?.username}</p>
+                    <div className="flex items-center space-x-1">
+                      <FaTrophy className="text-yellow-500 text-xs" />
+                      <p className="text-xs text-gray-500">Lv. {Math.floor((userProfile?.exp || 0) / 100) + 1}</p>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center space-x-4">
-                  <Link href={`/profile/${currentUser.uid}`} className="hover:text-yellow-300">
-                    <FaUser />
-                  </Link>
-                  <button onClick={handleLogout} className="hover:text-yellow-300">
-                    <FaSignOutAlt />
-                  </button>
+                  <div className="flex space-x-2 pl-2 border-l border-gray-200">
+                    <Link href={`/profile/${currentUser.uid}`} className="hover:text-indigo-600 p-1">
+                      <FaUser />
+                    </Link>
+                    <button onClick={handleLogout} className="hover:text-red-600 p-1">
+                      <FaSignOutAlt />
+                    </button>
+                  </div>
                 </div>
               </>
             ) : (
               <Link
                 href="/auth/login"
-                className="bg-yellow-400 text-indigo-800 px-4 py-2 rounded-md font-medium hover:bg-yellow-300 transition"
+                className="btn-primary"
               >
                 ログイン
               </Link>
@@ -82,7 +87,7 @@ export default function Header() {
           </div>
 
           {/* モバイルメニューボタン */}
-          <button className="md:hidden text-2xl" onClick={toggleMenu}>
+          <button className="md:hidden p-2 rounded-lg bg-indigo-100 text-indigo-600 shadow-sm" onClick={toggleMenu}>
             {isMenuOpen ? <FaTimes /> : <FaBars />}
           </button>
         </div>
@@ -90,26 +95,54 @@ export default function Header() {
 
       {/* モバイルナビゲーション */}
       {isMenuOpen && (
-        <div className="md:hidden bg-indigo-700 py-4">
-          <div className="container mx-auto px-4">
-            <nav className="flex flex-col space-y-4">
+        <div className="md:hidden fixed inset-0 bg-white bg-opacity-95 z-50 animate-fadeIn">
+          <div className="app-container pt-4">
+            <div className="flex justify-between items-center mb-6">
+              <Link href="/" className="flex items-center space-x-2 text-xl font-bold" onClick={closeMenu}>
+                <div className="bg-indigo-600 text-white p-2 rounded-lg transform rotate-12">
+                  <FaBolt className="text-yellow-300" />
+                </div>
+                <span className="bg-gradient-to-r from-indigo-600 to-indigo-500 text-transparent bg-clip-text">Zap!</span>
+              </Link>
+              <button className="p-2 rounded-lg bg-gray-100 text-gray-600" onClick={closeMenu}>
+                <FaTimes />
+              </button>
+            </div>
+            
+            <nav className="flex flex-col space-y-6 py-8">
               {navigation.map((item) => (
                 <Link
                   key={item.name}
                   href={item.href}
-                  className={`hover:text-yellow-300 transition ${
-                    pathname === item.href ? 'text-yellow-300 font-medium' : ''
+                  className={`text-xl ${
+                    pathname === item.href 
+                      ? 'text-indigo-600 font-bold' 
+                      : 'text-gray-700 hover:text-indigo-600'
                   }`}
                   onClick={closeMenu}
                 >
                   {item.name}
                 </Link>
               ))}
+              
               {currentUser ? (
-                <>
+                <div className="space-y-6 pt-4 border-t border-gray-100">
+                  <div className="flex items-center space-x-3">
+                    <div className="avatar w-10 h-10 bg-indigo-100 flex items-center justify-center">
+                      <FaUser className="text-indigo-600" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-800">{userProfile?.username}</p>
+                      <div className="flex items-center space-x-1">
+                        <FaTrophy className="text-yellow-500 text-xs" />
+                        <p className="text-xs text-gray-500">Lv. {Math.floor((userProfile?.exp || 0) / 100) + 1}</p>
+                      </div>
+                    </div>
+                  </div>
+                
                   <Link
                     href={`/profile/${currentUser.uid}`}
-                    className="hover:text-yellow-300 flex items-center space-x-2"
+                    className="flex items-center space-x-3 text-gray-700 hover:text-indigo-600"
                     onClick={closeMenu}
                   >
                     <FaUser />
@@ -120,16 +153,16 @@ export default function Header() {
                       handleLogout();
                       closeMenu();
                     }}
-                    className="hover:text-yellow-300 flex items-center space-x-2 text-left"
+                    className="flex items-center space-x-3 text-gray-700 hover:text-red-600 text-left w-full"
                   >
                     <FaSignOutAlt />
                     <span>ログアウト</span>
                   </button>
-                </>
+                </div>
               ) : (
                 <Link
                   href="/auth/login"
-                  className="bg-yellow-400 text-indigo-800 px-4 py-2 rounded-md font-medium hover:bg-yellow-300 transition text-center"
+                  className="btn-primary w-full flex items-center justify-center mt-4"
                   onClick={closeMenu}
                 >
                   ログイン

@@ -1,0 +1,2 @@
+[Error: Cannot apply unknown utility class: bg-gray-50]
+[Error: Cannot apply unknown utility class: bg-gray-50]

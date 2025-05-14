@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useQuizRoom } from '@/hooks/useQuizRoom';
-import { FaPlay, FaArrowLeft } from 'react-icons/fa';
+import { FaPlay, FaArrowLeft, FaGamepad, FaBook, FaPenFancy, FaUsers } from 'react-icons/fa';
 import Link from 'next/link';
 
 export default function CreateRoomPage() {
@@ -51,53 +51,62 @@ export default function CreateRoomPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="max-w-xl mx-auto">
-        <Link href="/quiz" className="flex items-center text-indigo-600 mb-6">
+    <div className="app-container py-8">
+      <div className="max-w-2xl mx-auto">
+        <Link href="/quiz" className="flex items-center text-indigo-600 mb-6 hover:text-indigo-800 transition-colors duration-200">
           <FaArrowLeft className="mr-2" /> クイズ選択に戻る
         </Link>
         
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h1 className="text-2xl font-bold mb-6">クイズルームを作成</h1>
+        <div className="card">
+          <div className="flex items-center mb-8">
+            <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center text-white shadow-md mr-4">
+              <FaGamepad className="text-2xl" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 text-transparent bg-clip-text">クイズルームを作成</h1>
+              <p className="text-gray-600">新しいクイズルームを作成して友達を招待しましょう</p>
+            </div>
+          </div>
           
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md mb-4">
-              {error}
+            <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded-lg mb-6 animate-fadeIn">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm">{error}</p>
+                </div>
+              </div>
             </div>
           )}
           
-          <form onSubmit={handleCreateRoom}>
-            <div className="mb-4">
-              <label htmlFor="genre" className="block text-sm font-medium text-gray-700 mb-1">
-                ジャンル
-              </label>
-              <input
-                type="text"
-                id="genre"
-                name="genre"
-                value={genre}
-                disabled
-                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
-              />
+          <form onSubmit={handleCreateRoom} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label htmlFor="genre" className="form-label flex items-center">
+                  <FaBook className="mr-2 text-indigo-500" /> ジャンル
+                </label>
+                <div className="bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-3 text-gray-700 font-medium">
+                  {genre}
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <label htmlFor="subgenre" className="form-label flex items-center">
+                  <FaGamepad className="mr-2 text-indigo-500" /> 単元
+                </label>
+                <div className="bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-3 text-gray-700 font-medium">
+                  {subgenre}
+                </div>
+              </div>
             </div>
             
-            <div className="mb-4">
-              <label htmlFor="subgenre" className="block text-sm font-medium text-gray-700 mb-1">
-                単元
-              </label>
-              <input
-                type="text"
-                id="subgenre"
-                name="subgenre"
-                value={subgenre}
-                disabled
-                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
-              />
-            </div>
-            
-            <div className="mb-6">
-              <label htmlFor="roomName" className="block text-sm font-medium text-gray-700 mb-1">
-                ルーム名
+            <div className="space-y-2">
+              <label htmlFor="roomName" className="form-label flex items-center">
+                <FaPenFancy className="mr-2 text-indigo-500" /> ルーム名
               </label>
               <input
                 type="text"
@@ -106,30 +115,44 @@ export default function CreateRoomPage() {
                 value={roomName}
                 onChange={(e) => setRoomName(e.target.value)}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                placeholder="ルーム名を入力"
+                className="form-input"
+                placeholder="例: 初心者歓迎！楽しく学ぼう！"
               />
             </div>
             
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? (
-                <span className="flex items-center">
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  ルーム作成中...
-                </span>
-              ) : (
-                <span className="flex items-center">
-                  <FaPlay className="mr-2" /> ルームを作成する
-                </span>
-              )}
-            </button>
+            <div className="pt-4">
+              <div className="bg-indigo-50 rounded-xl p-4 mb-6 border border-indigo-100">
+                <div className="flex items-center mb-2">
+                  <FaUsers className="text-indigo-500 mr-2" />
+                  <h3 className="font-medium">ルーム情報</h3>
+                </div>
+                <p className="text-sm text-gray-600">
+                  ルームを作成すると、あなたがリーダーになります。<br />
+                  このルームでは、{genre}の{subgenre}に関するクイズが出題されます。<br />
+                  友達を招待して一緒にプレイしましょう！
+                </p>
+              </div>
+              
+              <button
+                type="submit"
+                disabled={loading}
+                className="btn-primary w-full flex items-center justify-center"
+              >
+                {loading ? (
+                  <span className="flex items-center">
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    ルーム作成中...
+                  </span>
+                ) : (
+                  <span className="flex items-center">
+                    <FaPlay className="mr-2" /> ルームを作成する
+                  </span>
+                )}
+              </button>
+            </div>
           </form>
         </div>
       </div>
