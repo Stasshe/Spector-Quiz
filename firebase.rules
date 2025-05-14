@@ -16,12 +16,34 @@ service cloud.firestore {
     // ジャンル情報
     match /genres/{genreId} {
       allow read;
-      allow write: if request.auth != null && (
+      // 初期化段階では誰でも作成できるように
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null && (
                      request.auth.token.admin == true || 
                      resource.data.isUserCreated == true && request.auth.uid == resource.data.createdBy
                    );
       
-      // サブジャンル
+      // クイズ単元（直接ジャンル配下に配置）
+      match /quiz_units/{unitId} {
+        allow read;
+        // 初期化段階では誰でも作成できるように
+        allow create: if request.auth != null;
+        allow update, delete: if request.auth != null && (
+                       request.auth.uid == resource.data.createdBy || 
+                       get(/databases/$(database)/documents/genres/$(genreId)).data.createdBy == request.auth.uid
+                     );
+        
+        // 単元内のクイズ
+        match /quizzes/{quizId} {
+          allow read;
+          allow write: if request.auth != null && (
+                        request.auth.uid == get(/databases/$(database)/documents/genres/$(genreId)/quiz_units/$(unitId)).data.createdBy ||
+                        get(/databases/$(database)/documents/genres/$(genreId)).data.createdBy == request.auth.uid
+                      );
+        }
+      }
+      
+      // サブジャンル（後方互換性のため残す）
       match /subgenres/{subgenreId} {
         allow read;
         allow write: if request.auth != null && (
@@ -43,6 +65,16 @@ service cloud.firestore {
           }
         }
       }
+    }
+    
+    // クイズコレクション（共有クイズ）
+    match /quizzes/{quizId} {
+      allow read;
+      allow create, update: if request.auth != null;
+      allow delete: if request.auth != null && (
+                     request.auth.uid == resource.data.createdBy ||
+                     request.auth.token.admin == true
+                   );
     }
     
     // クイズルーム
@@ -70,4 +102,5 @@ service cloud.firestore {
       }
     }
   }
+}
 }

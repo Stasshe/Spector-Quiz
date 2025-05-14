@@ -290,12 +290,12 @@ export default function CreateQuizUnitPage() {
             title: quiz.title,
             question: quiz.question,
             type: quiz.type,
-            choices: quiz.choices,
-            correctAnswer: quiz.correctAnswer,
-            acceptableAnswers: quiz.acceptableAnswers,
-            explanation: quiz.explanation,
+            choices: quiz.choices || [],
+            correctAnswer: quiz.correctAnswer || '',
+            acceptableAnswers: quiz.acceptableAnswers || [],
+            explanation: quiz.explanation || '',
             genre: genre,
-            difficulty: quiz.difficulty,
+            difficulty: quiz.difficulty || 3,
             createdBy: currentUser!.uid,
             createdAt: serverTimestamp() as any, // as any で型エラーを回避
             useCount: 0,
@@ -313,7 +313,7 @@ export default function CreateQuizUnitPage() {
       // 単元をFirestoreの新しい階層構造に追加
       const unitData: Omit<QuizUnit, 'unitId'> = {
         title,
-        description,
+        description: description || '', // 空文字列をデフォルト値として設定
         createdBy: currentUser!.uid,
         createdAt: serverTimestamp() as any, // as any で型エラーを回避
         quizCount: quizzes.length, // クイズの数
@@ -336,11 +336,11 @@ export default function CreateQuizUnitPage() {
           title: quiz.title,
           question: quiz.question,
           type: quiz.type,
-          choices: quiz.choices,
-          correctAnswer: quiz.correctAnswer,
-          acceptableAnswers: quiz.acceptableAnswers,
-          explanation: quiz.explanation,
-          difficulty: quiz.difficulty,
+          choices: quiz.choices || [],
+          correctAnswer: quiz.correctAnswer || '',
+          acceptableAnswers: quiz.acceptableAnswers || [],
+          explanation: quiz.explanation || '',
+          difficulty: quiz.difficulty || 3,
           createdBy: currentUser!.uid,
           createdAt: serverTimestamp() as any,
           useCount: 0,
@@ -367,7 +367,11 @@ export default function CreateQuizUnitPage() {
       }, 3000);
     } catch (error) {
       console.error('Error publishing unit:', error);
-      setErrorMessage('単元の公開に失敗しました。');
+      if (error instanceof Error) {
+        setErrorMessage(`単元の公開に失敗しました: ${error.message}`);
+      } else {
+        setErrorMessage('単元の公開に失敗しました。');
+      }
     }
     
     setLoading(false);
@@ -388,6 +392,24 @@ export default function CreateQuizUnitPage() {
     if (!genre) {
       setErrorMessage('ジャンルを選択してください');
       return false;
+    }
+    
+    // クイズのデータを検証
+    for (const quiz of quizzes) {
+      if (!quiz.title || !quiz.question) {
+        setErrorMessage('すべてのクイズにタイトルと問題文が必要です');
+        return false;
+      }
+      
+      if (quiz.type === 'multiple_choice' && (!quiz.choices || quiz.choices.length < 2)) {
+        setErrorMessage('選択式クイズには少なくとも2つの選択肢が必要です');
+        return false;
+      }
+      
+      if (!quiz.correctAnswer) {
+        setErrorMessage('すべてのクイズに正解が必要です');
+        return false;
+      }
     }
     
     setErrorMessage('');
