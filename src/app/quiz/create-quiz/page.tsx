@@ -953,31 +953,30 @@ export default function CreateQuizUnitPage() {
                               placeholder="正解を入力"
                             />
                           </div>
-                            
-                            {acceptableAnswers.map((answer, index) => (
-                              <div key={index} className="flex items-center mb-2">
-                                <input
-                                  type="text"
-                                  value={answer}
-                                  onChange={(e) => updateAcceptableAnswer(index, e.target.value)}
-                                  className="form-input mr-2"
-                                  placeholder="別の正解を入力"
-                                />
-                                {acceptableAnswers.length > 1 && (
-                                  <button
-                                    type="button"
-                                    onClick={() => removeAcceptableAnswer(index)}
-                                    className="text-red-500 hover:text-red-700"
-                                  >
-                                    <FaTrash />
-                                  </button>
-                                )}
-                              </div>
-                            ))}
-                            <p className="text-sm text-gray-500">
-                              入力式の問題では表記ゆれを考慮して複数の回答を許容できます
-                            </p>
-                          </div>
+                          
+                          {acceptableAnswers.map((answer, index) => (
+                            <div key={index} className="flex items-center mb-2">
+                              <input
+                                type="text"
+                                value={answer}
+                                onChange={(e) => updateAcceptableAnswer(index, e.target.value)}
+                                className="form-input mr-2"
+                                placeholder="別の正解を入力"
+                              />
+                              {acceptableAnswers.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => removeAcceptableAnswer(index)}
+                                  className="text-red-500 hover:text-red-700"
+                                >
+                                  <FaTrash />
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                          <p className="text-sm text-gray-500">
+                            入力式の問題では表記ゆれを考慮して複数の回答を許容できます
+                          </p>
                         </div>
                       )}
                       
@@ -1013,8 +1012,6 @@ export default function CreateQuizUnitPage() {
                     </div>
                   </div>
                 )}
-                
-                {/* 追加済みクイズ一覧 */}
                 {quizzes.length === 0 ? (
                   <div className="text-center py-8 border border-dashed border-gray-300 rounded-lg">
                     <p className="text-gray-500">クイズがまだ追加されていません</p>
