@@ -16,17 +16,20 @@ export default function RoomsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
-  const genre = searchParams.get('genre');
-  const subgenre = searchParams.get('subgenre');
+  const genre = searchParams.get('genre') || '';
+  const subgenre = searchParams.get('subgenre') || '';
+  const classType = searchParams.get('classType') || '公式';
 
   useEffect(() => {
     // ユーザーがログインしていない場合は、ログインページにリダイレクト
     if (!currentUser) {
       router.push('/auth/login');
+      return;
     }
 
-    fetchAvailableRooms();
-  }, [currentUser, router, fetchAvailableRooms]);
+    // ジャンル、サブジャンル、クラスタイプに基づいてルームを取得
+    fetchAvailableRooms(genre, subgenre, classType);
+  }, [currentUser, router, fetchAvailableRooms, genre, subgenre, classType]);
 
   // ジャンルとサブジャンルでフィルタリングする
   const filteredRooms = availableRooms.filter((room) => {
@@ -39,7 +42,7 @@ export default function RoomsPage() {
   });
 
   const handleRefresh = () => {
-    fetchAvailableRooms();
+    fetchAvailableRooms(genre, subgenre, classType);
   };
 
   const handleJoinRoom = async (roomId: string) => {
@@ -58,7 +61,7 @@ export default function RoomsPage() {
   };
 
   const createRoomLink = genre && subgenre 
-    ? `/quiz/create?genre=${encodeURIComponent(genre)}&subgenre=${encodeURIComponent(subgenre)}`
+    ? `/quiz/create?genre=${encodeURIComponent(genre)}&subgenre=${encodeURIComponent(subgenre)}&classType=${encodeURIComponent(classType)}`
     : '/quiz';
 
   if (!currentUser) {

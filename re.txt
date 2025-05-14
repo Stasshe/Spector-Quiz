@@ -1,0 +1,4 @@
+
+> Build error occurred
+[Error: Page "/profile/[userId]" is missing "generateStaticParams()" so it cannot be used with "output: export" config.]
+[?25h

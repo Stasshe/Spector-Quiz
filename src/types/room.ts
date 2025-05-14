@@ -6,6 +6,7 @@ export interface QuizRoom {
   name: string;
   genre: string;
   subgenre: string;
+  classType: string; // 'ユーザー作成' または '公式'
   roomLeaderId: string;
   participants: {
     [userId: string]: ParticipantInfo;

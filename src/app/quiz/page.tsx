@@ -2,28 +2,48 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
-import { useQuizHook } from '@/hooks/useQuiz';
-import { FaPlus, FaGamepad, FaArrowRight, FaSearch, FaChevronRight, FaTrophy, FaGraduationCap, FaBookOpen, FaFileAlt } from 'react-icons/fa';
+import { genreClasses } from '@/constants/genres';
+import { useQuizRoom } from '@/hooks/useQuizRoom';
+import { 
+  FaPlus, 
+  FaSearch, 
+  FaChevronRight, 
+  FaTrophy, 
+  FaBookOpen, 
+  FaGlobe, 
+  FaCalculator, 
+  FaGamepad, 
+  FaArrowRight 
+} from 'react-icons/fa';
 
 export default function QuizPage() {
   const { currentUser, userProfile } = useAuth();
-  const { genres, subgenres, fetchGenres, loading } = useQuizHook();
+  const { findOrCreateRoom } = useQuizRoom();
+  const [selectedClassType, setSelectedClassType] = useState<string | null>(null);
   const [selectedGenre, setSelectedGenre] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedUnit, setSelectedUnit] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
-    fetchGenres();
-  }, [fetchGenres]);
+    // URLパラメータがあれば取得
+  }, []);
 
-  const genreIcons: Record<string, React.ReactNode> = {
-    "エンタメ": <FaGamepad className="text-purple-500" />,
-    "科学": <FaGraduationCap className="text-blue-500" />,
-    "歴史": <FaBookOpen className="text-amber-500" />,
-    "一般常識": <FaFileAlt className="text-green-500" />
-  };
-
-  const getGenreIcon = (genre: string) => {
-    return genreIcons[genre] || <FaGamepad className="text-indigo-500" />;
+  // アイコン定義
+  const renderGenreIcon = (genreName: string) => {
+    switch(genreName) {
+      case '日本史':
+        return <FaBookOpen className="text-amber-500" />;
+      case '世界史':
+        return <FaGlobe className="text-blue-500" />;
+      case '数学':
+        return <FaCalculator className="text-green-500" />;
+      default:
+        return <FaBookOpen className="text-indigo-500" />;
+    }
   };
 
   // ユーザーが未ログインの場合、ログインを促す
@@ -105,30 +125,37 @@ export default function QuizPage() {
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* ジャンル選択セクション */}
-          <div className="lg:col-span-1">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          {/* クラス選択セクション */}
+          <div className="lg:col-span-3">
             <div className="card">
               <h2 className="text-xl font-semibold mb-6 flex items-center">
                 <FaGamepad className="mr-2 text-indigo-500" />
-                ジャンルを選択
+                クラスを選択
               </h2>
               <div className="space-y-3">
-                {genres.map((genre) => (
+                {genreClasses.map((classType) => (
                   <button
-                    key={genre}
+                    key={classType.name}
                     className={`w-full p-4 rounded-xl border-2 text-left flex items-center transition-all duration-200 ${
-                      selectedGenre === genre
+                      selectedClassType === classType.name
                         ? 'border-indigo-500 bg-indigo-50 shadow-md'
                         : 'border-gray-200 hover:border-indigo-200 hover:bg-indigo-50'
                     }`}
-                    onClick={() => setSelectedGenre(genre)}
+                    onClick={() => {
+                      setSelectedClassType(classType.name);
+                      setSelectedGenre(null);
+                      setSelectedCategory(null);
+                      setSelectedUnit(null);
+                    }}
                   >
                     <div className="w-10 h-10 rounded-lg bg-white shadow-sm flex items-center justify-center mr-3">
-                      {getGenreIcon(genre)}
+                      {classType.name === '公式' ? 
+                        <FaBookOpen className="text-blue-500" /> : 
+                        <FaGamepad className="text-purple-500" />}
                     </div>
-                    <span className="font-medium">{genre}</span>
-                    {selectedGenre === genre && (
+                    <span className="font-medium">{classType.name}</span>
+                    {selectedClassType === classType.name && (
                       <FaChevronRight className="ml-auto text-indigo-500" />
                     )}
                   </button>
@@ -137,46 +164,122 @@ export default function QuizPage() {
             </div>
           </div>
 
-          {/* サブジャンル選択とルーム作成/参加セクション */}
-          <div className="lg:col-span-2">
+          {/* ジャンル選択セクション */}
+          <div className="lg:col-span-9">
             <div className="card h-full">
-              {selectedGenre ? (
-                <>
-                  <h2 className="text-xl font-semibold mb-6 flex items-center">
-                    {getGenreIcon(selectedGenre)}
-                    <span className="ml-2">{selectedGenre}の単元</span>
+              {selectedClassType ? (
+                <div>
+                  <h2 className="text-xl font-semibold mb-6">
+                    {selectedClassType === '公式' ? '公式クイズ' : 'ユーザー作成クイズ'}
                   </h2>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                    {subgenres[selectedGenre]?.map((subgenre) => (
-                      <div key={subgenre} className="border border-gray-200 rounded-xl p-4 hover:border-indigo-200 hover:shadow-md transition-all duration-200">
-                        <h3 className="font-medium mb-3 text-gray-800">{subgenre}</h3>
-                        <div className="flex flex-col gap-2">
-                          <Link
-                            href={`/quiz/rooms?genre=${selectedGenre}&subgenre=${subgenre}`}
-                            className="flex items-center justify-between p-3 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors duration-200"
+                  
+                  {/* ジャンル選択 */}
+                  {!selectedGenre ? (
+                    <div>
+                      <h3 className="text-lg font-medium mb-4">ジャンルを選択してください</h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                        {genreClasses.find(c => c.name === selectedClassType)?.genres.map((genre) => (
+                          <button
+                            key={genre.name}
+                            className="border border-gray-200 rounded-xl p-4 hover:border-indigo-200 hover:shadow-md transition-all duration-200"
+                            onClick={() => setSelectedGenre(genre.name)}
                           >
-                            <span className="font-medium">ルームを探す</span>
-                            <FaSearch />
-                          </Link>
-                          <Link
-                            href={`/quiz/create?genre=${selectedGenre}&subgenre=${subgenre}`}
-                            className="flex items-center justify-between p-3 rounded-lg bg-purple-50 text-purple-700 hover:bg-purple-100 transition-colors duration-200"
-                          >
-                            <span className="font-medium">ルームを作る</span>
-                            <FaPlus />
-                          </Link>
-                        </div>
+                            <div className="flex items-center mb-2">
+                              <div className="w-10 h-10 rounded-lg bg-white shadow-sm flex items-center justify-center mr-3">
+                                {renderGenreIcon(genre.name)}
+                              </div>
+                              <h3 className="font-medium text-gray-800">{genre.name}</h3>
+                            </div>
+                          </button>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                </>
+                    </div>
+                  ) : !selectedCategory ? (
+                    // カテゴリー選択（単元グループ）
+                    <div>
+                      <div className="flex items-center mb-4">
+                        <button 
+                          onClick={() => setSelectedGenre(null)} 
+                          className="text-indigo-600 hover:text-indigo-800 mr-2"
+                        >
+                          &larr; 戻る
+                        </button>
+                        <h3 className="text-lg font-medium">{selectedGenre}のカテゴリーを選択</h3>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                        {Object.keys(genreClasses
+                          .find(c => c.name === selectedClassType)?.genres
+                          .find(g => g.name === selectedGenre)?.subgenres || {})
+                          .map((category) => (
+                            <button
+                              key={category}
+                              className="border border-gray-200 rounded-xl p-4 hover:border-indigo-200 hover:shadow-md transition-all duration-200"
+                              onClick={() => setSelectedCategory(category)}
+                            >
+                              <h3 className="font-medium text-gray-800">{category}</h3>
+                            </button>
+                          ))}
+                      </div>
+                    </div>
+                  ) : (
+                    // 単元選択と参加/作成ボタン
+                    <div>
+                      <div className="flex items-center mb-4">
+                        <button 
+                          onClick={() => setSelectedCategory(null)} 
+                          className="text-indigo-600 hover:text-indigo-800 mr-2"
+                        >
+                          &larr; 戻る
+                        </button>
+                        <h3 className="text-lg font-medium">{selectedGenre} - {selectedCategory}の単元を選択</h3>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                        {genreClasses
+                          .find(c => c.name === selectedClassType)?.genres
+                          .find(g => g.name === selectedGenre)?.subgenres[selectedCategory]
+                          .map((unit) => (
+                            <div 
+                              key={unit} 
+                              className="border border-gray-200 rounded-xl p-4 hover:border-indigo-200 hover:shadow-md transition-all duration-200"
+                            >
+                              <h3 className="font-medium mb-3 text-gray-800">{unit}</h3>
+                              <div className="flex flex-col gap-2">
+                                <button
+                                  onClick={async () => {
+                                    setLoading(true);
+                                    try {
+                                      const result = await findOrCreateRoom(selectedGenre, unit, selectedClassType);
+                                      if (result) {
+                                        // ルームが見つかったか作成された場合、そのルームページに移動
+                                        // router.push は findOrCreateRoom 内で処理されています
+                                      }
+                                    } catch (error) {
+                                      console.error("Error finding or creating room:", error);
+                                    } finally {
+                                      setLoading(false);
+                                    }
+                                  }}
+                                  className="flex items-center justify-between p-3 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors duration-200"
+                                >
+                                  <span className="font-medium">参加する</span>
+                                  <FaSearch />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               ) : (
                 <div className="flex flex-col items-center justify-center min-h-[300px] py-12">
                   <div className="w-20 h-20 bg-indigo-100 rounded-full flex items-center justify-center mb-6 animate-pulse">
-                    <FaArrowRight className="transform -rotate-90 lg:rotate-180 text-xl text-indigo-500" />
+                    <FaArrowRight className="transform -rotate-90 lg:rotate-0 text-xl text-indigo-500" />
                   </div>
-                  <p className="text-gray-500 text-lg mb-2">ジャンルを選択してください</p>
-                  <p className="text-gray-400 text-sm">左側からお好きなジャンルを選んでクイズを始めましょう</p>
+                  <p className="text-gray-500 text-lg mb-2">クラスを選択してください</p>
+                  <p className="text-gray-400 text-sm">左側から公式クイズかユーザー作成クイズを選んでください</p>
                 </div>
               )}
             </div>
