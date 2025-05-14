@@ -1,13 +1,23 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useQuizRoom } from '@/hooks/useQuizRoom';
 import { FaPlay, FaArrowLeft, FaGamepad, FaBook, FaPenFancy, FaUsers } from 'react-icons/fa';
 import Link from 'next/link';
 
-export default function CreateRoomPage() {
+// ローディングフォールバックコンポーネント
+function CreateRoomLoading() {
+  return (
+    <div className="flex justify-center items-center min-h-[calc(100vh-64px)]">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+    </div>
+  );
+}
+
+// ルーム作成コンテンツコンポーネント
+function CreateRoomContent() {
   const { currentUser } = useAuth();
   const { createRoom, loading, error } = useQuizRoom();
   const [roomName, setRoomName] = useState('');
@@ -16,6 +26,7 @@ export default function CreateRoomPage() {
   
   const genre = searchParams.get('genre');
   const subgenre = searchParams.get('subgenre');
+  const classType = searchParams.get('classType') || '公式';
 
   useEffect(() => {
     // ユーザーがログインしていない場合は、ログインページにリダイレクト
@@ -39,10 +50,10 @@ export default function CreateRoomPage() {
       return;
     }
 
-    const room = await createRoom(roomName, genre, subgenre);
+    const room = await createRoom(genre, subgenre, classType);
     
     if (room) {
-      router.push(`/quiz/${room.roomId}`);
+      router.push(`/quiz/room?id=${room.roomId}`);
     }
   };
 
@@ -157,5 +168,14 @@ export default function CreateRoomPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// ページコンポーネント
+export default function CreateRoomPage() {
+  return (
+    <Suspense fallback={<CreateRoomLoading />}>
+      <CreateRoomContent />
+    </Suspense>
   );
 }
