@@ -136,5 +136,5 @@ export function useQuizHook() {
   };
 }
 
-// エクスポートするuseQuiz関数
-export const useQuiz = useQuizHook;
+// 外部からimportする時にuseQuizという名前で使えるように、エイリアスを設定
+export const useQuiz = useQuizContext;
