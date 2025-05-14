@@ -43,26 +43,16 @@ service cloud.firestore {
         }
       }
       
-      // サブジャンル（後方互換性のため残す）
-      match /subgenres/{subgenreId} {
+      // クイズ単元
+      match /quiz_units/{unitId} {
         allow read;
-        allow write: if request.auth != null && (
-                       request.auth.token.admin == true || 
-                       get(/databases/$(database)/documents/genres/$(genreId)).data.isUserCreated == true && 
-                       request.auth.uid == get(/databases/$(database)/documents/genres/$(genreId)).data.createdBy
-                     );
+        allow create: if request.auth != null;
+        allow update, delete: if request.auth.uid == resource.data.createdBy;
         
-        // クイズ単元
-        match /quiz_units/{unitId} {
+        // 単元内のクイズ
+        match /quizzes/{quizId} {
           allow read;
-          allow create: if request.auth != null;
-          allow update, delete: if request.auth.uid == resource.data.createdBy;
-          
-          // 単元内のクイズ
-          match /quizzes/{quizId} {
-            allow read;
-            allow write: if request.auth.uid == get(/databases/$(database)/documents/genres/$(genreId)/subgenres/$(subgenreId)/quiz_units/$(unitId)).data.createdBy;
-          }
+          allow write: if request.auth.uid == resource.data.createdBy;
         }
       }
     }

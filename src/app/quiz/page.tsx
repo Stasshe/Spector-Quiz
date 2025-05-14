@@ -26,7 +26,7 @@ import {
 export default function QuizPage() {
   const { currentUser, userProfile } = useAuth();
   const { findOrCreateRoom } = useQuizRoom();
-  const { fetchGenres, genres, subgenres } = useQuizHook();
+  const { fetchGenres, genres, units } = useQuizHook();
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [selectedClassTypes, setSelectedClassTypes] = useState<string[]>(['公式', 'ユーザー作成']);
   const [loading, setLoading] = useState(false);
@@ -77,13 +77,13 @@ export default function QuizPage() {
   };
 
   // ルーム作成ページに移動
-  const navigateToCreateRoom = (genre: string, subgenre: string) => {
-    router.push(`/quiz/create?genre=${encodeURIComponent(genre)}&subgenre=${encodeURIComponent(subgenre)}&classType=${encodeURIComponent(selectedClassTypes[0])}`);
+  const navigateToCreateRoom = (genre: string, unit: string) => {
+    router.push(`/quiz/create?genre=${encodeURIComponent(genre)}&unit=${encodeURIComponent(unit)}&classType=${encodeURIComponent(selectedClassTypes[0])}`);
   };
 
   // ルーム一覧ページに移動
-  const navigateToRooms = (genre: string, subgenre: string) => {
-    router.push(`/quiz/rooms?genre=${encodeURIComponent(genre)}&subgenre=${encodeURIComponent(subgenre)}&classType=${encodeURIComponent(selectedClassTypes[0])}`);
+  const navigateToRooms = (genre: string, unit: string) => {
+    router.push(`/quiz/rooms?genre=${encodeURIComponent(genre)}&unit=${encodeURIComponent(unit)}&classType=${encodeURIComponent(selectedClassTypes[0])}`);
   };
 
   // ユーザーが未ログインの場合、ログインを促す
@@ -248,7 +248,7 @@ export default function QuizPage() {
                       <span className="ml-2">{genre}</span>
                     </h3>
                     
-                    {Object.entries(subgenres[genre] || {}).map(([category, unitList]) => (
+                    {Object.entries(units[genre] || {}).map(([category, unitList]) => (
                       <div key={category} className="mb-6">
                         <h4 className="font-medium text-gray-700 mb-2">{category}</h4>
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">

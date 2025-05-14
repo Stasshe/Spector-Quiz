@@ -1,8 +1,8 @@
-// ジャンルとサブジャンル（単元）の定義
+// ジャンルと単元の定義
 
 export interface GenreInfo {
   name: string;
-  subgenres: {
+  units: {
     [key: string]: string[];
   };
 }
@@ -19,7 +19,7 @@ export const genreClasses: GenreClass[] = [
     genres: [
       {
         name: '日本史',
-        subgenres: {
+        units: {
           '古代': ['縄文時代', '弥生時代', '古墳時代', '飛鳥時代', '奈良時代', '平安時代'],
           '中世': ['鎌倉時代', '室町時代', '戦国時代'],
           '近世': ['安土桃山時代', '江戸時代'],
@@ -29,7 +29,7 @@ export const genreClasses: GenreClass[] = [
       },
       {
         name: '世界史',
-        subgenres: {
+        units: {
           '古代': ['エジプト文明', 'メソポタミア文明', 'ギリシャ', 'ローマ'],
           '中世': ['ビザンツ帝国', '十字軍', 'イスラーム世界'],
           '近世': ['ルネサンス', '大航海時代', '宗教改革'],
@@ -39,7 +39,7 @@ export const genreClasses: GenreClass[] = [
       },
       {
         name: '数学',
-        subgenres: {
+        units: {
           '代数': ['1次方程式', '2次方程式', '因数分解', '三角関数'],
           '幾何': ['平面図形', '空間図形', '座標幾何'],
           '解析': ['微分', '積分', '数列'],
@@ -53,19 +53,19 @@ export const genreClasses: GenreClass[] = [
     genres: [
       {
         name: '日本史',
-        subgenres: {
+        units: {
           'ユーザー作成': ['ユーザー作成クイズ']
         }
       },
       {
         name: '世界史',
-        subgenres: {
+        units: {
           'ユーザー作成': ['ユーザー作成クイズ']
         }
       },
       {
         name: '数学',
-        subgenres: {
+        units: {
           'ユーザー作成': ['ユーザー作成クイズ']
         }
       }

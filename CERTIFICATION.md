@@ -142,7 +142,7 @@ quizzes/{quizId}
   acceptableAnswers: array, // 入力式の場合の許容回答リスト
   explanation: string,      // 解説
   genre: string,            // ジャンル
-  subgenre: string,         // 単元名
+  unit: string,         // 単元名
   difficulty: number,       // 難易度
   createdBy: string,        // 作成者ID
   createdAt: timestamp,     // 作成日時

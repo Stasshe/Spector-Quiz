@@ -656,7 +656,7 @@ export default function CreateQuizUnitPage() {
                       <div>
                         <h3 className="font-medium">{draft.title || '無題のクイズ'}</h3>
                         <p className="text-sm text-gray-500">
-                          {draft.genre} {/* subgenreは存在しない場合があるのでオプショナルチェーン */}
+                          {draft.genre} {/* unitは存在しない場合があるのでオプショナルチェーン */}
                           更新: {formatDate(new Date(draft.updatedAt))}
                         </p>
                       </div>

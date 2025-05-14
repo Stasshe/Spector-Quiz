@@ -21,6 +21,48 @@ export default function InitializeDatabase() {
     setMessage('データベースを初期化中...');
 
     try {
+      // 公式ジャンルを追加
+      const officialGenres = genreClasses.find(c => c.name === '公式')?.genres || [];
+      
+      for (const genre of officialGenres) {
+        try {
+          setMessage(prev => prev + `\nジャンル「${genre.name}」を作成中...`);
+          const genreRef = doc(db, 'genres', genre.name);
+          await setDoc(genreRef, {
+            name: genre.name,
+            isUserCreated: false,
+            createdBy: currentUser.uid,
+            createdAt: serverTimestamp(),
+            useCount: 0
+          });
+          setMessage(prev => prev + ` 成功！`);
+          
+          // 各カテゴリと単元を作成
+          for (const [category, unitList] of Object.entries(genre.units)) {
+            setMessage(prev => prev + `\n└ カテゴリ「${category}」の単元を作成中...`);
+            
+            for (const unit of unitList) {
+              const unitRef = doc(collection(db, 'genres', genre.name, 'quiz_units'));
+              await setDoc(unitRef, {
+                title: unit,
+                category: category,
+                description: `${genre.name}の${category}における${unit}に関する単元です`,
+                createdBy: currentUser.uid,
+                createdAt: serverTimestamp(),
+                quizCount: 0,
+                useCount: 0,
+                isPublic: true,
+                averageDifficulty: 3
+              });
+              setMessage(prev => prev + `\n  └ 単元「${unit}」を作成しました`);
+            }
+          }
+        } catch (genreError) {
+          console.error(`Error creating genre ${genre.name}:`, genreError);
+          setMessage(prev => prev + ` エラー: ${genreError instanceof Error ? genreError.message : '不明なエラー'}`);
+        }
+      }
+      
       // ユーザー作成ジャンルを追加
       const userCreatedGenres = genreClasses.find(c => c.name === 'ユーザー作成')?.genres || [];
       
@@ -37,38 +79,26 @@ export default function InitializeDatabase() {
           });
           setMessage(prev => prev + ` 成功！`);
           
-          // 各ジャンルの下に空のダミー単元を作成（初期化用）
-          const dummyUnitRef = doc(collection(db, 'genres', genre.name, 'quiz_units'));
-          await setDoc(dummyUnitRef, {
-            title: 'ダミー単元（初期化用）',
-            description: '初期化用のダミー単元です',
-            createdBy: currentUser.uid,
-            createdAt: serverTimestamp(),
-            quizCount: 0,
-            useCount: 0,
-            isPublic: false,
-            averageDifficulty: 0
-          });
-          setMessage(prev => prev + `\n└ ダミー単元を作成しました`);
-          
-          // 単元内にダミークイズを作成
-          const dummyQuizRef = doc(collection(db, 'genres', genre.name, 'quiz_units', dummyUnitRef.id, 'quizzes'));
-          await setDoc(dummyQuizRef, {
-            title: 'ダミークイズ（初期化用）',
-            question: 'これは初期化用のダミークイズです',
-            type: 'multiple_choice',
-            choices: ['選択肢1', '選択肢2', '選択肢3', '選択肢4'],
-            correctAnswer: '選択肢1',
-            acceptableAnswers: [],
-            explanation: 'ダミークイズの説明です',
-            difficulty: 1,
-            createdBy: currentUser.uid,
-            createdAt: serverTimestamp(),
-            useCount: 0,
-            correctCount: 0
-          });
-          setMessage(prev => prev + `\n└ ダミークイズを作成しました`);
-          
+          // 各カテゴリと単元を作成
+          for (const [category, unitList] of Object.entries(genre.units)) {
+            setMessage(prev => prev + `\n└ カテゴリ「${category}」の単元を作成中...`);
+            
+            for (const unit of unitList) {
+              const unitRef = doc(collection(db, 'genres', genre.name, 'quiz_units'));
+              await setDoc(unitRef, {
+                title: unit,
+                category: category,
+                description: `${genre.name}の${category}に関するユーザー作成単元です`,
+                createdBy: currentUser.uid,
+                createdAt: serverTimestamp(),
+                quizCount: 0,
+                useCount: 0,
+                isPublic: true,
+                averageDifficulty: 2
+              });
+              setMessage(prev => prev + `\n  └ 単元「${unit}」を作成しました`);
+            }
+          }
         } catch (genreError) {
           console.error(`Error creating genre ${genre.name}:`, genreError);
           setMessage(prev => prev + ` エラー: ${genreError instanceof Error ? genreError.message : '不明なエラー'}`);

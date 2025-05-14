@@ -39,7 +39,7 @@ export default function QuizQuestion({ quiz }: QuizQuestionProps) {
       )}
       
       <div className="flex items-center justify-between text-sm text-gray-500">
-        <div>ジャンル: {quiz.genre} &gt; {quiz.subgenre}</div>
+        <div>ジャンル: {quiz.genre} &gt;</div>
         <div className="flex items-center">
           <span className="mr-2">難易度:</span>
           <div className="flex">
