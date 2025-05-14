@@ -9,9 +9,9 @@
 3. **構造的な関連性の欠如**: クイズ、単元、ルーム間の関係が明確に構造化されていない
 4. **無駄なデータ重複**: 同じデータが複数の場所に格納される可能性がある
 
-## 新しいデータベース構造 (サブジャンルベース)
+## 新しいデータベース構造 (単元ベース)
 
-サブジャンルに基づいた階層構造を導入することで、より整理された効率的なデータベース設計を実現します。
+シンプルな階層構造を導入することで、より整理された効率的なデータベース設計を実現します。
 
 ## コレクション構造
 
@@ -26,14 +26,11 @@ firestore/
 ├── genres/                            # ジャンル情報
 │   └── {genreId}/                     # ジャンルID
 │       ├── ジャンルのメタデータ
-│       └── subgenres/                 # サブジャンルのサブコレクション
-│           └── {subgenreId}/          # サブジャンルID
-│               ├── サブジャンルのメタデータ
-│               └── quiz_units/        # クイズ単元のサブコレクション
-│                   └── {unitId}/      # 単元ID
-│                       ├── 単元のメタデータ
-│                       └── quizzes/   # クイズのサブコレクション
-│                           └── {quizId} # クイズID
+│       └── quiz_units/                # クイズ単元のサブコレクション
+│           └── {unitId}/              # 単元ID
+│               ├── 単元のメタデータ
+│               └── quizzes/           # クイズのサブコレクション
+│                   └── {quizId}       # クイズID
 │
 └── quiz_rooms/                        # クイズルーム
     └── {roomId}/                      # ルームID
@@ -89,17 +86,7 @@ firestore/
 }
 ```
 
-### サブジャンル (`genres/{genreId}/subgenres/{subgenreId}`)
-
-```javascript
-{
-  name: string,             // サブジャンル名
-  description: string,      // 説明
-  sortOrder: number         // 表示順序
-}
-```
-
-### クイズ単元 (`genres/{genreId}/subgenres/{subgenreId}/quiz_units/{unitId}`)
+### クイズ単元 (`genres/{genreId}/quiz_units/{unitId}`)
 
 ```javascript
 {
@@ -108,25 +95,13 @@ firestore/
   createdBy: string,        // 作成者のユーザーID
   createdAt: timestamp,     // 作成日時
   useCount: number,         // 使用回数
-  isPublic: boolean         // 公開状態
+  isPublic: boolean,        // 公開状態
+  quizCount: number,        // クイズの数（クエリ削減のため）
+  averageDifficulty: number // 平均難易度（クエリ削減のため）
 }
 ```
 
-```javascript
-{
-  title: string,
-  description: string,
-  genre: string,
-  createdBy: string,
-  createdAt: timestamp,
-  useCount: number,
-  isPublic: boolean,
-  quizCount: number,     // クイズの数（クエリ削減のため）
-  averageDifficulty: number  // 平均難易度（クエリ削減のため）
-}
-```
-
-### クイズ (`genres/{genreId}/subgenres/{subgenreId}/quiz_units/{unitId}/quizzes/{quizId}`)
+### クイズ (`genres/{genreId}/quiz_units/{unitId}/quizzes/{quizId}`)
 
 ```javascript
 {
@@ -151,7 +126,6 @@ firestore/
 {
   name: string,               // ルーム名
   genre: string,              // ジャンルID
-  subgenre: string,           // サブジャンルID
   unitId: string,             // クイズ単元ID
   classType: string,          // クラスタイプ ('ユーザー作成' または '公式')
   roomLeaderId: string,       // ルームリーダーのユーザーID
@@ -208,7 +182,6 @@ firestore/
   type: 'multiple_choice' | 'input',
   difficulty: number,
   genre: string,
-  subgenre: string,
   createdBy: string,
   createdAt: timestamp,
   useCount: number,
@@ -223,56 +196,44 @@ firestore/
 ### 主要なリレーションシップ
 
 1. ユーザー -> クイズ単元: ユーザーは複数のクイズ単元を作成できる
-2. ジャンル -> サブジャンル: ジャンルは複数のサブジャンルを持つ
-3. サブジャンル -> クイズ単元: サブジャンルは複数のクイズ単元を持つ
-4. クイズ単元 -> クイズ: クイズ単元は複数のクイズを持つ
-5. ユーザー -> ルーム: ユーザーはルームを作成/参加できる
-6. ルーム -> クイズ単元: ルームは1つのクイズ単元に関連付けられる
+2. ジャンル -> クイズ単元: ジャンルは複数のクイズ単元を持つ
+3. クイズ単元 -> クイズ: クイズ単元は複数のクイズを持つ
+4. ユーザー -> ルーム: ユーザーはルームを作成/参加できる
+5. ルーム -> クイズ単元: ルームは1つのクイズ単元に関連付けられる
 
 ### 主要なクエリパターン
 
-1. **ジャンルに基づくサブジャンルの取得**:
+1. **ジャンルに基づくクイズ単元の取得**:
    ```javascript
-   const subgenresRef = collection(db, 'genres', genreId, 'subgenres');
-   const subgenresSnapshot = await getDocs(subgenresRef);
-   ```
-
-2. **サブジャンルに基づくクイズ単元の取得**:
-   ```javascript
-   const unitsRef = collection(db, 'genres', genreId, 'subgenres', subgenreId, 'quiz_units');
+   const unitsRef = collection(db, 'genres', genreId, 'quiz_units');
    const unitsSnapshot = await getDocs(unitsRef);
    ```
 
-3. **特定の単元のクイズを全て取得**:
+2. **特定の単元のクイズを全て取得**:
    ```javascript
-   const quizzesRef = collection(db, 'genres', genreId, 'subgenres', subgenreId, 'quiz_units', unitId, 'quizzes');
+   const quizzesRef = collection(db, 'genres', genreId, 'quiz_units', unitId, 'quizzes');
    const quizzesSnapshot = await getDocs(quizzesRef);
    ```
 
-4. **ユーザーが作成した単元を取得**:
+3. **ユーザーが作成した単元を取得**:
    ```javascript
-   // 複数のサブジャンルにまたがる場合、複数のクエリが必要
-   const units = [];
-   // サブジャンルごとにクエリ
-   const unitsRef = collection(db, 'genres', genreId, 'subgenres', subgenreId, 'quiz_units');
+   const unitsRef = collection(db, 'genres', genreId, 'quiz_units');
    const q = query(unitsRef, where('createdBy', '==', userId));
    const snapshot = await getDocs(q);
-   snapshot.forEach(doc => units.push({ ...doc.data(), unitId: doc.id }));
    ```
 
-5. **公開されている単元を取得**:
+4. **公開されている単元を取得**:
    ```javascript
-   // サブジャンルごとにクエリ
-   const unitsRef = collection(db, 'genres', genreId, 'subgenres', subgenreId, 'quiz_units');
+   const unitsRef = collection(db, 'genres', genreId, 'quiz_units');
    const q = query(unitsRef, where('isPublic', '==', true));
    const snapshot = await getDocs(q);
    ```
 
 ## 構造変更のメリット
 
-1. **階層的組織化**
-   - クイズが単元の下に階層的に整理され、関連クイズの取得が容易になる
-   - サブコレクションの使用により、関連データが論理的にグループ化される
+1. **シンプルな階層構造**
+   - より直感的なデータ構造により、コードの可読性と保守性が向上
+   - 階層が1レベル減少し、パスが短くなることでクエリが簡素化
 
 2. **クエリの最適化**
    - 単元に関連するすべてのクイズを1回のクエリで取得可能
@@ -283,7 +244,7 @@ firestore/
    - 公開クイズコレクションにより、人気のクイズを効率的に検索・再利用可能
 
 4. **セキュリティルールの簡素化**
-   - 階層構造により、セキュリティルールの設定がより直感的に
+   - 階層構造の簡素化により、セキュリティルールの設定がより直感的に
 
 ## セキュリティルール例
 
@@ -311,26 +272,16 @@ service cloud.firestore {
                      resource.data.isUserCreated == true && request.auth.uid == resource.data.createdBy
                    );
       
-      // サブジャンル
-      match /subgenres/{subgenreId} {
+      // クイズ単元
+      match /quiz_units/{unitId} {
         allow read;
-        allow write: if request.auth != null && (
-                       request.auth.token.admin == true || 
-                       get(/databases/$(database)/documents/genres/$(genreId)).data.isUserCreated == true && 
-                       request.auth.uid == get(/databases/$(database)/documents/genres/$(genreId)).data.createdBy
-                     );
+        allow create: if request.auth != null;
+        allow update, delete: if request.auth.uid == resource.data.createdBy;
         
-        // クイズ単元
-        match /quiz_units/{unitId} {
+        // 単元内のクイズ
+        match /quizzes/{quizId} {
           allow read;
-          allow create: if request.auth != null;
-          allow update, delete: if request.auth.uid == resource.data.createdBy;
-          
-          // 単元内のクイズ
-          match /quizzes/{quizId} {
-            allow read;
-            allow write: if request.auth.uid == get(/databases/$(database)/documents/genres/$(genreId)/subgenres/$(subgenreId)/quiz_units/$(unitId)).data.createdBy;
-          }
+          allow write: if request.auth.uid == get(/databases/$(database)/documents/genres/$(genreId)/quiz_units/$(unitId)).data.createdBy;
         }
       }
     }
@@ -346,9 +297,9 @@ service cloud.firestore {
       match /participants/{userId} {
         allow read;
         allow create, update: if request.auth.uid == userId || 
-                               request.auth.uid == get(/databases/$(database)/documents/quiz_rooms/$(roomId)).data.roomLeaderId;
+                             request.auth.uid == get(/databases/$(database)/documents/quiz_rooms/$(roomId)).data.roomLeaderId;
         allow delete: if request.auth.uid == userId || 
-                       request.auth.uid == get(/databases/$(database)/documents/quiz_rooms/$(roomId)).data.roomLeaderId;
+                     request.auth.uid == get(/databases/$(database)/documents/quiz_rooms/$(roomId)).data.roomLeaderId;
       }
       
       // 回答データ
@@ -356,7 +307,7 @@ service cloud.firestore {
         allow read;
         allow create: if request.auth != null;
         allow update: if request.auth.uid == resource.data.userId || 
-                       request.auth.uid == get(/databases/$(database)/documents/quiz_rooms/$(roomId)).data.roomLeaderId;
+                     request.auth.uid == get(/databases/$(database)/documents/quiz_rooms/$(roomId)).data.roomLeaderId;
       }
     }
   }
@@ -379,9 +330,8 @@ service cloud.firestore {
 
 ```
 // 単元の検索用インデックス
-collection: units
+collection: genres/{genreId}/quiz_units
 fields:
-  - genre: ASC
   - isPublic: ASC
   - useCount: DESC
 
@@ -401,8 +351,6 @@ fields:
 
 ## 課題と対策
 
-1. **複数サブジャンルに跨るクエリ**: ユーザーの作成したクイズなど、サブジャンル横断のクエリが複雑化
-   - 対策: 頻繁に使用される横断クエリ用のインデックスを作成
-
+この新しいデータベース構造はより直感的でシンプルなため、複雑なクエリが少なくなります。サブジャンルが不要になったことにより、データの取得速度と一貫性が向上します。
 
 このデータベース構造を採用することで、アプリケーションのパフォーマンスが向上し、Firestore APIの使用量が削減され、より保守性の高いシステムになります。

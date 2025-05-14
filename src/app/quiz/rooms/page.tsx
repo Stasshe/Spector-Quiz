@@ -26,7 +26,7 @@ function RoomsContent() {
   const searchParams = useSearchParams();
   
   const genre = searchParams.get('genre') || '';
-  const subgenre = searchParams.get('subgenre') || '';
+  const unitId = searchParams.get('unitId') || '';
   const classType = searchParams.get('classType') || '公式';
 
   useEffect(() => {
@@ -36,14 +36,14 @@ function RoomsContent() {
       return;
     }
 
-    // ジャンル、サブジャンル、クラスタイプに基づいてルームを取得
-    fetchAvailableRooms(genre, subgenre, classType);
-  }, [currentUser, router, fetchAvailableRooms, genre, subgenre, classType]);
+    // ジャンル、単元ID、クラスタイプに基づいてルームを取得
+    fetchAvailableRooms(genre, classType);
+  }, [currentUser, router, fetchAvailableRooms, genre, unitId, classType]);
 
-  // ジャンルとサブジャンルでフィルタリングする
+  // ジャンルと単元でフィルタリングする
   const filteredRooms = availableRooms.filter((room) => {
-    if (genre && subgenre) {
-      return room.genre === genre && room.subgenre === subgenre;
+    if (genre && unitId) {
+      return room.genre === genre && room.unitId === unitId;
     } else if (genre) {
       return room.genre === genre;
     }
@@ -51,7 +51,7 @@ function RoomsContent() {
   });
 
   const handleRefresh = () => {
-    fetchAvailableRooms(genre, subgenre, classType);
+    fetchAvailableRooms(genre, classType);
   };
 
   const handleJoinRoom = async (roomId: string) => {
@@ -69,8 +69,8 @@ function RoomsContent() {
     }
   };
 
-  const createRoomLink = genre && subgenre 
-    ? `/quiz/create?genre=${encodeURIComponent(genre)}&subgenre=${encodeURIComponent(subgenre)}&classType=${encodeURIComponent(classType)}`
+  const createRoomLink = genre && unitId 
+    ? `/quiz/create?genre=${encodeURIComponent(genre)}&unitId=${encodeURIComponent(unitId)}&classType=${encodeURIComponent(classType)}`
     : '/quiz';
 
   if (!currentUser) {
@@ -105,7 +105,7 @@ function RoomsContent() {
       <div className="bg-white rounded-lg shadow-md p-6">
         <h1 className="text-2xl font-bold mb-4">
           クイズルーム一覧
-          {genre && subgenre && <span className="ml-2 text-lg text-gray-600">({genre} - {subgenre})</span>}
+          {genre && unitId && <span className="ml-2 text-lg text-gray-600">({genre} - 単元ID: {unitId})</span>}
         </h1>
         
         {error && (
@@ -136,7 +136,7 @@ function RoomsContent() {
                   <div>
                     <h3 className="font-medium text-lg">{room.name}</h3>
                     <p className="text-gray-600 text-sm">
-                      {room.genre} - {room.subgenre}
+                      {room.genre} - 単元ID: {room.unitId}
                     </p>
                   </div>
                   <div className="flex items-center">

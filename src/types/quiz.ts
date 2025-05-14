@@ -11,7 +11,6 @@ export interface Quiz {
   acceptableAnswers: string[];
   explanation: string;
   genre?: string;      // 参照用（サブコレクション内では不要）
-  subgenre?: string;   // 参照用（サブコレクション内では不要）
   difficulty: number;
   createdBy: string;
   createdAt: Timestamp;
@@ -39,7 +38,6 @@ export interface QuizBase {
 export interface PublicQuiz extends QuizBase {
   quizId: string;
   genre: string;
-  subgenre: string;
   unitId: string;       // 元の単元へのリファレンス
   originalQuizId: string;  // 単元内での元のクイズID
 }
@@ -67,8 +65,8 @@ export interface QuizStatistics {
 
 export interface GenreStats {
   useCount: number;
-  subgenres: {
-    [subgenre: string]: {
+  units: {
+    [unitId: string]: {
       useCount: number;
     }
   };
@@ -80,7 +78,6 @@ export interface QuizUnit {
   title: string;
   description?: string;
   genre?: string;          // 参照用（サブコレクションでは親から取得可能）
-  subgenre?: string;       // 参照用（サブコレクションでは親から取得可能）
   createdBy: string;
   createdAt: Timestamp;
   quizCount: number;         // クイズの数（クエリ削減のため）

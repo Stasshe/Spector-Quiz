@@ -6,7 +6,6 @@ export interface QuizRoom {
   roomId: string;
   name: string;
   genre: string;
-  subgenre: string;
   classType: string; // 'ユーザー作成' または '公式'
   roomLeaderId: string;
   unitId?: string;    // 使用する単元ID
@@ -66,7 +65,6 @@ export interface RoomListing {
   roomId: string;
   name: string;
   genre: string;
-  subgenre: string;
   unitId: string;
   participantCount: number;
   status: RoomStatus;

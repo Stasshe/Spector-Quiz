@@ -22,9 +22,9 @@ export function useQuizUnit() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // ジャンルとサブジャンルに基づいてクイズ単元を検索
-  const fetchUnitsByGenreAndSubgenre = useCallback(async (genreId: string, subgenreId: string) => {
-    if (!genreId || !subgenreId) {
+  // ジャンルに基づいてクイズ単元を検索
+  const fetchUnitsByGenre = useCallback(async (genreId: string) => {
+    if (!genreId) {
       setAvailableUnits([]);
       return [];
     }
@@ -33,11 +33,10 @@ export function useQuizUnit() {
       setLoading(true);
       const units: QuizUnit[] = [];
       
-      // サブジャンル内の単元コレクションへの参照
+      // ジャンル内の単元コレクションへの参照
       const unitsCollectionRef = collection(
         db, 
         'genres', genreId, 
-        'subgenres', subgenreId, 
         'quiz_units'
       );
       
@@ -55,8 +54,7 @@ export function useQuizUnit() {
           units.push({
             ...doc.data(),
             unitId: doc.id,
-            genre: genreId,      // 参照用に追加
-            subgenre: subgenreId // 参照用に追加
+            genre: genreId     // 参照用に追加
           } as QuizUnit);
         });
         
@@ -73,8 +71,7 @@ export function useQuizUnit() {
             units.push({
               ...doc.data(),
               unitId: doc.id,
-              genre: genreId,      // 参照用に追加
-              subgenre: subgenreId // 参照用に追加
+              genre: genreId     // 参照用に追加
             } as QuizUnit);
           }
         });
@@ -90,8 +87,7 @@ export function useQuizUnit() {
           units.push({
             ...doc.data(),
             unitId: doc.id,
-            genre: genreId,      // 参照用に追加
-            subgenre: subgenreId // 参照用に追加
+            genre: genreId     // 参照用に追加
           } as QuizUnit);
         });
       }
@@ -111,10 +107,10 @@ export function useQuizUnit() {
   }, [currentUser]);
   
   // 特定の単元を取得
-  const fetchUnitById = useCallback(async (genreId: string, subgenreId: string, unitId: string) => {
+  const fetchUnitById = useCallback(async (genreId: string, unitId: string) => {
     try {
       setLoading(true);
-      const unitRef = doc(db, 'genres', genreId, 'subgenres', subgenreId, 'quiz_units', unitId);
+      const unitRef = doc(db, 'genres', genreId, 'quiz_units', unitId);
       const unitSnap = await getDoc(unitRef);
       
       if (!unitSnap.exists()) {
@@ -124,8 +120,7 @@ export function useQuizUnit() {
       const unitData = {
         ...unitSnap.data(),
         unitId: unitSnap.id,
-        genre: genreId,      // 参照用に追加
-        subgenre: subgenreId // 参照用に追加
+        genre: genreId      // 参照用に追加
       } as QuizUnit;
       
       setLoading(false);
@@ -147,36 +142,27 @@ export function useQuizUnit() {
       // ジャンル一覧を取得
       const genresSnapshot = await getDocs(collection(db, 'genres'));
       
-      // 各ジャンルのサブジャンルを取得
+      // 各ジャンルの単元を取得
       for (const genreDoc of genresSnapshot.docs) {
         const genreId = genreDoc.id;
         
-        // サブジャンル一覧を取得
-        const subgenresSnapshot = await getDocs(collection(db, 'genres', genreId, 'subgenres'));
+        // ジャンル内の公開単元を取得（使用回数順）
+        const unitsQuery = query(
+          collection(db, 'genres', genreId, 'quiz_units'),
+          where('isPublic', '==', true),
+          orderBy('useCount', 'desc'),
+          firestoreLimit(limitCount)
+        );
         
-        // 各サブジャンルの単元を取得
-        for (const subgenreDoc of subgenresSnapshot.docs) {
-          const subgenreId = subgenreDoc.id;
-          
-          // サブジャンル内の公開単元を取得（使用回数順）
-          const unitsQuery = query(
-            collection(db, 'genres', genreId, 'subgenres', subgenreId, 'quiz_units'),
-            where('isPublic', '==', true),
-            orderBy('useCount', 'desc'),
-            firestoreLimit(limitCount)
-          );
-          
-          const unitsSnapshot = await getDocs(unitsQuery);
-          
-          unitsSnapshot.forEach(doc => {
-            units.push({
-              ...doc.data(),
-              unitId: doc.id,
-              genre: genreId,
-              subgenre: subgenreId
-            } as QuizUnit);
-          });
-        }
+        const unitsSnapshot = await getDocs(unitsQuery);
+        
+        unitsSnapshot.forEach(doc => {
+          units.push({
+            ...doc.data(),
+            unitId: doc.id,
+            genre: genreId
+          } as QuizUnit);
+        });
       }
       
       // 全ての単元を使用回数順に並べ替え、上位limitCount件を返す
@@ -198,7 +184,7 @@ export function useQuizUnit() {
     availableUnits,
     loading,
     error,
-    fetchUnitsByGenreAndSubgenre,
+    fetchUnitsByGenre,
     fetchUnitById,
     fetchPopularUnits
   };

@@ -23,30 +23,16 @@ export function useQuizHook() {
       const genresSnap = await getDocs(genresRef);
       
       const genreArray: string[] = [];
-      const subgenreObject: { [genre: string]: string[] } = {};
       
       // 各ジャンルについて処理
       for (const genreDoc of genresSnap.docs) {
         const genreId = genreDoc.id;
-        const genreData = genreDoc.data();
-        
         genreArray.push(genreId);
-        
-        // このジャンルのサブジャンルを取得
-        const subgenresRef = collection(db, 'genres', genreId, 'subgenres');
-        const subgenresSnap = await getDocs(subgenresRef);
-        
-        const subgenreArray: string[] = [];
-        
-        subgenresSnap.forEach(subgenreDoc => {
-          subgenreArray.push(subgenreDoc.id);
-        });
-        
-        subgenreObject[genreId] = subgenreArray;
       }
       
       setGenres(genreArray);
-      setSubgenres(subgenreObject);
+      // サブジャンルは廃止されたため空オブジェクトをセット
+      setSubgenres({});
     } catch (err) {
       console.error('Error fetching genres:', err);
       setError('ジャンル一覧の取得中にエラーが発生しました');
@@ -67,15 +53,9 @@ export function useQuizHook() {
       
       quizzesSnap.forEach(doc => {
         const quizData = doc.data() as Quiz;
-        // genreとsubgenreが存在する場合のみ処理
-        if (quizData.genre && quizData.subgenre) {
+        // genreが存在する場合のみ処理
+        if (quizData.genre) {
           genreSet.add(quizData.genre);
-          
-          if (!subgenreMap[quizData.genre]) {
-            subgenreMap[quizData.genre] = new Set<string>();
-          }
-          
-          subgenreMap[quizData.genre].add(quizData.subgenre);
         }
       });
       
@@ -97,20 +77,19 @@ export function useQuizHook() {
   }, []);
 
   // 特定のクイズを取得（新DB構造対応）
-  const fetchQuiz = useCallback(async (genreId: string, subgenreId: string, unitId: string, quizId: string) => {
+  const fetchQuiz = useCallback(async (genreId: string, unitId: string, quizId: string) => {
     try {
       setLoading(true);
-      const quizRef = doc(db, 'genres', genreId, 'subgenres', subgenreId, 'quiz_units', unitId, 'quizzes', quizId);
+      const quizRef = doc(db, 'genres', genreId, 'quiz_units', unitId, 'quizzes', quizId);
       const quizSnap = await getDoc(quizRef);
       
       if (quizSnap.exists()) {
         const quizData = quizSnap.data() as Omit<Quiz, 'quizId'>;
-        // 参照用にジャンルとサブジャンルIDを追加
+        // 参照用にジャンルIDを追加
         const quiz = { 
           ...quizData, 
           quizId: quizSnap.id,
-          genre: genreId,
-          subgenre: subgenreId
+          genre: genreId
         } as Quiz;
         
         setCurrentQuiz(quiz);
@@ -150,12 +129,12 @@ export function useQuizHook() {
     }
   }, [setCurrentQuiz]);
 
-  // ジャンルとサブジャンルに基づいてクイズを検索（新DB構造対応）
-  const searchQuizzes = useCallback(async (genreId: string, subgenreId: string, unitId: string) => {
+  // ジャンルと単元に基づいてクイズを検索（新DB構造対応）
+  const searchQuizzes = useCallback(async (genreId: string, unitId: string) => {
     try {
       setLoading(true);
       
-      const quizzesRef = collection(db, 'genres', genreId, 'subgenres', subgenreId, 'quiz_units', unitId, 'quizzes');
+      const quizzesRef = collection(db, 'genres', genreId, 'quiz_units', unitId, 'quizzes');
       const quizzesSnap = await getDocs(quizzesRef);
       const quizzes: Quiz[] = [];
       
@@ -164,8 +143,7 @@ export function useQuizHook() {
         quizzes.push({ 
           ...quizData, 
           quizId: doc.id,
-          genre: genreId,
-          subgenre: subgenreId
+          genre: genreId
         });
       });
       
@@ -180,17 +158,18 @@ export function useQuizHook() {
   }, []);
   
   // 後方互換性のため、古い検索方法も残す
-  const searchQuizzesLegacy = useCallback(async (genre: string, subgenre?: string) => {
+  const searchQuizzesLegacy = useCallback(async (genre: string, unitId?: string) => {
     try {
       setLoading(true);
       
       let quizQuery;
       
-      if (subgenre) {
+      // 新しい構造では単元IDで絞り込む
+      if (unitId) {
         quizQuery = query(
           collection(db, 'quizzes'),
           where('genre', '==', genre),
-          where('subgenre', '==', subgenre)
+          where('unitId', '==', unitId)
         );
       } else {
         quizQuery = query(
@@ -218,7 +197,7 @@ export function useQuizHook() {
   }, []);
 
   // ジャンルと単元の利用回数を更新
-  const updateGenreStats = useCallback(async (genre: string, subgenre: string) => {
+  const updateGenreStats = useCallback(async (genre: string, unitId?: string) => {
     try {
       // ジャンル統計のドキュメントを取得または作成
       const genreStatsRef = doc(db, 'genreStats', genre);
@@ -227,24 +206,24 @@ export function useQuizHook() {
       if (genreStatsSnap.exists()) {
         // 既存のジャンル統計を更新
         const genreData = genreStatsSnap.data();
-        const subgenreMap = genreData.subgenres || {};
+        const unitsMap = genreData.units || {};
         
-        if (subgenre && subgenreMap[subgenre]) {
+        if (unitId && unitsMap[unitId]) {
           // 既存の単元の利用回数を増加
           await updateDoc(genreStatsRef, {
             useCount: increment(1),
-            [`subgenres.${subgenre}.useCount`]: increment(1)
+            [`units.${unitId}.useCount`]: increment(1)
           });
-        } else if (subgenre) {
+        } else if (unitId) {
           // 新しい単元を追加して利用回数を1に設定
-          const updatedSubgenres = { ...subgenreMap };
-          updatedSubgenres[subgenre] = { useCount: 1 };
+          const updatedUnits = { ...unitsMap };
+          updatedUnits[unitId] = { useCount: 1 };
           await updateDoc(genreStatsRef, {
             useCount: increment(1),
-            subgenres: updatedSubgenres
+            units: updatedUnits
           });
         } else {
-          // サブジャンルがない場合は単にカウントアップ
+          // 単元が指定されていない場合はジャンルのカウントのみアップ
           await updateDoc(genreStatsRef, {
             useCount: increment(1)
           });
@@ -253,8 +232,8 @@ export function useQuizHook() {
         // ジャンル統計を新規作成
         await setDoc(genreStatsRef, {
           useCount: 1,
-          subgenres: subgenre ? {
-            [subgenre]: { useCount: 1 }
+          units: unitId ? {
+            [unitId]: { useCount: 1 }
           } : {}
         });
       }
@@ -273,11 +252,10 @@ export function useQuizHook() {
     if (currentQuizId && (!currentQuiz || currentQuiz.quizId !== currentQuizId)) {
       // 単元IDがある場合は新しい階層構造から取得
       const genre = quizRoom.genre;
-      const subgenre = quizRoom.subgenre;
       const unitId = quizRoom.unitId;
       
-      if (unitId && genre && subgenre) {
-        fetchQuiz(genre, subgenre, unitId, currentQuizId);
+      if (unitId && genre) {
+        fetchQuiz(genre, unitId, currentQuizId);
       } else {
         // 旧構造の場合は従来のメソッドを使用
         fetchQuizLegacy(currentQuizId);

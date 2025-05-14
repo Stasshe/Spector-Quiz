@@ -26,7 +26,6 @@ interface DraftUnit {
   genre: string;
   quizzes: Quiz[];
   isPublic: boolean;
-  subgenre?: string; // オプショナルプロパティとして追加
   createdBy: string;
   updatedAt: Date;
 }
@@ -39,7 +38,6 @@ export default function CreateQuizUnitPage() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [genre, setGenre] = useState('');
-  const [subgenre, setSubgenre] = useState(''); // サブジャンルの状態を追加
   const [isPublic, setIsPublic] = useState(true);
   
   // クイズの状態管理
@@ -297,7 +295,6 @@ export default function CreateQuizUnitPage() {
             acceptableAnswers: quiz.acceptableAnswers,
             explanation: quiz.explanation,
             genre: genre,
-            subgenre: title, // 単元のタイトルをサブジャンル名として使用
             difficulty: quiz.difficulty,
             createdBy: currentUser!.uid,
             createdAt: serverTimestamp() as any, // as any で型エラーを回避
@@ -313,20 +310,48 @@ export default function CreateQuizUnitPage() {
         }
       }
       
-      // 単元をFirestoreに追加
+      // 単元をFirestoreの新しい階層構造に追加
       const unitData: Omit<QuizUnit, 'unitId'> = {
         title,
         description,
-        genre,
-        subgenre, // サブジャンルを追加
         createdBy: currentUser!.uid,
         createdAt: serverTimestamp() as any, // as any で型エラーを回避
-        quizCount: quizzes.length, // 代わりにquizCountを使用
+        quizCount: quizzes.length, // クイズの数
         useCount: 0,
-        isPublic
+        isPublic,
+        averageDifficulty: quizzes.length > 0 
+          ? quizzes.reduce((sum, q) => sum + q.difficulty, 0) / quizzes.length 
+          : 0
       };
       
-      const unitRef = await addDoc(collection(db, 'quiz_units'), unitData);
+      // ジャンル->単元の階層構造でデータを保存
+      const unitRef = await addDoc(
+        collection(db, 'genres', genre, 'quiz_units'), 
+        unitData
+      );
+      
+      // クイズを単元のサブコレクションとして追加
+      for (const quiz of quizzes) {
+        const quizData = {
+          title: quiz.title,
+          question: quiz.question,
+          type: quiz.type,
+          choices: quiz.choices,
+          correctAnswer: quiz.correctAnswer,
+          acceptableAnswers: quiz.acceptableAnswers,
+          explanation: quiz.explanation,
+          difficulty: quiz.difficulty,
+          createdBy: currentUser!.uid,
+          createdAt: serverTimestamp() as any,
+          useCount: 0,
+          correctCount: 0
+        };
+        
+        await addDoc(
+          collection(db, 'genres', genre, 'quiz_units', unitRef.id, 'quizzes'),
+          quizData
+        );
+      }
       
       // 公開成功したら下書きを削除
       if (draftId) {
@@ -419,7 +444,6 @@ export default function CreateQuizUnitPage() {
       acceptableAnswers,
       explanation,
       genre,
-      subgenre: title, // 単元のタイトルをサブジャンル名として使用
       difficulty,
       createdBy: currentUser!.uid,
       createdAt: null as any, // サーバータイムスタンプで更新
@@ -927,21 +951,8 @@ export default function CreateQuizUnitPage() {
                               value={correctAnswer}
                               onChange={(e) => setCorrectAnswer(e.target.value)}
                               placeholder="正解を入力"
-                              required
                             />
                           </div>
-                          
-                          <div>
-                            <div className="flex items-center justify-between mb-2">
-                              <label className="form-label">許容される他の回答 (省略可)</label>
-                              <button
-                                type="button"
-                                onClick={addAcceptableAnswer}
-                                className="text-sm text-indigo-600 hover:text-indigo-800"
-                              >
-                                + 追加
-                              </button>
-                            </div>
                             
                             {acceptableAnswers.map((answer, index) => (
                               <div key={index} className="flex items-center mb-2">

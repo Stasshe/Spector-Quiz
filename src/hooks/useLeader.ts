@@ -53,8 +53,8 @@ export function useLeader(roomId: string) {
         });
         
         // ジャンルと単元の統計も更新
-        if (quizData.genre && quizData.subgenre) {
-          await updateGenreStats(quizData.genre, quizData.subgenre);
+        if (quizData.genre) {
+          await updateGenreStats(quizData.genre, quizRoom.unitId);
         }
         
         // ルームの現在のクイズ状態を更新

@@ -25,8 +25,8 @@ function CreateRoomContent() {
   const searchParams = useSearchParams();
   
   const genre = searchParams.get('genre');
-  const subgenre = searchParams.get('subgenre');
   const classType = searchParams.get('classType') || '公式';
+  const unitId = searchParams.get('unitId');
 
   useEffect(() => {
     // ユーザーがログインしていない場合は、ログインページにリダイレクト
@@ -35,29 +35,29 @@ function CreateRoomContent() {
     }
 
     // パラメータが不足している場合はクイズ選択ページにリダイレクト
-    if (!genre || !subgenre) {
+    if (!genre || !unitId) {
       router.push('/quiz');
     } else {
       // デフォルトのルーム名を設定
-      setRoomName(`${genre} - ${subgenre} - クイズルーム`);
+      setRoomName(`${genre} - クイズルーム`);
     }
-  }, [currentUser, router, genre, subgenre]);
+  }, [currentUser, router, genre, unitId]);
 
   const handleCreateRoom = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!genre || !subgenre) {
+    if (!genre || !unitId) {
       return;
     }
 
-    const room = await createRoom(genre, subgenre, classType);
+    const room = await createRoom(genre, unitId, classType);
     
     if (room) {
       router.push(`/quiz/room?id=${room.roomId}`);
     }
   };
 
-  if (!currentUser || !genre || !subgenre) {
+  if (!currentUser || !genre || !unitId) {
     return null; // ユーザーがログインしているか確認中、もしくはリダイレクト中
   }
 
@@ -106,11 +106,11 @@ function CreateRoomContent() {
               </div>
               
               <div className="space-y-2">
-                <label htmlFor="subgenre" className="form-label flex items-center">
+                <label htmlFor="unit" className="form-label flex items-center">
                   <FaGamepad className="mr-2 text-indigo-500" /> 単元
                 </label>
                 <div className="bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-3 text-gray-700 font-medium">
-                  {subgenre}
+                  {unitId}
                 </div>
               </div>
             </div>
@@ -139,7 +139,7 @@ function CreateRoomContent() {
                 </div>
                 <p className="text-sm text-gray-600">
                   ルームを作成すると、あなたがリーダーになります。<br />
-                  このルームでは、{genre}の{subgenre}に関するクイズが出題されます。<br />
+                  このルームでは、{genre}の単元に関するクイズが出題されます。<br />
                   友達を招待して一緒にプレイしましょう！
                 </p>
               </div>
