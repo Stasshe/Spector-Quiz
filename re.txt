@@ -1,2 +1,23 @@
- [33m[1m⚠[22m[39m Port 3000 is in use, using available port 3001 instead.
-[Error: Cannot apply unknown utility class: bg-gray-50]
+Error: Cannot apply unknown utility class: bg-gray-50
+    [2m[at onInvalidCandidate (/workspaces/Spector-Quiz/node_modules/tailwindcss/dist/lib.js:18:410)][0m
+    [2m[at ge (/workspaces/Spector-Quiz/node_modules/tailwindcss/dist/lib.js:13:29693)][0m
+    [2m[at /workspaces/Spector-Quiz/node_modules/tailwindcss/dist/lib.js:18:373][0m
+    [2m[at j (/workspaces/Spector-Quiz/node_modules/tailwindcss/dist/lib.js:3:1655)][0m
+    [2m[at Le (/workspaces/Spector-Quiz/node_modules/tailwindcss/dist/lib.js:18:172)][0m
+    [2m[at ki (/workspaces/Spector-Quiz/node_modules/tailwindcss/dist/lib.js:35:828)][0m
+    [2m[at process.processTicksAndRejections (node:internal/process/task_queues:95:5)][0m
+    [2m[at async bi (/workspaces/Spector-Quiz/node_modules/tailwindcss/dist/lib.js:35:1123)][0m
+    [2m[at async _r (/workspaces/Spector-Quiz/node_modules/@tailwindcss/node/dist/index.js:10:3384)][0m
+    [2m[at async p (/workspaces/Spector-Quiz/node_modules/@tailwindcss/postcss/dist/index.js:10:3991)][0m
+ [33m[1m⚠[22m[39m Support for Turbopack builds is experimental. [1mWe don't recommend deploying mission-critical applications to production.[22m
+
+- [1mTurbopack currently always builds production sourcemaps for the browser. This will include project sourcecode if deployed to production.[22m
+- It is expected that your bundle size might be different from `next build` with webpack. This will be improved as we work towards stability.
+- This build is without disk caching; subsequent builds will become faster when disk caching becomes available.
+- When comparing output to webpack builds, make sure to first clear the Next.js cache by deleting the `.next` directory.
+
+Provide feedback for Turbopack builds at https://github.com/vercel/next.js/discussions/77721
+
+> Build error occurred
+[Error: Page "/profile/[userId]" is missing "generateStaticParams()" so it cannot be used with "output: export" config.]
+[?25h
