@@ -519,7 +519,7 @@ const finishRoom = useCallback(async (roomId: string) => {
     deleteBatch.delete(roomRef);
     
     await deleteBatch.commit();
-  }, 30000); // 30秒後に削除
+  }, 300); // 0.30秒後に削除
 }, []);
 ```
 

@@ -264,9 +264,27 @@ export function useLeader(roomId: string) {
       
       await batch.commit();
       
-      // 30秒後にルームを削除（結果表示時間確保）
+      console.log(`Quiz room ${roomId} completed - scheduling auto deletion in 30 seconds`);
+      
+      // 0.3秒後にルームを削除（結果表示時間確保）
       setTimeout(async () => {
         try {
+          // ルーム参照を再取得して確実に最新の状態を取得
+          const roomRef = doc(db, 'quiz_rooms', roomId);
+          const roomCheck = await getDoc(roomRef);
+          
+          // ルームがすでに削除されている場合は何もしない
+          if (!roomCheck.exists()) {
+            console.log(`Room ${roomId} already deleted, skipping cleanup`);
+            return;
+          }
+          
+          // ルームが完了状態でない場合もスキップ
+          if (roomCheck.data().status !== 'completed') {
+            console.log(`Room ${roomId} is not in completed state, skipping deletion`);
+            return;
+          }
+          
           // ルーム内の回答データを削除
           const answersRef = collection(db, 'quiz_rooms', roomId, 'answers');
           const answersSnap = await getDocs(answersRef);
@@ -294,7 +312,7 @@ export function useLeader(roomId: string) {
           }
           
           // ルーム自体を削除
-          await deleteDoc(doc(db, 'quiz_rooms', roomId));
+          await deleteDoc(roomRef);
           console.log(`Successfully deleted room ${roomId}`);
           
         } catch (error) {
@@ -308,7 +326,7 @@ export function useLeader(roomId: string) {
             console.error('Error deleting room after answer deletion failed:', roomError);
           }
         }
-      }, 30000);
+      }, 300);
     } catch (error) {
       console.error('Error finishing quiz game:', error);
     }

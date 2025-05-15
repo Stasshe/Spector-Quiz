@@ -12,7 +12,7 @@ export default function ScoreBoard({ participants }: ScoreBoardProps) {
       userId,
       ...participant
     }))
-    .sort((a, b) => b.score - a.score);
+    .sort((a, b) => (b.score || 0) - (a.score || 0));
 
   // 上位のランクに対応する色とアイコン
   const rankStyles = [
@@ -38,11 +38,11 @@ export default function ScoreBoard({ participants }: ScoreBoardProps) {
                 {index < 3 ? rankStyles[index].icon : index + 1}
               </div>
               <span className={`font-medium ${index < 3 ? rankStyles[index].color : ''}`}>
-                {participant.username}
+                {participant.username || 'Unknown'}
               </span>
             </div>
             <div className="font-bold">
-              {participant.score}
+              {participant.score || 0}
             </div>
           </div>
         ))

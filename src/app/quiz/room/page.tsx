@@ -13,6 +13,8 @@ import AnswerInput from '@/components/quiz/AnswerInput';
 import QuizResult from '@/components/quiz/QuizResult';
 import ScoreBoard from '@/components/quiz/ScoreBoard';
 import { FaSignOutAlt, FaPlay } from 'react-icons/fa';
+import { db } from '@/config/firebase';
+import { deleteDoc, doc } from 'firebase/firestore';
 
 // ローディングフォールバックコンポーネント
 function QuizRoomLoading() {
@@ -226,6 +228,7 @@ function QuizRoomContent() {
                 {statsUpdated && (
                   <div className="my-4 p-4 bg-green-50 border border-green-200 rounded-md">
                     <p className="text-green-600">✓ プレイ結果が統計に反映されました！</p>
+                    <p className="text-gray-600 mt-1">このルームは自動的に削除されます。</p>
                   </div>
                 )}
                 <button

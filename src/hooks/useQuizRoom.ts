@@ -801,11 +801,12 @@ export function useQuizRoom() {
         const newCorrectAnswers = (currentStats.correctAnswers || 0) + correctAnswers;
         
         // ジャンル別の統計を更新
-        const genre = roomData.genre;
-        const genreStats = currentStats.genres[genre] || { totalAnswered: 0, correctAnswers: 0 };
+        const genre = roomData.genre || 'その他';
+        // 既存のジャンル別統計がない場合はデフォルト値を使用
+        const genreStats = (currentStats.genres || {})[genre] || { totalAnswered: 0, correctAnswers: 0 };
         const newGenreStats = {
-          totalAnswered: genreStats.totalAnswered + totalAnswered,
-          correctAnswers: genreStats.correctAnswers + correctAnswers
+          totalAnswered: (genreStats.totalAnswered || 0) + totalAnswered,
+          correctAnswers: (genreStats.correctAnswers || 0) + correctAnswers
         };
         
         // 経験値も更新（正答1問につき10ポイント）
