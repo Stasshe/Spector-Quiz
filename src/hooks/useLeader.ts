@@ -461,14 +461,35 @@ export function useLeader(roomId: string) {
         });
       });
       
-      await batch.commit();
+      try {
+        await batch.commit();
+        console.log('ユーザー統計情報を更新しました');
+      } catch (statsError) {
+        console.error('統計情報の更新に失敗しました:', statsError);
+        // 統計更新の失敗は無視して処理を続行
+      }
       
-      console.log(`Quiz room ${roomId} completed - scheduling auto deletion in 30 seconds`);
+      console.log(`Quiz room ${roomId} completed - scheduling deletion in 3 seconds`);
       
-      // 0.3秒後にルームを削除（結果表示時間確保）
+      // 3秒後にルームを削除（結果表示時間確保）
       setTimeout(async () => {
         try {
-          // ルーム参照を再取得して確実に最新の状態を取得
+          // まず、各参加者のcurrentRoomIdをnullに設定して参照を解除
+          const participantUpdates = Object.keys(quizRoom.participants).map(async (userId) => {
+            try {
+              await updateDoc(doc(db, 'users', userId), { currentRoomId: null });
+              console.log(`User ${userId} room reference cleared`);
+            } catch (userErr) {
+              console.warn(`Failed to clear room reference for user ${userId}:`, userErr);
+              // 個別ユーザーのエラーは無視して続行
+            }
+          });
+          
+          // すべての参加者の更新を待つ
+          await Promise.allSettled(participantUpdates);
+          console.log('All participant references cleared');
+          
+          // ルーム参照を再取得
           const roomRef = doc(db, 'quiz_rooms', roomId);
           const roomCheck = await getDoc(roomRef);
           
@@ -478,56 +499,60 @@ export function useLeader(roomId: string) {
             return;
           }
           
-          // ルームが完了状態でない場合もスキップ
-          if (roomCheck.data().status !== 'completed') {
-            console.log(`Room ${roomId} is not in completed state, skipping deletion`);
-            return;
-          }
-          
-          // ルーム内の回答データを削除
-          const answersRef = collection(db, 'quiz_rooms', roomId, 'answers');
-          const answersSnap = await getDocs(answersRef);
-          
-          if (!answersSnap.empty) {
-            console.log(`Deleting ${answersSnap.docs.length} answers from room ${roomId}`);
-            const deleteBatch = writeBatch(db);
-            
-            // バッチサイズ制限（500）を考慮
-            const chunks = [];
-            for (let i = 0; i < answersSnap.docs.length; i += 400) {
-              chunks.push(answersSnap.docs.slice(i, i + 400));
-            }
-            
-            // チャンクごとに削除を実行
-            for (const chunk of chunks) {
-              const chunkBatch = writeBatch(db);
-              chunk.forEach(doc => {
-                chunkBatch.delete(doc.ref);
-              });
-              await chunkBatch.commit();
-            }
-            
-            console.log(`Successfully deleted all answers from room ${roomId}`);
-          }
-          
-          // ルーム自体を削除
-          await deleteDoc(roomRef);
-          console.log(`Successfully deleted room ${roomId}`);
-          
-        } catch (error) {
-          console.error('Error deleting room:', error);
-          // エラーがあってもクリーンアップを続ける
           try {
-            // それでもルームは削除を試みる
-            await deleteDoc(doc(db, 'quiz_rooms', roomId));
-            console.log(`Attempted to delete room ${roomId} despite errors with answers`);
-          } catch (roomError) {
-            console.error('Error deleting room after answer deletion failed:', roomError);
+            // ルーム内の回答データを削除
+            const answersRef = collection(db, 'quiz_rooms', roomId, 'answers');
+            
+            // まず回答数を確認（小さなバッチで取得）
+            const countQuery = query(answersRef, limit(50));
+            const countSnap = await getDocs(countQuery);
+            
+            if (!countSnap.empty) {
+              console.log(`Deleting answers from room ${roomId}`);
+              
+              // 一度に少数の回答だけを削除する
+              for (const doc of countSnap.docs) {
+                try {
+                  await deleteDoc(doc.ref);
+                } catch (deleteAnswerError) {
+                  console.warn(`Failed to delete answer ${doc.id}:`, deleteAnswerError);
+                  // 個別の回答削除エラーは無視
+                }
+              }
+            }
+          } catch (answersError) {
+            console.warn('Failed to cleanup answers, continuing with room deletion:', answersError);
+            // 回答のクリーンアップエラーは無視して続行
           }
+          
+          // 最後にルーム自体を削除
+          try {
+            await deleteDoc(roomRef);
+            console.log(`Successfully deleted room ${roomId}`);
+          } catch (roomDeleteError) {
+            console.error('Error deleting room:', roomDeleteError);
+            console.log('fucking error');
+          }
+        } catch (error) {
+          console.error('Error in room cleanup process:', error);
         }
-      }, 300);
-    } catch (error) {
+      }, 3000);
+    } catch (error: any) {
       console.error('Error finishing quiz game:', error);
+      
+      // エラーが発生しても、ルームを非アクティブとしてマークしてリソースを解放する
+      if (error?.code === 'permission-denied') {
+        try {
+          await updateDoc(doc(db, 'quiz_rooms', roomId), {
+            status: 'inactive',
+            updatedAt: serverTimestamp(),
+            isDeleted: true
+          });
+          console.log(`Marked room ${roomId} as inactive due to permission error in game finish`);
+        } catch (markError) {
+          console.error('Failed to mark room as inactive after game finish error:', markError);
+        }
+      }
     }
   }, [isLeader, quizRoom, roomId]);
 
@@ -733,40 +758,6 @@ export function useLeader(roomId: string) {
           }
           
           // ルームの状態を更新して正誤判定を表示
-          try {
-            await updateDoc(roomRef, {
-              'currentState.answerStatus': isCorrect ? 'correct' : 'incorrect',
-              'currentState.isRevealed': true,
-              [`participants.${currentUser.uid}.score`]: increment(isCorrect ? 10 : 0)
-            });
-            
-            console.log(`ルーム状態を更新しました - 解答は${isCorrect ? '正解' : '不正解'}です`);
-            
-            // 5秒後に次の問題に進む（リーダーのみ）
-            if (isLeader) {
-              setTimeout(() => {
-                moveToNextQuestion();
-              }, 5000);
-            }
-          } catch (roomUpdateErr: any) {
-            console.error('ルーム状態の更新に失敗しました:', roomUpdateErr);
-            
-            if (roomUpdateErr?.code === 'permission-denied') {
-              console.error('権限エラー: ルーム状態の更新が拒否されました');
-              
-              // 緊急回復策: 自分がリーダーなら強制的に次の問題に進む
-              if (isLeader) {
-                console.log('緊急回復策を実行します: 5秒後に次の問題に進みます');
-                setTimeout(() => {
-                  moveToNextQuestion();
-                }, 5000);
-              } else {
-                console.log('リーダーではないため、次の問題に進むことはできません');
-              }
-            }
-          }
-        
-                  // ルームの状態を更新して正誤判定を表示
           try {
             await updateDoc(roomRef, {
               'currentState.answerStatus': isCorrect ? 'correct' : 'incorrect',
