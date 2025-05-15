@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState, Suspense, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useQuiz } from '@/hooks/useQuiz';
@@ -30,8 +30,14 @@ function QuizRoomContent() {
   const roomId = params.get('id') || '';
   const router = useRouter();
   const { quizRoom, isLeader, currentQuiz, hasAnsweringRight } = useQuiz();
-  const { useRoomListener, leaveRoom } = useQuizRoom();
+  const { useRoomListener, leaveRoom, updateUserStatsOnRoomComplete } = useQuizRoom();
   const { startQuizGame, handleBuzzer, submitAnswer } = useLeader(roomId);
+  
+  // 統計更新のステータスを追跡
+  const [statsUpdated, setStatsUpdated] = useState(false);
+  
+  // 以前のルームステータスを追跡
+  const prevStatusRef = useRef<RoomStatus | null>(null);
   
   // ルームデータをリアルタイム監視
   const room = useRoomListener(roomId);
@@ -48,6 +54,30 @@ function QuizRoomContent() {
       router.push('/quiz');
     }
   }, [currentUser, roomId, router]);
+
+  // ルームのステータスが完了に変わったときに統計情報を更新
+  useEffect(() => {
+    if (!room || !currentUser || statsUpdated) return;
+    
+    // ルームステータスが「待機中」または「進行中」から「完了」に変わった場合
+    if (
+      (prevStatusRef.current === 'waiting' || prevStatusRef.current === 'in_progress') && 
+      room.status === 'completed'
+    ) {
+      // 統計情報を更新
+      updateUserStatsOnRoomComplete(roomId)
+        .then(() => {
+          setStatsUpdated(true);
+          console.log('ユーザー統計を更新しました');
+        })
+        .catch(err => {
+          console.error('統計更新エラー:', err);
+        });
+    }
+    
+    // 現在のステータスを記録
+    prevStatusRef.current = room.status;
+  }, [room, currentUser, roomId, updateUserStatsOnRoomComplete, statsUpdated]);
 
   // ルームからの退出処理
   const handleLeaveRoom = async () => {
@@ -193,6 +223,11 @@ function QuizRoomContent() {
                 <p className="text-gray-600 mb-6">
                   全ての問題が終了しました。結果をご確認ください。
                 </p>
+                {statsUpdated && (
+                  <div className="my-4 p-4 bg-green-50 border border-green-200 rounded-md">
+                    <p className="text-green-600">✓ プレイ結果が統計に反映されました！</p>
+                  </div>
+                )}
                 <button
                   onClick={handleLeaveRoom}
                   className="bg-indigo-600 text-white px-6 py-3 rounded-md text-lg"

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { FaBolt, FaUser, FaLock, FaSignInAlt, FaUserPlus } from 'react-icons/fa';
@@ -8,7 +8,7 @@ import { FaBolt, FaUser, FaLock, FaSignInAlt, FaUserPlus } from 'react-icons/fa'
 export default function LoginPage() {
   const [userId, setUserId] = useState('');
   const [password, setPassword] = useState('');
-  const { handleLogin, error, isLoading } = useAuth();
+  const { handleLogin, error, isLoading, initialized, currentUser } = useAuth();
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -29,6 +29,21 @@ export default function LoginPage() {
           <h2 className="mt-2 text-3xl font-extrabold bg-gradient-to-r from-indigo-600 to-purple-600 text-transparent bg-clip-text">Zap!</h2>
           <p className="mt-2 text-lg text-gray-600">クイズに答えて、ランキングをアップしよう！</p>
         </div>
+
+        {!initialized && (
+          <div className="relative z-10 bg-blue-50 border-l-4 border-blue-500 text-blue-700 p-4 rounded-lg animate-pulse">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-blue-500" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm">認証状態を確認中です...</p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {error && (
           <div className="relative z-10 bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded-lg animate-fadeIn">
@@ -94,11 +109,11 @@ export default function LoginPage() {
           <div>
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || !initialized}
               className="btn-primary w-full flex items-center justify-center group"
             >
               <FaSignInAlt className="mr-2 group-hover:animate-bounce" />
-              {isLoading ? 'ログイン中...' : 'ログイン'}
+              {isLoading ? 'ログイン中...' : '次へ'}
             </button>
           </div>
 

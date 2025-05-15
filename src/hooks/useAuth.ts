@@ -1,23 +1,56 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth as useAuthContext } from '../context/AuthContext';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 
 export function useAuth() {
-  const { currentUser, userProfile, login, register, logout, loading } = useAuthContext();
+  const { currentUser, userProfile, login, register, logout, loading, initialized } = useAuthContext();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
+
+  // 認証状態に基づいてリダイレクト処理を行う
+  useEffect(() => {
+    // 初期化が完了していない場合は何もしない
+    if (!initialized) return;
+
+    const publicPaths = ['/', '/auth/login', '/auth/register'];
+    const isPublicPath = publicPaths.includes(pathname);
+    
+    // ログインページやレジスターページにいる場合で、すでにログインしている場合はquizページへリダイレクト
+    if (currentUser && (pathname === '/auth/login' || pathname === '/auth/register')) {
+      console.log('User is authenticated, redirecting to /quiz from auth page');
+      router.replace('/quiz');
+    }
+    
+    // 保護されたページにいる場合で、ログインしていない場合はログインページへリダイレクト
+    if (!currentUser && !isPublicPath && !loading) {
+      console.log('User is not authenticated, redirecting to /auth/login');
+      router.replace('/auth/login');
+    }
+  }, [currentUser, initialized, loading, pathname, router]);
 
   const handleLogin = async (userId: string, password: string) => {
     try {
       setIsLoading(true);
       setError(null);
       await login(userId, password);
-      router.push('/quiz');
+      // ログイン後のリダイレクトはuseEffectで自動的に行われるため、ここでは不要
     } catch (err: any) {
-      setError(err.message || 'ログイン中にエラーが発生しました。');
+      let errorMessage = 'ログイン中にエラーが発生しました。';
+      
+      // Firebase認証エラーの日本語対応
+      if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-email') {
+        errorMessage = 'ユーザーIDが見つかりません。';
+      } else if (err.code === 'auth/wrong-password') {
+        errorMessage = 'パスワードが正しくありません。';
+      } else if (err.code === 'auth/too-many-requests') {
+        errorMessage = 'ログイン試行回数が多すぎます。しばらく時間をおいてお試しください。';
+      }
+      
+      setError(errorMessage);
       console.error('Login error:', err);
     } finally {
       setIsLoading(false);
@@ -34,9 +67,20 @@ export function useAuth() {
       // 登録成功のメッセージ表示
       alert(`登録が完了しました！\nあなたのユーザーID: ${userId}\n\nこのIDはログインに必要です。必ずメモしておいてください。`);
       
-      router.push('/quiz');
+      // 登録後のリダイレクトはuseEffectで自動的に行われるため、ここでは不要
     } catch (err: any) {
-      setError(err.message || 'アカウント作成中にエラーが発生しました。');
+      let errorMessage = 'アカウント作成中にエラーが発生しました。';
+      
+      // Firebase認証エラーの日本語対応
+      if (err.code === 'auth/email-already-in-use') {
+        errorMessage = 'このユーザーIDは既に使用されています。';
+      } else if (err.code === 'auth/invalid-email') {
+        errorMessage = '無効なユーザーIDです。';
+      } else if (err.code === 'auth/weak-password') {
+        errorMessage = 'パスワードが弱すぎます。6文字以上の強力なパスワードをお使いください。';
+      }
+      
+      setError(errorMessage);
       console.error('Registration error:', err);
     } finally {
       setIsLoading(false);
@@ -47,7 +91,7 @@ export function useAuth() {
     try {
       setIsLoading(true);
       await logout();
-      router.push('/');
+      // ログアウト後のリダイレクトはuseEffectで自動的に行われるため、ここでは不要
     } catch (err: any) {
       setError(err.message || 'ログアウト中にエラーが発生しました。');
       console.error('Logout error:', err);
@@ -61,6 +105,7 @@ export function useAuth() {
     userProfile,
     error,
     isLoading: isLoading || loading,
+    initialized,
     handleLogin,
     handleRegister,
     handleLogout

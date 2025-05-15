@@ -19,6 +19,7 @@ interface AuthContextType {
   register: (password: string, username: string, iconId: number) => Promise<string>;
   logout: () => Promise<void>;
   loading: boolean;
+  initialized: boolean; // 初期化完了フラグを追加
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -27,9 +28,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [initialized, setInitialized] = useState(false); // 初期化状態を追加
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      console.log('Auth state changed:', user ? `User: ${user.uid}` : 'No user');
       setCurrentUser(user);
       
       if (user) {
@@ -47,18 +50,54 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               rank: userData.rank,
               stats: userData.stats
             });
+            
+            // ユーザーがオンライン状態であることを更新
+            await setDoc(userDocRef, {
+              isOnline: true,
+              lastLoginAt: serverTimestamp()
+            }, { merge: true });
+          } else {
+            console.warn('User document does not exist for uid:', user.uid);
+            setUserProfile(null);
           }
         } catch (error) {
           console.error('Error fetching user profile:', error);
+          setUserProfile(null);
         }
       } else {
         setUserProfile(null);
       }
       
       setLoading(false);
+      setInitialized(true); // 初期化完了をマーク
     });
 
-    return unsubscribe;
+    // コンポーネントのアンマウント時にFirebase認証の監視を解除
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
+  // アプリケーション終了時にユーザーをオフラインに設定
+  useEffect(() => {
+    const handleBeforeUnload = async () => {
+      if (auth.currentUser) {
+        try {
+          const userRef = doc(db, 'users', auth.currentUser.uid);
+          await setDoc(userRef, {
+            isOnline: false
+          }, { merge: true });
+        } catch (error) {
+          console.error('Error setting user offline:', error);
+        }
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
   }, []);
 
   // 次のユーザーIDを生成する関数（6桁）
@@ -101,14 +140,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Firebase Authはメールアドレスを必要とするため、ダミーのメールアドレスを作成
       const email = `${userId}@zap-quiz.app`;
       await signInWithEmailAndPassword(auth, email, password);
-      // ユーザーがログインしたら、最終ログイン時間を更新
-      if (auth.currentUser) {
-        const userRef = doc(db, 'users', auth.currentUser.uid);
-        await setDoc(userRef, {
-          lastLoginAt: serverTimestamp(),
-          isOnline: true
-        }, { merge: true });
-      }
+      
+      // ユーザープロファイルの更新はonAuthStateChangedで行われるので、ここでは不要
+      return;
     } catch (error) {
       console.error('Login error:', error);
       throw error;
@@ -165,12 +199,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try {
+      setLoading(true);
       // ユーザーがログアウトする前にオンライン状態を更新
       if (auth.currentUser) {
         const userRef = doc(db, 'users', auth.currentUser.uid);
         await setDoc(userRef, {
           isOnline: false,
-          currentRoomId: null
+          currentRoomId: null,
+          lastLoginAt: serverTimestamp()
         }, { merge: true });
       }
       
@@ -178,6 +214,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('Logout error:', error);
       throw error;
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -187,7 +225,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     login,
     register,
     logout,
-    loading
+    loading,
+    initialized // 初期化状態を公開
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

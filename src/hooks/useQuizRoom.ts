@@ -16,7 +16,9 @@ import {
   deleteDoc, 
   deleteField,
   onSnapshot, 
-  serverTimestamp 
+  serverTimestamp,
+  increment,
+  runTransaction
 } from 'firebase/firestore';
 import { useAuth } from '@/context/AuthContext';
 import { QuizRoom, RoomListing, RoomStatus } from '@/types/room';
@@ -586,9 +588,109 @@ export function useQuizRoom() {
     }
   }, [currentUser]);
 
+  // ルームが完了したとき（全問終了時）に統計を更新する関数
+  const updateUserStatsOnRoomComplete = useCallback(async (roomId: string) => {
+    if (!currentUser) {
+      console.error('ユーザーがログインしていません');
+      return false;
+    }
+    
+    try {
+      // ルームのデータを取得
+      const roomRef = doc(db, 'quiz_rooms', roomId);
+      const roomSnap = await getDoc(roomRef);
+      
+      if (!roomSnap.exists()) {
+        throw new Error('ルームが見つかりません');
+      }
+      
+      const roomData = roomSnap.data() as QuizRoom;
+      
+      // ルームが完了状態になっていることを確認
+      if (roomData.status !== 'completed') {
+        console.log('ルームはまだ完了していません');
+        return false;
+      }
+      
+      // 自分の成績を取得
+      const myParticipantData = roomData.participants[currentUser.uid];
+      if (!myParticipantData) {
+        console.error('このルームの参加者データが見つかりません');
+        return false;
+      }
+      
+      // 現在のユーザー統計データを取得
+      const userRef = doc(db, 'users', currentUser.uid);
+      
+      await runTransaction(db, async (transaction) => {
+        const userDoc = await transaction.get(userRef);
+        if (!userDoc.exists()) {
+          throw new Error('ユーザーデータが見つかりません');
+        }
+        
+        const userData = userDoc.data();
+        const currentStats = userData.stats || {
+          totalAnswered: 0,
+          correctAnswers: 0,
+          genres: {}
+        };
+        
+        // 正答数をカウント（スコアを正答数として使用）
+        const correctAnswers = myParticipantData.score || 0;
+        // 全問題数
+        const totalAnswered = roomData.totalQuizCount || 0;
+        
+        // 全体の統計を更新
+        const newTotalAnswered = (currentStats.totalAnswered || 0) + totalAnswered;
+        const newCorrectAnswers = (currentStats.correctAnswers || 0) + correctAnswers;
+        
+        // ジャンル別の統計を更新
+        const genre = roomData.genre;
+        const genreStats = currentStats.genres[genre] || { totalAnswered: 0, correctAnswers: 0 };
+        const newGenreStats = {
+          totalAnswered: genreStats.totalAnswered + totalAnswered,
+          correctAnswers: genreStats.correctAnswers + correctAnswers
+        };
+        
+        // 経験値も更新（正答1問につき10ポイント）
+        const expGain = correctAnswers * 10;
+        
+        // ユーザースキルレベルを計算
+        const newExp = (userData.exp || 0) + expGain;
+        const newRank = calculateRank(newExp);
+        
+        // 更新するデータ
+        transaction.update(userRef, {
+          'stats.totalAnswered': newTotalAnswered,
+          'stats.correctAnswers': newCorrectAnswers,
+          [`stats.genres.${genre}`]: newGenreStats,
+          'exp': newExp,
+          'rank': newRank
+        });
+      });
+      
+      console.log('ユーザー統計情報を更新しました');
+      return true;
+    } catch (err) {
+      console.error('統計情報の更新中にエラーが発生しました:', err);
+      return false;
+    }
+  }, [currentUser]);
+  
+  // 経験値からランクを計算する関数
+  const calculateRank = (exp: number): string => {
+    if (exp < 100) return 'ビギナー';
+    if (exp < 300) return 'アマチュア';
+    if (exp < 600) return 'エキスパート';
+    if (exp < 1000) return 'マスター';
+    if (exp < 2000) return 'チャンピオン';
+    return 'レジェンド';
+  };
+
   // 特定のルームを監視するフック
   const useRoomListener = (roomId: string) => {
     const [room, setRoom] = useState<QuizRoom | null>(null);
+    const [previousStatus, setPreviousStatus] = useState<RoomStatus | null>(null);
     
     useEffect(() => {
       if (!roomId) return;
@@ -598,6 +700,20 @@ export function useQuizRoom() {
         if (doc.exists()) {
           const roomData = doc.data() as Omit<QuizRoom, 'roomId'>;
           const roomWithId = { ...roomData, roomId: doc.id } as QuizRoom;
+          
+          // ルームのステータスが変わったかを確認
+          if (previousStatus !== null && previousStatus !== roomData.status) {
+            // ルームが完了状態になったら統計情報を更新
+            if (roomData.status === 'completed') {
+              updateUserStatsOnRoomComplete(doc.id).catch(err => {
+                console.error('統計更新エラー:', err);
+              });
+            }
+          }
+          
+          // 現在のステータスを保存
+          setPreviousStatus(roomData.status);
+          
           setRoom(roomWithId);
           setQuizRoom(roomWithId);
           
@@ -626,7 +742,7 @@ export function useQuizRoom() {
       });
       
       return () => unsubscribe();
-    }, [roomId, currentUser, setQuizRoom, setIsLeader, setHasAnsweringRight, setWaitingRoom, router]);
+    }, [roomId, currentUser, setQuizRoom, setIsLeader, setHasAnsweringRight, setWaitingRoom, router, previousStatus]);
     
     return room;
   };
@@ -642,9 +758,10 @@ export function useQuizRoom() {
     leaveRoom,
     findOrCreateRoom,
     useRoomListener,
-    createRoomWithUnit,  // 新しい関数をエクスポート
-    findOrCreateRoomWithUnit, // 新しい関数をエクスポート
-    getUnitIdByName, // 新しい関数をエクスポート
-    createUnitIfNotExists // 新しい関数をエクスポート
+    createRoomWithUnit,
+    findOrCreateRoomWithUnit,
+    getUnitIdByName,
+    createUnitIfNotExists,
+    updateUserStatsOnRoomComplete // 新しい関数をエクスポート
   };
 }
