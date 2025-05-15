@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { FaBolt, FaUser, FaLock, FaImage, FaArrowLeft, FaUserPlus } from 'react-icons/fa';
@@ -18,7 +18,38 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
   const [iconId, setIconId] = useState(1);
-  const { handleRegister, error, isLoading } = useAuth();
+  const { handleRegister, error, isLoading, initialized, currentUser } = useAuth();
+
+  // 初期化時にパスを確認
+  useEffect(() => {
+    // ブラウザ環境でのみ実行
+    if (typeof window !== 'undefined') {
+      const currentPath = window.location.pathname;
+      console.log(`Register page loaded at path: ${currentPath}`);
+      
+      // 登録ページが正しいパスにあるか確認
+      if (currentPath !== '/auth/register') {
+        console.warn(`Expected path /auth/register but got ${currentPath}`);
+      }
+    }
+  }, []);
+
+  // デバッグログ
+  useEffect(() => {
+    console.log('Register Page - Auth State:', { 
+      initialized, 
+      hasCurrentUser: !!currentUser,
+      isLoading,
+      currentPath: window.location.pathname
+    });
+    
+    // 公開パスかどうかを確認
+    const isPublicPath = ['/', '/auth/login', '/auth/register'].includes(window.location.pathname);
+    console.log('Is current path public?', { 
+      path: window.location.pathname, 
+      isPublic: isPublicPath 
+    });
+  }, [initialized, currentUser, isLoading]);
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -39,6 +70,21 @@ export default function RegisterPage() {
           <h2 className="mt-2 text-3xl font-extrabold bg-gradient-to-r from-indigo-600 to-purple-600 text-transparent bg-clip-text">Zap!</h2>
           <p className="mt-2 text-lg text-gray-600">新規アカウント登録</p>
         </div>
+
+        {!initialized && (
+          <div className="relative z-10 bg-blue-50 border-l-4 border-blue-500 text-blue-700 p-4 rounded-lg animate-pulse">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-blue-500" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm">認証状態を確認中です...</p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {error && (
           <div className="relative z-10 bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded-lg animate-fadeIn">

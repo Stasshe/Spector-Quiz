@@ -30,9 +30,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [initialized, setInitialized] = useState(false); // 初期化状態を追加
 
+  // Firebase認証の状態変更監視
   useEffect(() => {
+    console.log('Setting up auth state listener');
+    let isMounted = true;
+    
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       console.log('Auth state changed:', user ? `User: ${user.uid}` : 'No user');
+      
+      if (!isMounted) {
+        console.log('Component unmounted, skipping auth state update');
+        return;
+      }
+      
       setCurrentUser(user);
       
       if (user) {
@@ -70,10 +80,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       setLoading(false);
       setInitialized(true); // 初期化完了をマーク
+      console.log('Auth initialization complete');
     });
 
     // コンポーネントのアンマウント時にFirebase認証の監視を解除
     return () => {
+      isMounted = false;
+      console.log('Cleaning up auth state listener');
       unsubscribe();
     };
   }, []);

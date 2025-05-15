@@ -68,7 +68,7 @@ export default function WaitingRoomFloating() {
   // ルームページに移動
   const goToRoom = () => {
     if (!waitingRoom) return;
-    router.push(`/quiz/room?roomId=${waitingRoom.roomId}`);
+    router.push(`/quiz/room?id=${waitingRoom.roomId}`);
     setIsWaitingRoomModalOpen(false);
   };
 

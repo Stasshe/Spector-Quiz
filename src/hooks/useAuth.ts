@@ -14,20 +14,46 @@ export function useAuth() {
   // 認証状態に基づいてリダイレクト処理を行う
   useEffect(() => {
     // 初期化が完了していない場合は何もしない
-    if (!initialized) return;
+    if (!initialized) {
+      console.log('Auth not initialized yet, skipping redirect check');
+      return;
+    }
 
+    // パスを正規化（末尾のスラッシュを削除）
+    const normalizedPath = pathname.endsWith('/') ? pathname.slice(0, -1) : pathname;
+    
     const publicPaths = ['/', '/auth/login', '/auth/register'];
-    const isPublicPath = publicPaths.includes(pathname);
+    // より寛容なチェック方法: パスが公開パスの一つで始まるか確認
+    const isPublicPath = publicPaths.some(path => 
+      normalizedPath === path || 
+      (path !== '/' && normalizedPath.startsWith(path))
+    );
+    
+    console.log('Auth redirect check:', { 
+      currentUser: !!currentUser, 
+      pathname, 
+      normalizedPath,
+      isPublicPath, 
+      loading,
+      initialized
+    });
     
     // ログインページやレジスターページにいる場合で、すでにログインしている場合はquizページへリダイレクト
-    if (currentUser && (pathname === '/auth/login' || pathname === '/auth/register')) {
-      console.log('User is authenticated, redirecting to /quiz from auth page');
+    if (currentUser && (normalizedPath === '/auth/login' || normalizedPath === '/auth/register')) {
+      console.log(`User is authenticated, redirecting to /quiz from path: ${normalizedPath}`);
       router.replace('/quiz');
+      return;
+    }
+    
+    // パブリックパスの場合はリダイレクト不要
+    if (isPublicPath) {
+      console.log(`User is on a public path: ${normalizedPath}, no redirect needed`);
+      return;
     }
     
     // 保護されたページにいる場合で、ログインしていない場合はログインページへリダイレクト
-    if (!currentUser && !isPublicPath && !loading) {
-      console.log('User is not authenticated, redirecting to /auth/login');
+    if (!currentUser && !loading) {
+      console.log(`User is not authenticated, redirecting to /auth/login from path: ${normalizedPath}`);
       router.replace('/auth/login');
     }
   }, [currentUser, initialized, loading, pathname, router]);

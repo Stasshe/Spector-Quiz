@@ -22,6 +22,7 @@ function RoomsContent() {
   const { availableRooms, fetchAvailableRooms, joinRoom, loading, error } = useQuizRoom();
   const [joinLoading, setJoinLoading] = useState(false);
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
+  const [refreshTimer, setRefreshTimer] = useState(30); // 30秒ごとに自動更新
   const router = useRouter();
   const searchParams = useSearchParams();
   
@@ -29,16 +30,24 @@ function RoomsContent() {
   const unitId = searchParams.get('unitId') || '';
   const classType = searchParams.get('classType') || '公式';
 
+  // 初回ロード時にルーム一覧を取得
   useEffect(() => {
-    // ユーザーがログインしていない場合は、ログインページにリダイレクト
-    if (!currentUser) {
-      router.push('/auth/login');
-      return;
-    }
-
-    // ジャンル、単元ID、クラスタイプに基づいてルームを取得
+    if (!currentUser) return;
     fetchAvailableRooms(genre, classType);
-  }, [currentUser, router, fetchAvailableRooms, genre, unitId, classType]);
+    
+    // 30秒ごとに自動更新するタイマーを設定
+    const interval = setInterval(() => {
+      setRefreshTimer(prev => {
+        if (prev <= 1) {
+          fetchAvailableRooms(genre, classType);
+          return 30;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, [currentUser, fetchAvailableRooms, genre, classType]);
 
   // ジャンルと単元でフィルタリングする
   const filteredRooms = availableRooms.filter((room) => {
@@ -52,6 +61,7 @@ function RoomsContent() {
 
   const handleRefresh = () => {
     fetchAvailableRooms(genre, classType);
+    setRefreshTimer(30);
   };
 
   const handleJoinRoom = async (roomId: string) => {
@@ -61,7 +71,7 @@ function RoomsContent() {
     try {
       const success = await joinRoom(roomId);
       if (success) {
-        router.push(`/quiz/${roomId}`);
+        router.push(`/quiz/room?id=${roomId}`);
       }
     } finally {
       setJoinLoading(false);
@@ -90,7 +100,7 @@ function RoomsContent() {
             className="flex items-center text-indigo-600 px-3 py-1 border border-indigo-600 rounded-md"
             disabled={loading}
           >
-            <FaSync className={`mr-2 ${loading ? 'animate-spin' : ''}`} /> 更新
+            <FaSync className={`mr-2 ${loading ? 'animate-spin' : ''}`} /> 更新 ({refreshTimer}秒)
           </button>
           
           <Link
@@ -105,7 +115,8 @@ function RoomsContent() {
       <div className="bg-white rounded-lg shadow-md p-6">
         <h1 className="text-2xl font-bold mb-4">
           クイズルーム一覧
-          {genre && unitId && <span className="ml-2 text-lg text-gray-600">({genre} - 単元ID: {unitId})</span>}
+          {genre && <span className="ml-2 text-lg text-gray-600">({genre})</span>}
+          {unitId && <span className="text-lg text-gray-600"> - 単元ID: {unitId}</span>}
         </h1>
         
         {error && (
@@ -135,14 +146,20 @@ function RoomsContent() {
                 <div className="flex justify-between items-center">
                   <div>
                     <h3 className="font-medium text-lg">{room.name}</h3>
-                    <p className="text-gray-600 text-sm">
-                      {room.genre} - 単元ID: {room.unitId}
-                    </p>
+                    <div className="text-gray-600 text-sm flex flex-wrap items-center gap-2">
+                      <span>{room.genre}</span>
+                      {room.unitId && (
+                        <>
+                          <span>•</span>
+                          <span>単元: {room.unitName || room.unitId}</span>
+                        </>
+                      )}
+                    </div>
                   </div>
                   <div className="flex items-center">
-                    <div className="flex items-center mr-4 text-gray-600">
-                      <FaUsers className="mr-1" />
-                      <span>{room.participantCount}人</span>
+                    <div className="flex items-center mr-4 text-gray-600 bg-gray-100 px-2 py-1 rounded-full">
+                      <FaUsers className="mr-1 text-indigo-500" />
+                      <span className="font-medium">{room.participantCount || 0}人</span>
                     </div>
                     <button
                       onClick={() => handleJoinRoom(room.roomId)}

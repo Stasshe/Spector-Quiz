@@ -85,13 +85,16 @@ export function useQuizRoom() {
             }
           }
             
+          // 参加者数を正確に計算
+          const participantCount = roomData.participants ? Object.keys(roomData.participants).length : 0;
+            
           rooms.push({
             roomId: docSnap.id,
             name: roomData.name,
             genre: roomData.genre,
             unitId: roomData.unitId || '',
             unitName: unitName,
-            participantCount: Object.keys(roomData.participants).length,
+            participantCount: participantCount,
             status: roomData.status
           });
         }
@@ -117,6 +120,41 @@ export function useQuizRoom() {
     
     try {
       setLoading(true);
+      
+      // ユーザーが既に別のルームに参加しているか確認
+      const userRef = doc(db, 'users', currentUser.uid);
+      const userDoc = await getDoc(userRef);
+      
+      if (userDoc.exists() && userDoc.data().currentRoomId) {
+        const currentRoomId = userDoc.data().currentRoomId;
+        const currentRoomRef = doc(db, 'quiz_rooms', currentRoomId);
+        const currentRoomSnap = await getDoc(currentRoomRef);
+        
+        if (currentRoomSnap.exists()) {
+          const currentRoomData = currentRoomSnap.data();
+          
+          // 進行中のルームに参加している場合は、そのルームから退出できない
+          if (currentRoomData.status === 'in_progress') {
+            setError('あなたは既に進行中のルームに参加しています。そのルームを完了するか退出してから再試行してください。');
+            router.push(`/quiz/room?id=${currentRoomId}`);
+            return null;
+          }
+          
+          // 待機中のルームに参加している場合は退出
+          if (currentRoomData.status === 'waiting') {
+            if (currentRoomData.roomLeaderId === currentUser.uid) {
+              // リーダーの場合はルームを削除
+              await deleteDoc(currentRoomRef);
+            } else {
+              // 参加者の場合は参加者リストから削除
+              await updateDoc(currentRoomRef, {
+                [`participants.${currentUser.uid}`]: deleteField(),
+                updatedAt: serverTimestamp()
+              });
+            }
+          }
+        }
+      }
       
       // クラスタイプに基づいてルーム名を設定
       const name = `${genre} (${classType})`;
@@ -211,6 +249,41 @@ export function useQuizRoom() {
     
     try {
       setLoading(true);
+      
+      // ユーザーが既に別のルームに参加しているか確認
+      const userRef = doc(db, 'users', currentUser.uid);
+      const userDoc = await getDoc(userRef);
+      
+      if (userDoc.exists() && userDoc.data().currentRoomId) {
+        const currentRoomId = userDoc.data().currentRoomId;
+        const currentRoomRef = doc(db, 'quiz_rooms', currentRoomId);
+        const currentRoomSnap = await getDoc(currentRoomRef);
+        
+        if (currentRoomSnap.exists()) {
+          const currentRoomData = currentRoomSnap.data();
+          
+          // 進行中のルームに参加している場合は、そのルームから退出できない
+          if (currentRoomData.status === 'in_progress') {
+            setError('あなたは既に進行中のルームに参加しています。そのルームを完了するか退出してから再試行してください。');
+            router.push(`/quiz/room?id=${currentRoomId}`);
+            return null;
+          }
+          
+          // 待機中のルームに参加している場合は退出
+          if (currentRoomData.status === 'waiting') {
+            if (currentRoomData.roomLeaderId === currentUser.uid) {
+              // リーダーの場合はルームを削除
+              await deleteDoc(currentRoomRef);
+            } else {
+              // 参加者の場合は参加者リストから削除
+              await updateDoc(currentRoomRef, {
+                [`participants.${currentUser.uid}`]: deleteField(),
+                updatedAt: serverTimestamp()
+              });
+            }
+          }
+        }
+      }
       
       // 単元データを取得
       const unitRef = doc(db, 'genres', genreId, 'quiz_units', unitId);
@@ -324,6 +397,51 @@ export function useQuizRoom() {
     
     try {
       setLoading(true);
+      
+      // ユーザーが既に別のルームに参加しているか確認
+      const userRef = doc(db, 'users', currentUser.uid);
+      const userDoc = await getDoc(userRef);
+      
+      if (userDoc.exists() && userDoc.data().currentRoomId) {
+        const currentRoomId = userDoc.data().currentRoomId;
+        
+        // 同じルームに参加しようとしている場合は、そのままルームページに移動
+        if (currentRoomId === roomId) {
+          router.push(`/quiz/room?id=${roomId}`);
+          return true;
+        }
+        
+        // 別のルームに既に参加している場合
+        const currentRoomRef = doc(db, 'quiz_rooms', currentRoomId);
+        const currentRoomSnap = await getDoc(currentRoomRef);
+        
+        if (currentRoomSnap.exists()) {
+          const currentRoomData = currentRoomSnap.data();
+          
+          // 進行中のルームに参加している場合は、そのルームから退出できない
+          if (currentRoomData.status === 'in_progress') {
+            setError('あなたは既に進行中のルームに参加しています。そのルームを完了するか退出してから再試行してください。');
+            router.push(`/quiz/room?id=${currentRoomId}`);
+            return false;
+          }
+          
+          // 待機中のルームに参加している場合は確認
+          if (currentRoomData.status === 'waiting') {
+            // 確認なしで自動的に退出する場合のコード
+            // 古いルームから退出
+            if (currentRoomData.roomLeaderId === currentUser.uid) {
+              // リーダーの場合はルームを削除
+              await deleteDoc(currentRoomRef);
+            } else {
+              // 参加者の場合は参加者リストから削除
+              await updateDoc(currentRoomRef, {
+                [`participants.${currentUser.uid}`]: deleteField(),
+                updatedAt: serverTimestamp()
+              });
+            }
+          }
+        }
+      }
       
       const roomRef = doc(db, 'quiz_rooms', roomId);
       const roomSnap = await getDoc(roomRef);
