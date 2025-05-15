@@ -446,6 +446,7 @@ export function useQuizRoom() {
             iconId: userProfile.iconId,
             score: 0,
             missCount: 0, // お手つきカウント追加
+            wrongQuizIds: [], // 間違えた問題IDのリスト
             isReady: false,
             isOnline: true
           }
@@ -668,6 +669,7 @@ export function useQuizRoom() {
               iconId: userProfile.iconId,
               score: 0,
               missCount: 0, // お手つきカウント追加
+              wrongQuizIds: [], // 間違えた問題IDのリスト追加
               isReady: false,
               isOnline: true
             },

@@ -212,6 +212,48 @@ export function useLeader(roomId: string) {
     }
   }, [isLeader, quizRoom, roomId, fetchCurrentQuiz]);
 
+  // 問題のタイマーを開始（30秒制限）
+  const startQuestionTimer = useCallback(() => {
+    if (!isLeader || !quizRoom || !roomId) return;
+    
+    console.log('クイズタイマーを開始します (30秒)');
+    
+    // 30秒後に次の問題に進むか、タイムアウト処理を行う
+    setTimeout(async () => {
+      try {
+        // 最新のルーム情報を取得して確認
+        const roomRef = doc(db, 'quiz_rooms', roomId);
+        const roomSnap = await getDoc(roomRef);
+        
+        if (!roomSnap.exists()) return;
+        
+        const roomData = roomSnap.data() as QuizRoom;
+        
+        // もし同じ問題のままで、かつステータスが進行中の場合のみ処理する
+        if (
+          roomData.status === 'in_progress' && 
+          roomData.currentQuizIndex === quizRoom.currentQuizIndex &&
+          roomData.currentState.answerStatus !== 'correct' // 正解していない場合のみ
+        ) {
+          console.log('時間切れです。次の問題に進みます。');
+          
+          // 時間切れであることを記録
+          await updateDoc(roomRef, {
+            'currentState.answerStatus': 'timeout',
+            'currentState.isRevealed': true
+          });
+          
+          // 2秒後に次の問題へ
+          setTimeout(() => {
+            moveToNextQuestion();
+          }, 2000);
+        }
+      } catch (error) {
+        console.error('タイマー処理中にエラーが発生しました:', error);
+      }
+    }, 30000); // 30秒
+  }, [isLeader, quizRoom, roomId, moveToNextQuestion]);
+
   // 早押し監視
   const handleBuzzerUpdates = useCallback(() => {
     if (!isLeader || !roomId) return () => {};
@@ -778,6 +820,26 @@ export function useLeader(roomId: string) {
               updateData['currentState.currentAnswerer'] = null;
               // お手つきカウントを増やす
               updateData[`participants.${currentUser.uid}.missCount`] = increment(1);
+              
+              // 間違えた問題IDを追加する
+              if (currentQuiz.quizId) {
+                // wrongQuizIdsが存在するか確認
+                const userSnapshot = await getDoc(doc(db, 'quiz_rooms', roomId));
+                if (userSnapshot.exists()) {
+                  const userData = userSnapshot.data();
+                  const currentWrongQuizIds = userData.participants[currentUser.uid]?.wrongQuizIds || [];
+                  
+                  // 同じ問題IDを追加しないように新しい配列を作成
+                  if (!currentWrongQuizIds.includes(currentQuiz.quizId)) {
+                    updateData[`participants.${currentUser.uid}.wrongQuizIds`] = [
+                      ...currentWrongQuizIds,
+                      currentQuiz.quizId
+                    ];
+                  }
+                } else {
+                  updateData[`participants.${currentUser.uid}.wrongQuizIds`] = [currentQuiz.quizId];
+                }
+              }
             }
             
             await updateDoc(roomRef, updateData);
@@ -859,6 +921,7 @@ export function useLeader(roomId: string) {
   return {
     startQuizGame,
     moveToNextQuestion,
+    startQuestionTimer,
     handleBuzzer,
     submitAnswer,
     judgeAnswer

@@ -176,7 +176,10 @@ function QuizRoomContent() {
                 {currentQuiz && <QuizQuestion quiz={currentQuiz} />}
 
                 {/* 早押しボタン（解答者がいない場合、かつ選択肢が表示されていない場合） */}
-                {!quizRoom.currentState.currentAnswerer && !hasAnsweringRight && (
+                {!quizRoom.currentState.currentAnswerer && !hasAnsweringRight && currentUser && 
+                  // ユーザーがこの問題で間違えていない場合のみボタンを表示
+                  (!(quizRoom.participants[currentUser.uid]?.missCount) || 
+                   !(quizRoom.participants[currentUser.uid]?.wrongQuizIds?.includes(currentQuiz?.quizId || ''))) && (
                   <div className="mt-6 text-center">
                     <button
                       onClick={handleBuzzer}

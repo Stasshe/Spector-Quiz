@@ -39,6 +39,7 @@ export interface ParticipantInfo {
   iconId: number;
   score: number;
   missCount?: number; // お手つきカウント追加（省略可能にしておく）
+  wrongQuizIds?: string[]; // 間違えた問題IDのリスト
   isReady: boolean;
   isOnline: boolean;
 }

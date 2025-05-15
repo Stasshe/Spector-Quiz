@@ -25,34 +25,39 @@ export default function QuizResult({ isCorrect, quiz, answererId, participants }
             {isCorrect ? '正解！' : '不正解...'}
           </h3>
           <p className="text-gray-600">
-            {answererName} さんの回答
+            {answererName} さんは{isCorrect ? '正解' : '不正解'}でした
           </p>
         </div>
       </div>
 
-      <div className="mb-4">
-        <div className="font-medium mb-2">正解:</div>
-        <div className="bg-white p-3 rounded-md border border-gray-200">
-          {quiz.correctAnswer}
-        </div>
-      </div>
-
-      {quiz.type === 'input' && quiz.acceptableAnswers && quiz.acceptableAnswers.length > 0 && (
-        <div className="mb-4">
-          <div className="font-medium mb-2">許容される他の回答:</div>
-          <div className="bg-white p-3 rounded-md border border-gray-200">
-            {quiz.acceptableAnswers.join('、 ')}
+      {/* 正解の場合のみ正解と解説を表示 */}
+      {isCorrect && (
+        <>
+          <div className="mb-4">
+            <div className="font-medium mb-2">正解:</div>
+            <div className="bg-white p-3 rounded-md border border-gray-200">
+              {quiz.correctAnswer}
+            </div>
           </div>
-        </div>
-      )}
 
-      {quiz.explanation && (
-        <div>
-          <div className="font-medium mb-2">解説:</div>
-          <div className="bg-white p-3 rounded-md border border-gray-200">
-            {quiz.explanation}
-          </div>
-        </div>
+          {quiz.type === 'input' && quiz.acceptableAnswers && quiz.acceptableAnswers.length > 0 && (
+            <div className="mb-4">
+              <div className="font-medium mb-2">許容される他の回答:</div>
+              <div className="bg-white p-3 rounded-md border border-gray-200">
+                {quiz.acceptableAnswers.join('、 ')}
+              </div>
+            </div>
+          )}
+
+          {quiz.explanation && (
+            <div>
+              <div className="font-medium mb-2">解説:</div>
+              <div className="bg-white p-3 rounded-md border border-gray-200 text-gray-700">
+                {quiz.explanation}
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
