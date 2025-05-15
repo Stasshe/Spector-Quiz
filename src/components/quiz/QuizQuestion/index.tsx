@@ -1,10 +1,14 @@
+import { useState } from 'react';
 import { Quiz } from '@/types/quiz';
+import { useQuiz } from '@/context/QuizContext';
 
 interface QuizQuestionProps {
   quiz: Quiz;
 }
 
 export default function QuizQuestion({ quiz }: QuizQuestionProps) {
+  const { showChoices, setShowChoices } = useQuiz();
+  
   return (
     <div className="quiz-question">
       <h2 className="text-xl md:text-2xl font-bold mb-4">{quiz.title}</h2>
@@ -14,20 +18,33 @@ export default function QuizQuestion({ quiz }: QuizQuestionProps) {
       
       {/* 選択肢の表示（四択問題の場合） */}
       {quiz.type === 'multiple_choice' && quiz.choices && quiz.choices.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-          {quiz.choices.map((choice, index) => (
-            <div
-              key={index}
-              className="border border-gray-200 rounded-md p-3 bg-white hover:bg-gray-50 cursor-pointer"
-            >
-              <div className="flex items-start">
-                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-indigo-100 text-indigo-800 font-medium text-sm mr-3 flex-shrink-0">
-                  {String.fromCharCode(65 + index)}
-                </span>
-                <span>{choice}</span>
-              </div>
+        <div className="mb-4">
+          {!showChoices ? (
+            <div className="flex justify-center">
+              <button 
+                onClick={() => setShowChoices(true)}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg shadow-md transition-all duration-200 transform hover:scale-105"
+              >
+                選択肢を表示
+              </button>
             </div>
-          ))}
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {quiz.choices.map((choice, index) => (
+                <div
+                  key={index}
+                  className="border border-gray-200 rounded-md p-3 bg-white hover:bg-gray-50 cursor-pointer"
+                >
+                  <div className="flex items-start">
+                    <span className="flex items-center justify-center w-6 h-6 rounded-full bg-indigo-100 text-indigo-800 font-medium text-sm mr-3 flex-shrink-0">
+                      {String.fromCharCode(65 + index)}
+                    </span>
+                    <span>{choice}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

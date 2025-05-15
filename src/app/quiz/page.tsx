@@ -25,7 +25,7 @@ import {
 
 export default function QuizPage() {
   const { currentUser, userProfile } = useAuth();
-  const { findOrCreateRoom } = useQuizRoom();
+  const { findOrCreateRoomWithUnit, getUnitIdByName } = useQuizRoom();
   const { fetchGenres, genres, units } = useQuizHook();
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [selectedClassTypes, setSelectedClassTypes] = useState<string[]>(['公式', 'ユーザー作成']);
@@ -76,14 +76,30 @@ export default function QuizPage() {
     router.push('/quiz/create-quiz');
   };
 
-  // ルーム作成ページに移動
-  const navigateToCreateRoom = (genre: string, unit: string) => {
-    router.push(`/quiz/create?genre=${encodeURIComponent(genre)}&unit=${encodeURIComponent(unit)}&classType=${encodeURIComponent(selectedClassTypes[0])}`);
-  };
-
-  // ルーム一覧ページに移動
-  const navigateToRooms = (genre: string, unit: string) => {
-    router.push(`/quiz/rooms?genre=${encodeURIComponent(genre)}&unit=${encodeURIComponent(unit)}&classType=${encodeURIComponent(selectedClassTypes[0])}`);
+  // ルームを見つけるか作成
+  const findOrJoinRoom = async (genre: string, unit: string) => {
+    try {
+      setLoading(true);
+      
+      // 単元名からUnitIDを取得
+      const unitId = await getUnitIdByName(genre, unit);
+      
+      if (!unitId) {
+        throw new Error('単元IDの取得に失敗しました');
+      }
+      
+      // 待機中のルームを探すか、なければ作成
+      const result = await findOrCreateRoomWithUnit(genre, unitId, selectedClassTypes[0]);
+      if (!result) {
+        throw new Error('ルームの作成または参加に失敗しました');
+      }
+    } catch (err) {
+      console.error('Error finding or joining room:', err);
+      // エラーが発生した場合はアラート表示などの対応を行う
+      alert(`エラーが発生しました: ${err instanceof Error ? err.message : '不明なエラー'}`);
+    } finally {
+      setLoading(false);
+    }
   };
 
   // ユーザーが未ログインの場合、ログインを促す
@@ -258,18 +274,12 @@ export default function QuizPage() {
                               className="border border-gray-200 rounded-xl p-4 hover:border-indigo-200 hover:shadow-md transition-all duration-200"
                             >
                               <h5 className="font-medium mb-3 text-gray-800">{unit}</h5>
-                              <div className="flex justify-between gap-2">
+                              <div className="flex justify-center">
                                 <button
-                                  onClick={() => navigateToRooms(genre, unit)}
-                                  className="flex-1 flex items-center justify-center p-2 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors duration-200"
+                                  onClick={() => findOrJoinRoom(genre, unit)}
+                                  className="w-full flex items-center justify-center p-2 rounded-lg bg-indigo-500 text-white hover:bg-indigo-600 transition-colors duration-200"
                                 >
-                                  <FaSearch className="mr-2" /> 参加
-                                </button>
-                                <button
-                                  onClick={() => navigateToCreateRoom(genre, unit)}
-                                  className="flex-1 flex items-center justify-center p-2 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 transition-colors duration-200"
-                                >
-                                  <FaPlus className="mr-2" /> 作成
+                                  <FaPlay className="mr-2" /> プレイする
                                 </button>
                               </div>
                             </div>

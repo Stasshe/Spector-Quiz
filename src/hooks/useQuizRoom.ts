@@ -429,6 +429,119 @@ export function useQuizRoom() {
     }
   }, [currentUser, userProfile, createRoom, joinRoom]);
 
+  // 単元に基づいてルームを探すか作成する
+  const findOrCreateRoomWithUnit = useCallback(async (genre: string, unitId: string, classType: string) => {
+    if (!currentUser || !userProfile) {
+      setError('ログインが必要です');
+      return null;
+    }
+    
+    try {
+      setLoading(true);
+      
+      // まず、該当するジャンルと単元の待機中ルームを探す
+      const roomsQuery = query(
+        collection(db, 'quiz_rooms'),
+        where('status', '==', 'waiting'),
+        where('genre', '==', genre),
+        where('unitId', '==', unitId),
+        where('classType', '==', classType)
+      );
+      
+      const roomsSnapshot = await getDocs(roomsQuery);
+      
+      // 該当するルームが存在する場合、最初のルームに参加
+      if (!roomsSnapshot.empty) {
+        const roomData = roomsSnapshot.docs[0].data() as QuizRoom;
+        const roomId = roomsSnapshot.docs[0].id;
+        
+        // すでに満員の場合は新しいルームを作成
+        const participantCount = Object.keys(roomData.participants).length;
+        if (participantCount >= 8) {
+          // 満員なので新しいルームを作成
+          return await createRoomWithUnit(genre, unitId, classType);
+        }
+        
+        // 既存のルームに参加
+        const joined = await joinRoom(roomId);
+        if (joined) {
+          router.push(`/quiz/room?id=${roomId}`);
+          return {
+            ...roomData,
+            roomId
+          } as QuizRoom;
+        } else {
+          throw new Error('ルームへの参加に失敗しました');
+        }
+      }
+      
+      // 該当するルームがない場合、新しいルームを作成
+      return await createRoomWithUnit(genre, unitId, classType);
+    } catch (err: any) {
+      console.error('Error finding or creating room with unit:', err);
+      setError(err.message || 'ルームの探索/作成中にエラーが発生しました');
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, [currentUser, userProfile, createRoomWithUnit, joinRoom, router]);
+
+  // 単元名から単元IDを取得するヘルパー関数
+  const getUnitIdByName = useCallback(async (genre: string, unitName: string, category?: string) => {
+    try {
+      // ジャンル内の単元コレクションへの参照
+      const unitsCollectionRef = collection(db, 'genres', genre, 'quiz_units');
+      
+      // 単元名で絞り込むクエリ
+      const unitQuery = query(unitsCollectionRef, where('title', '==', unitName));
+      const unitSnapshot = await getDocs(unitQuery);
+      
+      if (unitSnapshot.empty) {
+        console.log(`単元が見つかりません: ジャンル=${genre}, 単元名=${unitName}`);
+        
+        // 単元がない場合は作成する
+        return await createUnitIfNotExists(genre, unitName, category);
+      }
+      
+      // 見つかった単元の最初のIDを返す
+      return unitSnapshot.docs[0].id;
+    } catch (err) {
+      console.error('Error getting unit ID:', err);
+      return null;
+    }
+  }, []);
+  
+  // 単元がなければ作成する
+  const createUnitIfNotExists = useCallback(async (genreId: string, unitName: string, category: string = 'その他') => {
+    if (!currentUser) {
+      console.error('ユーザーがログインしていません');
+      return null;
+    }
+    
+    try {
+      // 単元データを作成
+      const unitData = {
+        title: unitName,
+        description: `${unitName}に関するクイズ`,
+        category: category,
+        createdBy: currentUser.uid,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        useCount: 0,
+        isPublic: true
+      };
+      
+      // ランダムIDで単元を作成
+      const unitsCollectionRef = collection(db, 'genres', genreId, 'quiz_units');
+      const newUnitRef = await addDoc(unitsCollectionRef, unitData);
+      
+      return newUnitRef.id;
+    } catch (err) {
+      console.error('単元の作成に失敗しました:', err);
+      return null;
+    }
+  }, [currentUser]);
+
   // 特定のルームを監視するフック
   const useRoomListener = (roomId: string) => {
     const [room, setRoom] = useState<QuizRoom | null>(null);
@@ -475,6 +588,9 @@ export function useQuizRoom() {
     leaveRoom,
     findOrCreateRoom,
     useRoomListener,
-    createRoomWithUnit  // 新しい関数をエクスポート
+    createRoomWithUnit,  // 新しい関数をエクスポート
+    findOrCreateRoomWithUnit, // 新しい関数をエクスポート
+    getUnitIdByName, // 新しい関数をエクスポート
+    createUnitIfNotExists // 新しい関数をエクスポート
   };
 }

@@ -25,7 +25,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useQuizHook } from '@/hooks/useQuiz';
 
 export function useLeader(roomId: string) {
-  const { isLeader, quizRoom, currentQuiz, setCurrentQuiz } = useQuiz();
+  const { isLeader, quizRoom, currentQuiz, setCurrentQuiz, setShowChoices } = useQuiz();
   const { currentUser } = useAuth();
   const { updateGenreStats } = useQuizHook();
 
@@ -46,6 +46,8 @@ export function useLeader(roomId: string) {
       if (quizSnap.exists()) {
         const quizData = quizSnap.data() as Quiz;
         setCurrentQuiz({ ...quizData, quizId: quizSnap.id });
+        // 新しい問題が表示されたら選択肢を非表示に戻す
+        setShowChoices(false);
         
         // クイズの使用回数を更新
         await updateDoc(quizRef, {
@@ -288,6 +290,9 @@ export function useLeader(roomId: string) {
     try {
       // 既に誰かが解答中の場合は早押しできない
       if (quizRoom.currentState.currentAnswerer) return;
+      
+      // 選択肢を表示する
+      setShowChoices(true);
       
       // 早押し情報をDBに記録
       await addDoc(collection(db, 'quiz_rooms', roomId, 'answers'), {

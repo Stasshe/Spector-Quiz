@@ -13,6 +13,8 @@ interface QuizContextType {
   setIsLeader: (isLeader: boolean) => void;
   hasAnsweringRight: boolean;
   setHasAnsweringRight: (hasRight: boolean) => void;
+  showChoices: boolean;
+  setShowChoices: (show: boolean) => void;
 }
 
 export const QuizContext = createContext<QuizContextType | undefined>(undefined);
@@ -22,6 +24,7 @@ export function QuizProvider({ children }: { children: ReactNode }) {
   const [quizRoom, setQuizRoom] = useState<QuizRoom | null>(null);
   const [isLeader, setIsLeader] = useState(false);
   const [hasAnsweringRight, setHasAnsweringRight] = useState(false);
+  const [showChoices, setShowChoices] = useState(false);
 
   const value = {
     currentQuiz,
@@ -31,7 +34,9 @@ export function QuizProvider({ children }: { children: ReactNode }) {
     isLeader,
     setIsLeader,
     hasAnsweringRight,
-    setHasAnsweringRight
+    setHasAnsweringRight,
+    showChoices,
+    setShowChoices
   };
 
   return <QuizContext.Provider value={value}>{children}</QuizContext.Provider>;
