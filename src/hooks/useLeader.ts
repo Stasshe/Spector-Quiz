@@ -240,12 +240,20 @@ export function useLeader(roomId: string) {
       // 参加者の経験値を更新
       const batch = writeBatch(db);
       
+      // 参加者数を確認
+      const participantCount = Object.keys(quizRoom.participants).length;
+      // 一人プレイの場合は経験値を1/10に
+      const soloMultiplier = participantCount === 1 ? 0.1 : 1;
+      
       // 各参加者の処理
       Object.entries(quizRoom.participants).forEach(([userId, participant]) => {
         const userRef = doc(db, 'users', userId);
         
         // 獲得経験値の計算（例）
-        const expGain = participant.score + 20; // スコア + セッション完了ボーナス
+        let expGain = participant.score + 20; // スコア + セッション完了ボーナス
+        
+        // 一人プレイの場合は1/10に
+        expGain = Math.round(expGain * soloMultiplier);
         
         batch.update(userRef, {
           exp: increment(expGain),
