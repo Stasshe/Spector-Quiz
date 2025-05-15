@@ -803,14 +803,14 @@ export function useQuizRoom() {
           genres: {}
         };
         
-        // 正答数をカウント（スコアを正答数として使用）
-        const correctAnswers = myParticipantData.score || 0;
+        // 参加者のスコアを取得（これが正答数を表す）
+        const userScore = myParticipantData.score || 0;
         // 全問題数
         const totalAnswered = roomData.totalQuizCount || 0;
         
         // 全体の統計を更新
         const newTotalAnswered = (currentStats.totalAnswered || 0) + totalAnswered;
-        const newCorrectAnswers = (currentStats.correctAnswers || 0) + correctAnswers;
+        const newCorrectAnswers = (currentStats.correctAnswers || 0) + userScore;
         
         // ジャンル別の統計を更新
         const genre = roomData.genre || 'その他';
@@ -818,11 +818,11 @@ export function useQuizRoom() {
         const genreStats = (currentStats.genres || {})[genre] || { totalAnswered: 0, correctAnswers: 0 };
         const newGenreStats = {
           totalAnswered: (genreStats.totalAnswered || 0) + totalAnswered,
-          correctAnswers: (genreStats.correctAnswers || 0) + correctAnswers
+          correctAnswers: (genreStats.correctAnswers || 0) + userScore
         };
         
         // 経験値も更新（正答1問につき10ポイント）
-        const expGain = correctAnswers * 10;
+        const expGain = userScore * 10;
         
         // ユーザースキルレベルを計算
         const newExp = (userData.exp || 0) + expGain;
