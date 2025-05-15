@@ -17,7 +17,8 @@ import {
   writeBatch,
   serverTimestamp,
   increment,
-  deleteField
+  deleteField,
+  limit
 } from 'firebase/firestore';
 import { QuizRoom } from '@/types/room';
 import { Quiz } from '@/types/quiz';
@@ -47,39 +48,93 @@ export function useLeader(roomId: string) {
         return;
       }
       
-      const quizRef = doc(db, 'genres', quizRoom.genre, 'quiz_units', quizRoom.unitId, 'quizzes', currentQuizId);
-      const quizSnap = await getDoc(quizRef);
-      
-      if (quizSnap.exists()) {
-        const quizData = quizSnap.data() as Quiz;
-        setCurrentQuiz({ ...quizData, quizId: quizSnap.id });
-        // 新しい問題が表示されたら選択肢を非表示に戻す
-        setShowChoices(false);
+      try {
+        const quizRef = doc(db, 'genres', quizRoom.genre, 'quiz_units', quizRoom.unitId, 'quizzes', currentQuizId);
+        const quizSnap = await getDoc(quizRef);
         
-        // クイズの使用回数を更新
-        await updateDoc(quizRef, {
-          useCount: increment(1)
-        });
-        
-        // ジャンルと単元の統計も更新
-        if (quizData.genre) {
-          await updateGenreStats(quizData.genre, quizRoom.unitId);
+        if (quizSnap.exists()) {
+          const quizData = quizSnap.data() as Quiz;
+          setCurrentQuiz({ ...quizData, quizId: quizSnap.id });
+          // 新しい問題が表示されたら選択肢を非表示に戻す
+          setShowChoices(false);
+          
+          try {
+            // クイズの使用回数を更新
+            await updateDoc(quizRef, {
+              useCount: increment(1)
+            });
+            
+            // ジャンルと単元の統計も更新
+            if (quizData.genre) {
+              await updateGenreStats(quizData.genre, quizRoom.unitId);
+            }
+          } catch (statsError) {
+            console.warn('統計更新中にエラーが発生しましたが、クイズは継続します:', statsError);
+            // 統計更新エラーは無視して進行
+          }
+          
+          try {
+            // ルームの現在のクイズ状態を更新
+            await updateDoc(doc(db, 'quiz_rooms', roomId), {
+              'currentState.quizId': currentQuizId,
+              'currentState.startTime': serverTimestamp(),
+              'currentState.endTime': null,
+              'currentState.currentAnswerer': null,
+              'currentState.answerStatus': 'waiting',
+              'currentState.isRevealed': false
+            });
+          } catch (roomError: any) {
+            console.error('ルーム状態の更新中にエラーが発生しました:', roomError);
+            
+            if (roomError?.code === 'permission-denied') {
+              console.error('権限エラー: ルーム状態の更新が拒否されました');
+              
+              // リーダーのセッションがまだ有効かを確認
+              if (currentUser && quizRoom.roomLeaderId === currentUser.uid) {
+                // 完了状態に設定を試みる
+                try {
+                  await updateDoc(doc(db, 'quiz_rooms', roomId), {
+                    status: 'completed',
+                    updatedAt: serverTimestamp()
+                  });
+                  console.log('エラーによりルームを完了状態に強制移行しました');
+                } catch (forceCompleteError) {
+                  console.error('ルームの強制完了に失敗しました:', forceCompleteError);
+                }
+              }
+            }
+          }
+        } else {
+          console.error(`Quiz with ID ${currentQuizId} not found`);
         }
+      } catch (fetchError: any) {
+        console.error('Error fetching quiz:', fetchError);
         
-        // ルームの現在のクイズ状態を更新
-        await updateDoc(doc(db, 'quiz_rooms', roomId), {
-          'currentState.quizId': currentQuizId,
-          'currentState.startTime': serverTimestamp(),
-          'currentState.endTime': null,
-          'currentState.currentAnswerer': null,
-          'currentState.answerStatus': 'waiting',
-          'currentState.isRevealed': false
-        });
+        if (fetchError?.code === 'permission-denied') {
+          console.error('権限エラー: クイズデータへのアクセスが拒否されました');
+          
+          // 緊急対応策として、現在のクイズ情報を仮設定
+          setCurrentQuiz({
+            quizId: currentQuizId,
+            title: "問題の読み込みに失敗しました",
+            question: "権限エラーにより問題を取得できませんでした。ルームからいったん退出して再度参加してください。",
+            type: "multiple_choice",
+            choices: ["選択肢1", "選択肢2", "選択肢3", "選択肢4"],
+            correctAnswer: "選択肢1",
+            acceptableAnswers: [],
+            explanation: "システムエラーが発生しました",
+            difficulty: 3,
+            createdBy: "",
+            createdAt: null as any,
+            useCount: 0,
+            correctCount: 0
+          });
+        }
       }
     } catch (error) {
-      console.error('Error fetching current quiz:', error);
+      console.error('Error in fetchCurrentQuiz:', error);
     }
-  }, [quizRoom, isLeader, roomId, setCurrentQuiz, updateGenreStats, setShowChoices]);
+  }, [quizRoom, isLeader, roomId, setCurrentQuiz, updateGenreStats, setShowChoices, currentUser]);
 
   // クイズゲームを開始する
   const startQuizGame = useCallback(async () => {
@@ -148,27 +203,94 @@ export function useLeader(roomId: string) {
     return onSnapshot(pendingAnswersQuery, async (snapshot) => {
       if (snapshot.empty) return;
       
-      // 最も早く押したユーザーを特定
-      const fastestAnswer = snapshot.docs[0];
-      const fastestUserId = fastestAnswer.data().userId;
-      
-      // 解答権をDBに記録
-      await updateDoc(doc(db, 'quiz_rooms', roomId), {
-        'currentState.currentAnswerer': fastestUserId,
-        'currentState.answerStatus': 'answering'
-      });
-      
-      // 処理済みとしてマーク
-      await updateDoc(fastestAnswer.ref, {
-        processingStatus: 'processed'
-      });
-      
-      // 他の保留中の回答をキャンセル
-      const batch = writeBatch(db);
-      snapshot.docs.slice(1).forEach(doc => {
-        batch.update(doc.ref, { processingStatus: 'processed' });
-      });
-      await batch.commit();
+      try {
+        // 最も早く押したユーザーを特定
+        const fastestAnswer = snapshot.docs[0];
+        const fastestUserId = fastestAnswer.data().userId;
+        
+        // ルームの状態を確認
+        const roomRef = doc(db, 'quiz_rooms', roomId);
+        const roomSnap = await getDoc(roomRef);
+        
+        if (!roomSnap.exists()) {
+          console.log('ルームが存在しません');
+          return;
+        }
+        
+        if (roomSnap.data().status !== 'in_progress') {
+          console.log('ルームが進行中ではありません');
+          return;
+        }
+        
+        // 既に解答権が割り当てられていないか確認
+        if (roomSnap.data().currentState?.currentAnswerer) {
+          console.log('既に解答権が割り当てられています');
+          // 保留中の回答をすべて処理済みにマーク
+          const cancelBatch = writeBatch(db);
+          snapshot.docs.forEach(doc => {
+            cancelBatch.update(doc.ref, { processingStatus: 'processed' });
+          });
+          await cancelBatch.commit();
+          return;
+        }
+        
+        try {
+          // 解答権をDBに記録
+          await updateDoc(roomRef, {
+            'currentState.currentAnswerer': fastestUserId,
+            'currentState.answerStatus': 'answering'
+          });
+          console.log(`解答権をユーザー ${fastestUserId} に付与しました`);
+        } catch (roomUpdateError: any) {
+          console.error('ルーム状態の更新に失敗しました:', roomUpdateError);
+          if (roomUpdateError?.code === 'permission-denied') {
+            console.error('権限エラー: ルーム状態の更新が拒否されました');
+            return; // 以降の処理をスキップ
+          }
+        }
+        
+        try {
+          // 処理済みとしてマーク
+          await updateDoc(fastestAnswer.ref, {
+            processingStatus: 'processed'
+          });
+        } catch (answerUpdateError: any) {
+          console.error('解答状態の更新に失敗しました:', answerUpdateError);
+          if (answerUpdateError?.code === 'permission-denied') {
+            console.error('権限エラー: 解答状態の更新が拒否されました');
+          }
+        }
+        
+        // 他の保留中の回答をキャンセル
+        if (snapshot.docs.length > 1) {
+          try {
+            const batch = writeBatch(db);
+            snapshot.docs.slice(1).forEach(doc => {
+              batch.update(doc.ref, { processingStatus: 'processed' });
+            });
+            await batch.commit();
+            console.log(`${snapshot.docs.length - 1}件の他の解答をキャンセルしました`);
+          } catch (batchError: any) {
+            console.error('他の解答のキャンセルに失敗しました:', batchError);
+            if (batchError?.code === 'permission-denied') {
+              console.error('権限エラー: 解答のバッチ処理が拒否されました');
+              
+              // 個別更新を試みる
+              snapshot.docs.slice(1).forEach(async (doc) => {
+                try {
+                  await updateDoc(doc.ref, { processingStatus: 'processed' });
+                } catch (individualError) {
+                  console.error(`解答 ${doc.id} の更新に失敗しました:`, individualError);
+                }
+              });
+            }
+          }
+        }
+      } catch (error) {
+        console.error('早押し処理中にエラーが発生しました:', error);
+      }
+    }, (error) => {
+      console.error('早押し監視のリスナーでエラーが発生しました:', error);
     });
   }, [isLeader, roomId]);
 
@@ -179,56 +301,110 @@ export function useLeader(roomId: string) {
     try {
       // 解答データを取得
       const answerRef = doc(db, 'quiz_rooms', roomId, 'answers', answerId);
-      const answerSnap = await getDoc(answerRef);
       
-      if (!answerSnap.exists()) return;
-      
-      const answerData = answerSnap.data();
-      const userAnswer = answerData.answer;
-      const userId = answerData.userId;
-      
-      // 解答の正誤判定
-      let isCorrect = false;
-      
-      if (currentQuiz.type === 'multiple_choice') {
-        isCorrect = userAnswer === currentQuiz.correctAnswer;
-      } else {
-        // 入力式の場合、許容回答リストと照合
-        const normalizedUserAnswer = normalizeAnswer(userAnswer);
-        isCorrect = [currentQuiz.correctAnswer, ...currentQuiz.acceptableAnswers]
-          .map(normalizeAnswer)
-          .some(answer => answer === normalizedUserAnswer);
+      try {
+        const answerSnap = await getDoc(answerRef);
+        
+        if (!answerSnap.exists()) {
+          console.log(`解答データ ${answerId} が見つかりません`);
+          return;
+        }
+        
+        const answerData = answerSnap.data();
+        const userAnswer = answerData.answer;
+        const userId = answerData.userId;
+        
+        // 解答の正誤判定
+        let isCorrect = false;
+        
+        if (currentQuiz.type === 'multiple_choice') {
+          isCorrect = userAnswer === currentQuiz.correctAnswer;
+        } else {
+          // 入力式の場合、許容回答リストと照合
+          const normalizedUserAnswer = normalizeAnswer(userAnswer);
+          isCorrect = [currentQuiz.correctAnswer, ...currentQuiz.acceptableAnswers]
+            .map(normalizeAnswer)
+            .some(answer => answer === normalizedUserAnswer);
+        }
+        
+        // バッチ処理を使わず、個別に更新して権限エラーを回避
+        try {
+          // 解答結果の更新
+          await updateDoc(answerRef, { isCorrect });
+          console.log(`解答結果を更新しました: ${isCorrect ? '正解' : '不正解'}`);
+        } catch (answerError: any) {
+          console.error('解答結果の更新に失敗しました:', answerError);
+          if (answerError?.code === 'permission-denied') {
+            console.error('権限エラー: 解答データの更新が拒否されました');
+          }
+        }
+        
+        try {
+          // ルーム状態の更新
+          await updateDoc(doc(db, 'quiz_rooms', roomId), {
+            'currentState.answerStatus': isCorrect ? 'correct' : 'incorrect',
+            'currentState.isRevealed': true,
+            [`participants.${userId}.score`]: increment(isCorrect ? 10 : 0)
+          });
+          console.log('ルーム状態を更新しました');
+        } catch (roomError: any) {
+          console.error('ルーム状態の更新に失敗しました:', roomError);
+          if (roomError?.code === 'permission-denied') {
+            console.error('権限エラー: ルーム状態の更新が拒否されました');
+          }
+        }
+        
+        try {
+          // クイズ統計の更新（新しいデータベース構造に合わせて修正）
+          if (currentQuiz.genre && quizRoom.unitId) {
+            await updateDoc(doc(db, 'genres', currentQuiz.genre, 'quiz_units', quizRoom.unitId, 'quizzes', currentQuiz.quizId), {
+              useCount: increment(1),
+              correctCount: increment(isCorrect ? 1 : 0)
+            });
+            console.log('クイズ統計を更新しました');
+          }
+        } catch (statsError: any) {
+          console.warn('クイズ統計の更新に失敗しましたが、ゲームは継続します:', statsError);
+          if (statsError?.code === 'permission-denied') {
+            console.warn('権限エラー: クイズ統計の更新が拒否されました');
+          }
+        }
+        
+        // 数秒後に次の問題に進む
+        setTimeout(() => {
+          moveToNextQuestion();
+        }, 5000);
+      } catch (getAnswerError: any) {
+        console.error('解答データの取得に失敗しました:', getAnswerError);
+        
+        if (getAnswerError?.code === 'permission-denied') {
+          console.error('権限エラー: 解答データへのアクセスが拒否されました');
+          
+          // 緊急対応策：ルームを次の問題に進める
+          try {
+            // まずルーム状態を更新
+            await updateDoc(doc(db, 'quiz_rooms', roomId), {
+              'currentState.answerStatus': 'incorrect',  // デフォルトで不正解にする
+              'currentState.isRevealed': true
+            });
+            
+            // 数秒後に次の問題に進む
+            setTimeout(() => {
+              moveToNextQuestion();
+            }, 5000);
+            
+            console.log('緊急リカバリー: 次の問題に進みます');
+          } catch (recoveryError) {
+            console.error('緊急リカバリーに失敗しました:', recoveryError);
+          }
+        }
       }
-      
-      // 結果をDBに記録
-      const batch = writeBatch(db);
-      
-      // 解答結果の更新
-      batch.update(answerRef, { isCorrect });
-      
-      // ルーム状態の更新
-      batch.update(doc(db, 'quiz_rooms', roomId), {
-        'currentState.answerStatus': isCorrect ? 'correct' : 'incorrect',
-        'currentState.isRevealed': true,
-        [`participants.${userId}.score`]: increment(isCorrect ? 10 : 0)
-      });
-      
-      // クイズ統計の更新（新しいデータベース構造に合わせて修正）
-      if (currentQuiz.genre && quizRoom.unitId) {
-        batch.update(doc(db, 'genres', currentQuiz.genre, 'quiz_units', quizRoom.unitId, 'quizzes', currentQuiz.quizId), {
-          useCount: increment(1),
-          correctCount: increment(isCorrect ? 1 : 0)
-        });
-      }
-      
-      await batch.commit();
-      
-      // 数秒後に次の問題に進む
+    } catch (error) {
+      console.error('Error judging answer:', error);
+      // 何らかのエラーがあった場合も、タイムアウトで次の問題に進む
       setTimeout(() => {
         moveToNextQuestion();
       }, 5000);
-    } catch (error) {
-      console.error('Error judging answer:', error);
     }
   }, [isLeader, quizRoom, currentQuiz, roomId, moveToNextQuestion]);
 
@@ -354,16 +530,41 @@ export function useLeader(roomId: string) {
       // 選択肢を表示する
       setShowChoices(true);
       
-      // 早押し情報をDBに記録
-      await addDoc(collection(db, 'quiz_rooms', roomId, 'answers'), {
-        userId: currentUser.uid,
-        quizId: currentQuiz.quizId,
-        clickTime: serverTimestamp(),
-        answerTime: 0, // クライアント側で計測した時間を入れることも可能
-        answer: '',
-        isCorrect: false,
-        processingStatus: 'pending'
-      });
+      // トランザクションエラーを防ぐため、先に現在の状態をチェック
+      const roomRef = doc(db, 'quiz_rooms', roomId);
+      const roomSnap = await getDoc(roomRef);
+      
+      if (!roomSnap.exists() || roomSnap.data().status !== 'in_progress') {
+        console.log('ルームが存在しないか、進行中でないため早押しできません');
+        return;
+      }
+      
+      // 現在解答権を持っている人がいないことを再確認
+      if (roomSnap.data().currentState?.currentAnswerer) {
+        console.log('既に別のユーザーが解答権を持っています');
+        return;
+      }
+      
+      try {
+        // 早押し情報をDBに記録
+        const answerRef = await addDoc(collection(db, 'quiz_rooms', roomId, 'answers'), {
+          userId: currentUser.uid,
+          quizId: currentQuiz.quizId,
+          clickTime: serverTimestamp(),
+          answerTime: 0, // クライアント側で計測した時間を入れることも可能
+          answer: '',
+          isCorrect: false,
+          processingStatus: 'pending'
+        });
+        
+        console.log(`早押し情報を記録しました: ${answerRef.id}`);
+      } catch (innerError: any) {
+        console.error('早押し情報の記録に失敗しました:', innerError);
+        // 権限エラーの場合は特別なハンドリング
+        if (innerError?.code === 'permission-denied') {
+          console.error('権限エラー: 早押し情報の記録が拒否されました');
+        }
+      }
     } catch (error) {
       console.error('Error handling buzzer:', error);
     }
@@ -375,7 +576,19 @@ export function useLeader(roomId: string) {
     
     try {
       // 解答権があるか確認
-      if (quizRoom.currentState.currentAnswerer !== currentUser.uid) return;
+      if (quizRoom.currentState.currentAnswerer !== currentUser.uid) {
+        console.log('解答権がありません');
+        return;
+      }
+      
+      // トランザクションエラーを防ぐため、ルームの状態を再確認
+      const roomRef = doc(db, 'quiz_rooms', roomId);
+      const roomSnap = await getDoc(roomRef);
+      
+      if (!roomSnap.exists() || roomSnap.data().status !== 'in_progress') {
+        console.log('ルームが存在しないか、進行中でないため解答できません');
+        return;
+      }
       
       // 解答情報を取得
       const answersRef = collection(db, 'quiz_rooms', roomId, 'answers');
@@ -383,30 +596,64 @@ export function useLeader(roomId: string) {
         answersRef,
         where('userId', '==', currentUser.uid),
         where('quizId', '==', currentQuiz.quizId),
-        orderBy('clickTime', 'desc')
+        orderBy('clickTime', 'desc'),
+        limit(1)  // 最新のものだけを取得
       );
       
-      const answerSnap = await getDocs(answerQuery);
-      
-      if (answerSnap.empty) return;
-      
-      // 最新の解答を取得
-      const answerDoc = answerSnap.docs[0];
-      
-      // 解答を更新
-      await updateDoc(answerDoc.ref, {
-        answer,
-        processingStatus: 'processed'
-      });
-      
-      // リーダーの場合は判定も行う
-      if (isLeader) {
-        await judgeAnswer(answerDoc.id);
+      try {
+        const answerSnap = await getDocs(answerQuery);
+        
+        if (answerSnap.empty) {
+          console.error('解答データが見つかりません');
+          return;
+        }
+        
+        // 最新の解答を取得
+        const answerDoc = answerSnap.docs[0];
+        
+        // 解答を更新
+        await updateDoc(answerDoc.ref, {
+          answer,
+          processingStatus: 'processed'
+        });
+        
+        console.log(`解答「${answer}」を提出しました`);
+        
+        // リーダーの場合は判定も行う
+        if (isLeader) {
+          await judgeAnswer(answerDoc.id);
+        }
+      } catch (queryError: any) {
+        console.error('解答データの取得または更新に失敗しました:', queryError);
+        
+        if (queryError?.code === 'permission-denied') {
+          console.error('権限エラー: 解答データへのアクセスが拒否されました');
+          
+          // 緊急対応策：ルームのリーダーの場合のみ、ルームの状態を直接更新
+          if (isLeader && currentUser.uid === quizRoom.roomLeaderId) {
+            try {
+              // ルームを完了状態にする（リカバリー）
+              await updateDoc(roomRef, {
+                'currentState.answerStatus': 'correct',  // デフォルトで正解にする
+                'currentState.isRevealed': true
+              });
+              
+              // 数秒後に次の問題に進む
+              setTimeout(() => {
+                moveToNextQuestion();
+              }, 5000);
+              
+              console.log('緊急リカバリー: ルームを次の問題に進める準備をしました');
+            } catch (recoveryError) {
+              console.error('緊急リカバリーに失敗しました:', recoveryError);
+            }
+          }
+        }
       }
     } catch (error) {
       console.error('Error submitting answer:', error);
     }
-  }, [currentUser, quizRoom, currentQuiz, roomId, isLeader, judgeAnswer]);
+  }, [currentUser, quizRoom, currentQuiz, roomId, isLeader, judgeAnswer, moveToNextQuestion]);
 
   return {
     startQuizGame,
