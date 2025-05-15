@@ -50,7 +50,7 @@ function CreateRoomContent() {
       return;
     }
 
-    const room = await createRoom(genre, unitId, classType);
+    const room = await createRoom(roomName, genre, unitId, classType, []);
     
     if (room) {
       router.push(`/quiz/room?id=${room.roomId}`);
