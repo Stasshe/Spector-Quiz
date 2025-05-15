@@ -22,6 +22,12 @@ export function useAuth() {
     // パスを正規化（末尾のスラッシュを削除）
     const normalizedPath = pathname.endsWith('/') ? pathname.slice(0, -1) : pathname;
     
+    // クイズルーム内ではリダイレクトチェックをスキップ（アクティブプレイ中の不要なリダイレクトを防止）
+    if (normalizedPath.startsWith('/quiz/room')) {
+      console.log('User is in quiz room, skipping auth redirect check');
+      return;
+    }
+    
     const publicPaths = ['/', '/auth/login', '/auth/register'];
     // より寛容なチェック方法: パスが公開パスの一つで始まるか確認
     const isPublicPath = publicPaths.some(path => 
@@ -52,6 +58,7 @@ export function useAuth() {
     }
     
     // 保護されたページにいる場合で、ログインしていない場合はログインページへリダイレクト
+    // かつページ遷移が発生していない場合のみリダイレクトする（不要な遷移を防止）
     if (!currentUser && !loading) {
       console.log(`User is not authenticated, redirecting to /auth/login from path: ${normalizedPath}`);
       router.replace('/auth/login');
