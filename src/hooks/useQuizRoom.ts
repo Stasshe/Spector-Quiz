@@ -38,6 +38,10 @@ export function useQuizRoom() {
   const [currentRoom, setCurrentRoom] = useState<QuizRoom | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // 待機中ルームからの退出確認用の状態
+  const [roomToJoin, setRoomToJoin] = useState<string | null>(null);
+  const [confirmRoomSwitch, setConfirmRoomSwitch] = useState(false);
+  const [currentWaitingRoomId, setCurrentWaitingRoomId] = useState<string | null>(null);
   const router = useRouter();
 
   // 利用可能なルーム一覧を取得
@@ -391,7 +395,7 @@ export function useQuizRoom() {
   }, [currentUser, userProfile, router, setQuizRoom, setIsLeader, setWaitingRoom]);
 
   // ルームに参加
-  const joinRoom = useCallback(async (roomId: string) => {
+  const joinRoom = useCallback(async (roomId: string, force: boolean = false) => {
     if (!currentUser || !userProfile) {
       setError('ログインが必要です');
       return false;
@@ -428,8 +432,17 @@ export function useQuizRoom() {
           }
           
           // 待機中のルームに参加している場合は確認
-          if (currentRoomData.status === 'waiting') {
-            // 確認なしで自動的に退出する場合のコード
+          if (currentRoomData.status === 'waiting' && !force) {
+            // 確認が必要な場合は状態を保存して確認プロセスを開始
+            setCurrentWaitingRoomId(currentRoomId);
+            setRoomToJoin(roomId);
+            setConfirmRoomSwitch(true);
+            setLoading(false);
+            return false;
+          }
+          
+          // 確認済みまたは自動退出の場合
+          if (force || currentRoomData.status === 'waiting') {
             // 古いルームから退出
             if (currentRoomData.roomLeaderId === currentUser.uid) {
               // リーダーの場合はルームを削除
@@ -635,6 +648,9 @@ export function useQuizRoom() {
             ...roomData,
             roomId
           } as QuizRoom;
+        } else if (confirmRoomSwitch) {
+          // 確認ダイアログが表示された場合は、nullを返してplayWithUnit関数で処理を中断
+          return null;
         } else {
           throw new Error('ルームへの参加に失敗しました');
         }
@@ -893,6 +909,26 @@ export function useQuizRoom() {
     findOrCreateRoomWithUnit,
     getUnitIdByName,
     createUnitIfNotExists,
-    updateUserStatsOnRoomComplete // 新しい関数をエクスポート
+    updateUserStatsOnRoomComplete, // 新しい関数をエクスポート
+    // 確認関連の状態と関数
+    confirmRoomSwitch,
+    currentWaitingRoomId,
+    confirmJoinNewRoom: async () => {
+      if (roomToJoin) {
+        setConfirmRoomSwitch(false);
+        const success = await joinRoom(roomToJoin, true);
+        setRoomToJoin(null);
+        setCurrentWaitingRoomId(null);
+        return success;
+      }
+      return false;
+    },
+    cancelJoinNewRoom: () => {
+      setConfirmRoomSwitch(false);
+      setRoomToJoin(null);
+      setCurrentWaitingRoomId(null);
+      setLoading(false);
+      return false;
+    }
   };
 }

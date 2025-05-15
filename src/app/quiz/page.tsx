@@ -31,7 +31,16 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 export default function QuizPage() {
   const { currentUser, userProfile } = useAuth();
-  const { findOrCreateRoomWithUnit, getUnitIdByName, fetchAvailableRooms, joinRoom } = useQuizRoom();
+  const { 
+    findOrCreateRoomWithUnit, 
+    getUnitIdByName, 
+    fetchAvailableRooms, 
+    joinRoom,
+    confirmRoomSwitch,
+    currentWaitingRoomId,
+    confirmJoinNewRoom,
+    cancelJoinNewRoom
+  } = useQuizRoom();
   const { fetchGenres, genres, units } = useQuizHook();
   const [selectedGenre, setSelectedGenre] = useState<string>("");
   const [selectedClassType, setSelectedClassType] = useState<string>("公式");
@@ -98,6 +107,14 @@ export default function QuizPage() {
     try {
       setLoading(true);
       const joined = await joinRoom(roomId);
+      
+      // joined がfalseで確認ダイアログが表示されている場合は、ここで処理を終了
+      if (!joined && confirmRoomSwitch) {
+        // 確認ダイアログが表示されたので、ロード状態を解除して処理終了
+        setLoading(false);
+        return;
+      }
+      
       if (joined) {
         router.push(`/quiz/room?id=${roomId}`);
       } else {
@@ -107,7 +124,9 @@ export default function QuizPage() {
       console.error('Error joining room:', err);
       alert(`エラーが発生しました: ${err instanceof Error ? err.message : '不明なエラー'}`);
     } finally {
-      setLoading(false);
+      if (!confirmRoomSwitch) {
+        setLoading(false);
+      }
     }
   };
 
@@ -125,6 +144,13 @@ export default function QuizPage() {
       
       // 待機中のルームを探すか、なければ作成
       const result = await findOrCreateRoomWithUnit(genre, unitId, selectedClassType);
+      
+      // confirmRoomSwitchがtrueの場合は確認ダイアログが表示されているので処理を終了
+      if (confirmRoomSwitch) {
+        setLoading(false);
+        return;
+      }
+      
       if (!result) {
         throw new Error('ルームの作成または参加に失敗しました');
       }
@@ -132,7 +158,9 @@ export default function QuizPage() {
       console.error('Error finding or joining room:', err);
       alert(`エラーが発生しました: ${err instanceof Error ? err.message : '不明なエラー'}`);
     } finally {
-      setLoading(false);
+      if (!confirmRoomSwitch) {
+        setLoading(false);
+      }
     }
   };
 
@@ -202,6 +230,32 @@ export default function QuizPage() {
 
   return (
     <div className="app-container py-8">
+      {/* ルーム切り替え確認モーダル */}
+      {confirmRoomSwitch && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-xl">
+            <h2 className="text-xl font-bold text-gray-800 mb-4">待機中のルームから退出しますか？</h2>
+            <p className="text-gray-600 mb-6">
+              あなたは既に別の待機中ルームに参加しています。新しいルームに参加すると、現在の待機中ルームからは退出します。
+            </p>
+            <div className="flex space-x-4">
+              <button
+                onClick={cancelJoinNewRoom}
+                className="flex-1 bg-gray-200 text-gray-800 py-2 px-4 rounded hover:bg-gray-300 transition"
+              >
+                キャンセル
+              </button>
+              <button
+                onClick={confirmJoinNewRoom}
+                className="flex-1 bg-indigo-600 text-white py-2 px-4 rounded hover:bg-indigo-700 transition"
+              >
+                退出して参加
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* ユーザープロフィールカード */}
       {userProfile && (
         <div className="card mb-8 flex flex-col md:flex-row items-center gap-6">
