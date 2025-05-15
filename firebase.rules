@@ -89,6 +89,8 @@ service cloud.firestore {
         allow create: if request.auth != null;
         allow update: if request.auth.uid == resource.data.userId || 
                        request.auth.uid == get(/databases/$(database)/documents/quiz_rooms/$(roomId)).data.roomLeaderId;
+        allow delete: if request.auth.uid == resource.data.userId || 
+                       request.auth.uid == get(/databases/$(database)/documents/quiz_rooms/$(roomId)).data.roomLeaderId;
       }
     }
   }

@@ -143,8 +143,8 @@ function QuizRoomContent() {
                 {/* 問題表示 */}
                 {currentQuiz && <QuizQuestion quiz={currentQuiz} />}
 
-                {/* 早押しボタン（解答者がいない場合） */}
-                {!quizRoom.currentState.currentAnswerer && (
+                {/* 早押しボタン（解答者がいない場合、かつ選択肢が表示されていない場合） */}
+                {!quizRoom.currentState.currentAnswerer && !hasAnsweringRight && (
                   <div className="mt-6 text-center">
                     <button
                       onClick={handleBuzzer}

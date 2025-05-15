@@ -12,6 +12,7 @@ import {
   orderBy, 
   updateDoc, 
   addDoc,
+  deleteDoc,
   onSnapshot,
   writeBatch,
   serverTimestamp,
@@ -40,7 +41,13 @@ export function useLeader(roomId: string) {
       
       if (!currentQuizId) return;
       
-      const quizRef = doc(db, 'quizzes', currentQuizId);
+      // 新しいデータベース構造に合わせてクイズを取得
+      if (!quizRoom.genre || !quizRoom.unitId) {
+        console.error('Quiz room is missing genre or unitId');
+        return;
+      }
+      
+      const quizRef = doc(db, 'genres', quizRoom.genre, 'quiz_units', quizRoom.unitId, 'quizzes', currentQuizId);
       const quizSnap = await getDoc(quizRef);
       
       if (quizSnap.exists()) {
@@ -72,7 +79,7 @@ export function useLeader(roomId: string) {
     } catch (error) {
       console.error('Error fetching current quiz:', error);
     }
-  }, [quizRoom, isLeader, roomId, setCurrentQuiz, updateGenreStats]);
+  }, [quizRoom, isLeader, roomId, setCurrentQuiz, updateGenreStats, setShowChoices]);
 
   // クイズゲームを開始する
   const startQuizGame = useCallback(async () => {
@@ -206,11 +213,13 @@ export function useLeader(roomId: string) {
         [`participants.${userId}.score`]: increment(isCorrect ? 10 : 0)
       });
       
-      // クイズ統計の更新
-      batch.update(doc(db, 'quizzes', currentQuiz.quizId), {
-        useCount: increment(1),
-        correctCount: increment(isCorrect ? 1 : 0)
-      });
+      // クイズ統計の更新（新しいデータベース構造に合わせて修正）
+      if (currentQuiz.genre && quizRoom.unitId) {
+        batch.update(doc(db, 'genres', currentQuiz.genre, 'quiz_units', quizRoom.unitId, 'quizzes', currentQuiz.quizId), {
+          useCount: increment(1),
+          correctCount: increment(isCorrect ? 1 : 0)
+        });
+      }
       
       await batch.commit();
       
@@ -254,17 +263,42 @@ export function useLeader(roomId: string) {
           const answersRef = collection(db, 'quiz_rooms', roomId, 'answers');
           const answersSnap = await getDocs(answersRef);
           
-          const deleteBatch = writeBatch(db);
-          answersSnap.docs.forEach(doc => {
-            deleteBatch.delete(doc.ref);
-          });
+          if (!answersSnap.empty) {
+            console.log(`Deleting ${answersSnap.docs.length} answers from room ${roomId}`);
+            const deleteBatch = writeBatch(db);
+            
+            // バッチサイズ制限（500）を考慮
+            const chunks = [];
+            for (let i = 0; i < answersSnap.docs.length; i += 400) {
+              chunks.push(answersSnap.docs.slice(i, i + 400));
+            }
+            
+            // チャンクごとに削除を実行
+            for (const chunk of chunks) {
+              const chunkBatch = writeBatch(db);
+              chunk.forEach(doc => {
+                chunkBatch.delete(doc.ref);
+              });
+              await chunkBatch.commit();
+            }
+            
+            console.log(`Successfully deleted all answers from room ${roomId}`);
+          }
           
           // ルーム自体を削除
-          deleteBatch.delete(doc(db, 'quiz_rooms', roomId));
+          await deleteDoc(doc(db, 'quiz_rooms', roomId));
+          console.log(`Successfully deleted room ${roomId}`);
           
-          await deleteBatch.commit();
         } catch (error) {
           console.error('Error deleting room:', error);
+          // エラーがあってもクリーンアップを続ける
+          try {
+            // それでもルームは削除を試みる
+            await deleteDoc(doc(db, 'quiz_rooms', roomId));
+            console.log(`Attempted to delete room ${roomId} despite errors with answers`);
+          } catch (roomError) {
+            console.error('Error deleting room after answer deletion failed:', roomError);
+          }
         }
       }, 30000);
     } catch (error) {
@@ -307,7 +341,7 @@ export function useLeader(roomId: string) {
     } catch (error) {
       console.error('Error handling buzzer:', error);
     }
-  }, [currentUser, quizRoom, currentQuiz, roomId]);
+  }, [currentUser, quizRoom, currentQuiz, roomId, setShowChoices]);
 
   // 解答を提出
   const submitAnswer = useCallback(async (answer: string) => {
