@@ -175,6 +175,24 @@ export default function QuizPage() {
     );
   }
 
+  // 単元ごとの待機中ルーム数を計算する関数
+  const getWaitingRoomCountForUnit = (unitName: string) => {
+    if (!waitingRooms.length) return 0;
+    
+    // 単元名が完全に一致するルームをカウント（より正確）
+    return waitingRooms.filter(room => room.unitName === unitName).length;
+  };
+
+  // 単元ごとの待機中人数の合計を計算
+  const getWaitingPlayersForUnit = (unitName: string) => {
+    if (!waitingRooms.length) return 0;
+    
+    // 単元名が一致するルームの参加者合計をカウント
+    return waitingRooms
+      .filter(room => room.unitName === unitName)
+      .reduce((total, room) => total + room.participantCount, 0);
+  };
+
   return (
     <div className="app-container py-8">
       {/* ユーザープロフィールカード */}
@@ -381,22 +399,33 @@ export default function QuizPage() {
                       <div key={category} className="mb-6">
                         <h4 className="font-medium text-gray-700 mb-2">{category}</h4>
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                          {Array.isArray(unitList) ? unitList.map((unit: string) => (
+                          {Array.isArray(unitList) ? unitList.map((unit: string) => {
+                            const waitingRoomCount = getWaitingRoomCountForUnit(unit);
+                            const waitingPlayerCount = getWaitingPlayersForUnit(unit);
+                            
+                            return (
                             <div 
                               key={unit} 
-                              className="border border-gray-200 rounded-xl p-4 hover:border-indigo-200 hover:shadow-md transition-all duration-200"
+                              className={`border ${waitingRoomCount > 0 ? 'border-green-200 bg-green-50' : 'border-gray-200'} rounded-xl p-4 hover:border-indigo-200 hover:shadow-md transition-all duration-200`}
                             >
-                              <h5 className="font-medium mb-3 text-gray-800">{unit}</h5>
+                              <div className="flex justify-between items-start mb-3">
+                                <h5 className="font-medium text-gray-800">{unit}</h5>
+                                {waitingRoomCount > 0 && (
+                                  <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full flex items-center">
+                                    <FaUsers className="mr-1" /> {waitingPlayerCount}人待機中
+                                  </span>
+                                )}
+                              </div>
                               <div className="flex justify-center">
                                 <button
                                   onClick={() => playWithUnit(selectedGenre, unit)}
                                   className="w-full flex items-center justify-center p-2 rounded-lg bg-indigo-500 text-white hover:bg-indigo-600 transition-colors"
                                 >
-                                  <FaPlay className="mr-2" /> プレイする
+                                  <FaPlay className="mr-2" /> {waitingRoomCount > 0 ? '参加する' : 'プレイする'}
                                 </button>
                               </div>
                             </div>
-                          )) : null}
+                          )}) : null}
                         </div>
                       </div>
                     ))}

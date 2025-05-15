@@ -4,6 +4,7 @@ import Script from "next/script";
 import "./globals.css";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import WaitingRoomFloating from "@/components/layout/WaitingRoomFloating";
 import { AuthProvider } from "@/context/AuthContext";
 import { QuizProvider } from "@/context/QuizContext";
 
@@ -43,6 +44,7 @@ export default function RootLayout({
             <Header />
             <main className="flex-grow">{children}</main>
             <Footer />
+            <WaitingRoomFloating />
           </QuizProvider>
         </AuthProvider>
       </body>

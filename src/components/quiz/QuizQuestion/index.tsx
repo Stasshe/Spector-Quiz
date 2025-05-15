@@ -8,39 +8,50 @@ interface QuizQuestionProps {
 }
 
 export default function QuizQuestion({ quiz }: QuizQuestionProps) {
-  const { showChoices, setShowChoices, animationInProgress, setAnimationInProgress, showQuestionDelay } = useQuiz();
+  const { showChoices, setShowChoices, animationInProgress, setAnimationInProgress, showQuestionDelay, quizRoom } = useQuiz();
   const [showQuestion, setShowQuestion] = useState(false);
-  const [showDifficulty, setShowDifficulty] = useState(false);
   
-  // 問題を表示するアニメーション効果
+  // 難易度は単元から取得（単元情報が無い場合はクイズの難易度を使用）
+  const unitDifficulty = quizRoom?.unitDifficulty || quiz.difficulty;
+  
+  // 問題を表示するアニメーション効果（アニメーションは縮小）
   useEffect(() => {
     setAnimationInProgress(true);
     setShowQuestion(false);
-    setShowDifficulty(false);
     
-    // 問題が切り替わった時に少し遅延をつける
+    // 問題が切り替わった時に遅延を短くする（250ms）
     const questionTimer = setTimeout(() => {
       setShowQuestion(true);
-      
-      // 難易度表示は問題表示後に少し遅らせる
-      const difficultyTimer = setTimeout(() => {
-        setShowDifficulty(true);
-        setAnimationInProgress(false);
-      }, 800);
-      
-      return () => clearTimeout(difficultyTimer);
-    }, showQuestionDelay);
+      setAnimationInProgress(false);
+    }, 250);
     
     return () => clearTimeout(questionTimer);
-  }, [quiz.quizId, setAnimationInProgress, showQuestionDelay]);
+  }, [quiz.quizId, setAnimationInProgress]);
   
   return (
-    <div className="quiz-question">
+    <div className="quiz-question relative">
+      {/* 難易度表示を右上に配置 */}
+      <div className="absolute top-0 right-0 flex items-center bg-white/80 backdrop-blur-sm px-3 py-1 rounded-lg shadow-sm">
+        <span className="text-sm text-gray-600 mr-2">難易度:</span>
+        <div className="flex">
+          {Array.from({ length: 5 }).map((_, index) => (
+            <span
+              key={index}
+              className={`w-3 h-3 rounded-full mx-0.5 ${
+                index < unitDifficulty
+                  ? 'bg-yellow-400'
+                  : 'bg-gray-200'
+              }`}
+            ></span>
+          ))}
+        </div>
+      </div>
+      
       <motion.h2 
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="text-xl md:text-2xl font-bold mb-4"
+        className="text-xl md:text-2xl font-bold mb-4 pr-24" // 右側のスペースを確保
       >
         {quiz.title}
       </motion.h2>
@@ -48,10 +59,10 @@ export default function QuizQuestion({ quiz }: QuizQuestionProps) {
       <AnimatePresence>
         {showQuestion && (
           <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
+            initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ duration: 0.6 }}
+            exit={{ opacity: 0, scale: 0.98 }}
+            transition={{ duration: 0.4 }}
             className="bg-indigo-50 border border-indigo-100 rounded-lg p-4 mb-6"
           >
             <p className="text-lg font-medium">{quiz.question}</p>
@@ -64,44 +75,16 @@ export default function QuizQuestion({ quiz }: QuizQuestionProps) {
         <motion.div 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
+          transition={{ duration: 0.3 }}
           className="text-gray-600 italic mb-4"
         >
           解答を入力してください
         </motion.div>
       )}
       
-      <AnimatePresence>
-        {showDifficulty && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.5 }}
-            className="flex items-center justify-between text-sm text-gray-500"
-          >
-            <div>ジャンル: {quiz.genre} &gt;</div>
-            <div className="flex items-center">
-              <span className="mr-2">難易度:</span>
-              <div className="flex">
-                {Array.from({ length: 5 }).map((_, index) => (
-                  <motion.span
-                    key={index}
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ duration: 0.3, delay: 0.1 * index }}
-                    className={`w-4 h-4 rounded-full mx-0.5 ${
-                      index < quiz.difficulty
-                        ? 'bg-yellow-400'
-                        : 'bg-gray-200'
-                    }`}
-                  ></motion.span>
-                ))}
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <div className="text-sm text-gray-500">
+        <div>ジャンル: {quiz.genre}</div>
+      </div>
     </div>
   );
 }

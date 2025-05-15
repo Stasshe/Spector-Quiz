@@ -25,7 +25,13 @@ import { genreClasses } from '@/constants/genres';
 
 export function useQuizRoom() {
   const { currentUser, userProfile } = useAuth();
-  const { setQuizRoom, setIsLeader, setCurrentQuiz, setHasAnsweringRight } = useQuiz();
+  const { 
+    setQuizRoom, 
+    setIsLeader, 
+    setCurrentQuiz, 
+    setHasAnsweringRight,
+    setWaitingRoom 
+  } = useQuiz();
   const [availableRooms, setAvailableRooms] = useState<RoomListing[]>([]);
   const [currentRoom, setCurrentRoom] = useState<QuizRoom | null>(null);
   const [loading, setLoading] = useState(false);
@@ -46,22 +52,48 @@ export function useQuizRoom() {
       const roomsSnapshot = await getDocs(roomsQuery);
       const rooms: RoomListing[] = [];
       
-      roomsSnapshot.forEach(doc => {
-        const roomData = doc.data() as QuizRoom;
+      // 単元情報の取得のためのキャッシュ
+      const unitCache: { [unitId: string]: { title: string } } = {};
+      
+      for (const docSnap of roomsSnapshot.docs) {
+        const roomData = docSnap.data() as QuizRoom;
         // クラスタイプでフィルタリング
         const isUserCreated = roomData.classType === 'ユーザー作成';
         if ((classType === 'ユーザー作成' && isUserCreated) || 
             (classType === '公式' && !isUserCreated)) {
+            
+          // 単元名を取得（キャッシュに無い場合はFirestoreから取得）
+          let unitName = '';
+          if (roomData.unitId) {
+            if (unitCache[roomData.unitId]) {
+              unitName = unitCache[roomData.unitId].title;
+            } else {
+              try {
+                const unitRef = doc(db, 'genres', genre, 'quiz_units', roomData.unitId);
+                const unitSnap = await getDoc(unitRef);
+                if (unitSnap.exists()) {
+                  const unitData = unitSnap.data();
+                  unitName = unitData.title || '';
+                  // キャッシュに追加
+                  unitCache[roomData.unitId] = { title: unitName };
+                }
+              } catch (err) {
+                console.error('Error fetching unit data:', err);
+              }
+            }
+          }
+            
           rooms.push({
-            roomId: doc.id,
+            roomId: docSnap.id,
             name: roomData.name,
             genre: roomData.genre,
-            unitId: roomData.unitId || '',  // unitIdが存在しない場合は空文字を設定
+            unitId: roomData.unitId || '',
+            unitName: unitName,
             participantCount: Object.keys(roomData.participants).length,
             status: roomData.status
           });
         }
-      });
+      }
       
       setAvailableRooms(rooms);
       return rooms;
@@ -187,6 +219,8 @@ export function useQuizRoom() {
       }
       
       const unitData = unitSnap.data();
+      // 単元の難易度を取得（デフォルトは3）
+      const unitDifficulty = unitData.difficulty || 3;
       
       // 単元内のクイズを取得
       const quizzesQuery = collection(db, 'genres', genreId, 'quiz_units', unitId, 'quizzes');
@@ -213,6 +247,7 @@ export function useQuizRoom() {
         name,
         genre: genreId,
         unitId,  // 単元IDを保存
+        unitDifficulty: unitDifficulty, // 単元の難易度を保存
         classType,
         roomLeaderId: currentUser.uid,
         participants: {
@@ -263,6 +298,9 @@ export function useQuizRoom() {
       setQuizRoom(createdRoom);
       setIsLeader(true);
       
+      // 待機中ルームとして設定
+      setWaitingRoom(createdRoom);
+      
       router.push(`/quiz/room?id=${roomId}`);
       
       return createdRoom;
@@ -273,7 +311,7 @@ export function useQuizRoom() {
     } finally {
       setLoading(false);
     }
-  }, [currentUser, userProfile, router, setQuizRoom, setIsLeader]);
+  }, [currentUser, userProfile, router, setQuizRoom, setIsLeader, setWaitingRoom]);
 
   // ルームに参加
   const joinRoom = useCallback(async (roomId: string) => {
@@ -324,6 +362,11 @@ export function useQuizRoom() {
       setQuizRoom(joinedRoom);
       setIsLeader(currentUser.uid === roomData.roomLeaderId);
       
+      // 待機中ルームとして設定（status が waiting の場合のみ）
+      if (roomData.status === 'waiting') {
+        setWaitingRoom(joinedRoom);
+      }
+      
       router.push(`/quiz/room?id=${roomId}`);
       
       return true;
@@ -334,7 +377,7 @@ export function useQuizRoom() {
     } finally {
       setLoading(false);
     }
-  }, [currentUser, userProfile, router, setQuizRoom, setIsLeader]);
+  }, [currentUser, userProfile, router, setQuizRoom, setIsLeader, setWaitingRoom]);
 
   // ルームから退出
   const leaveRoom = useCallback(async () => {
@@ -528,7 +571,8 @@ export function useQuizRoom() {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
         useCount: 0,
-        isPublic: true
+        isPublic: true,
+        difficulty: 3 // デフォルトの難易度を追加
       };
       
       // ランダムIDで単元を作成
@@ -553,8 +597,17 @@ export function useQuizRoom() {
       const unsubscribe = onSnapshot(roomRef, (doc) => {
         if (doc.exists()) {
           const roomData = doc.data() as Omit<QuizRoom, 'roomId'>;
-          setRoom({ ...roomData, roomId: doc.id } as QuizRoom);
-          setQuizRoom({ ...roomData, roomId: doc.id } as QuizRoom);
+          const roomWithId = { ...roomData, roomId: doc.id } as QuizRoom;
+          setRoom(roomWithId);
+          setQuizRoom(roomWithId);
+          
+          // 待機中ルームの状態も更新
+          if (roomData.status === 'waiting') {
+            setWaitingRoom(roomWithId);
+          } else {
+            // ゲーム開始・終了で待機中状態をクリア
+            setWaitingRoom(null);
+          }
           
           if (currentUser) {
             setIsLeader(currentUser.uid === roomData.roomLeaderId);
@@ -562,9 +615,10 @@ export function useQuizRoom() {
             setHasAnsweringRight(roomData.currentState.currentAnswerer === currentUser.uid);
           }
         } else {
-          // ルームが削除された場合はリダイレクト
+          // ルームが削除された場合はリダイレクトと状態クリア
           setRoom(null);
           setQuizRoom(null);
+          setWaitingRoom(null);
           router.push('/quiz');
         }
       }, (error) => {
@@ -572,7 +626,7 @@ export function useQuizRoom() {
       });
       
       return () => unsubscribe();
-    }, [roomId, currentUser, setQuizRoom, setIsLeader, setHasAnsweringRight, router]);
+    }, [roomId, currentUser, setQuizRoom, setIsLeader, setHasAnsweringRight, setWaitingRoom, router]);
     
     return room;
   };

@@ -19,6 +19,10 @@ interface QuizContextType {
   setAnimationInProgress: (inProgress: boolean) => void;
   showQuestionDelay: number;
   setShowQuestionDelay: (delay: number) => void;
+  waitingRoom: QuizRoom | null;
+  setWaitingRoom: (room: QuizRoom | null) => void;
+  isWaitingRoomModalOpen: boolean;
+  setIsWaitingRoomModalOpen: (isOpen: boolean) => void;
 }
 
 export const QuizContext = createContext<QuizContextType | undefined>(undefined);
@@ -31,6 +35,8 @@ export function QuizProvider({ children }: { children: ReactNode }) {
   const [showChoices, setShowChoices] = useState(false);
   const [animationInProgress, setAnimationInProgress] = useState(false);
   const [showQuestionDelay, setShowQuestionDelay] = useState(1000); // 1秒のデフォルト遅延
+  const [waitingRoom, setWaitingRoom] = useState<QuizRoom | null>(null);
+  const [isWaitingRoomModalOpen, setIsWaitingRoomModalOpen] = useState(false);
 
   const value = {
     currentQuiz,
@@ -46,7 +52,11 @@ export function QuizProvider({ children }: { children: ReactNode }) {
     animationInProgress,
     setAnimationInProgress,
     showQuestionDelay,
-    setShowQuestionDelay
+    setShowQuestionDelay,
+    waitingRoom,
+    setWaitingRoom,
+    isWaitingRoomModalOpen,
+    setIsWaitingRoomModalOpen
   };
 
   return <QuizContext.Provider value={value}>{children}</QuizContext.Provider>;

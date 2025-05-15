@@ -32,7 +32,6 @@ function QuizRoomContent() {
   const { quizRoom, isLeader, currentQuiz, hasAnsweringRight } = useQuiz();
   const { useRoomListener, leaveRoom } = useQuizRoom();
   const { startQuizGame, handleBuzzer, submitAnswer } = useLeader(roomId);
-  const [isReady, setIsReady] = useState(false);
   
   // ルームデータをリアルタイム監視
   const room = useRoomListener(roomId);
@@ -54,12 +53,6 @@ function QuizRoomContent() {
   const handleLeaveRoom = async () => {
     await leaveRoom();
     router.push('/quiz');
-  };
-
-  // 準備完了状態の切り替え
-  const toggleReady = async () => {
-    setIsReady(!isReady);
-    // TODO: Firestoreの準備完了状態を更新する処理を実装
   };
 
   // ルーム情報が読み込まれていない場合のローディング表示
@@ -123,16 +116,23 @@ function QuizRoomContent() {
                     <FaPlay className="mr-2" /> クイズを開始する
                   </button>
                 ) : (
-                  <button
-                    onClick={toggleReady}
-                    className={`px-6 py-3 rounded-md text-lg flex items-center mx-auto ${
-                      isReady
-                        ? 'bg-green-600 text-white'
-                        : 'bg-gray-200 text-gray-800'
-                    }`}
-                  >
-                    {isReady ? '準備完了！' : '準備する'}
-                  </button>
+                  <div className="mt-4">
+                    <p className="text-gray-500">
+                      参加者数: {Object.keys(quizRoom.participants).length}人
+                    </p>
+                    <p className="text-gray-500">
+                    ルームリーダー: {quizRoom.participants[quizRoom.roomLeaderId]?.username}
+                    </p>
+                    <p className="text-gray-500">
+                      ジャンル: {quizRoom.genre}
+                    </p>
+                    <p className="text-gray-500">
+                      単元: {quizRoom.unitId}
+                    </p>
+                    <p className="text-gray-500">
+                      ルームID: {roomId}
+                    </p>
+                  </div>
                 )}
               </div>
             )}

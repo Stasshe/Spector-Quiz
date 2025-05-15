@@ -9,6 +9,7 @@ export interface QuizRoom {
   classType: string; // 'ユーザー作成' または '公式'
   roomLeaderId: string;
   unitId?: string;    // 使用する単元ID
+  unitDifficulty?: number; // 単元の難易度
   participants: ParticipantsMap;
   currentQuizIndex: number;
   totalQuizCount: number;
@@ -66,6 +67,7 @@ export interface RoomListing {
   name: string;
   genre: string;
   unitId: string;
+  unitName?: string; // 単元名を追加
   participantCount: number;
   status: RoomStatus;
 }
