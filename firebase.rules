@@ -42,19 +42,6 @@ service cloud.firestore {
                       );
         }
       }
-      
-      // クイズ単元
-      match /quiz_units/{unitId} {
-        allow read;
-        allow create: if request.auth != null;
-        allow update, delete: if request.auth.uid == resource.data.createdBy;
-        
-        // 単元内のクイズ
-        match /quizzes/{quizId} {
-          allow read;
-          allow write: if request.auth.uid == resource.data.createdBy;
-        }
-      }
     }
     
     // クイズコレクション（共有クイズ）

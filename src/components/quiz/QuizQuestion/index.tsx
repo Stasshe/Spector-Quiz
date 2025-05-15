@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Quiz } from '@/types/quiz';
 import { useQuiz } from '@/context/QuizContext';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface QuizQuestionProps {
   quiz: Quiz;
@@ -8,39 +9,81 @@ interface QuizQuestionProps {
 
 export default function QuizQuestion({ quiz }: QuizQuestionProps) {
   const { showChoices, setShowChoices } = useQuiz();
+  const [showQuestion, setShowQuestion] = useState(false);
+  
+  // 問題を表示するアニメーション効果
+  useEffect(() => {
+    // 問題が切り替わった時に少し遅延をつける
+    const timer = setTimeout(() => {
+      setShowQuestion(true);
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, [quiz.quizId]);
   
   return (
     <div className="quiz-question">
-      <h2 className="text-xl md:text-2xl font-bold mb-4">{quiz.title}</h2>
-      <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-4 mb-6">
-        <p className="text-lg font-medium">{quiz.question}</p>
-      </div>
+      <motion.h2 
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="text-xl md:text-2xl font-bold mb-4"
+      >
+        {quiz.title}
+      </motion.h2>
+      
+      <AnimatePresence>
+        {showQuestion && (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.6 }}
+            className="bg-indigo-50 border border-indigo-100 rounded-lg p-4 mb-6"
+          >
+            <p className="text-lg font-medium">{quiz.question}</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
       
       {/* 入力式問題の場合は選択肢表示なし */}
       {quiz.type === 'input' && (
-        <div className="text-gray-600 italic mb-4">
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5, delay: 1 }}
+          className="text-gray-600 italic mb-4"
+        >
           解答を入力してください
-        </div>
+        </motion.div>
       )}
       
-      <div className="flex items-center justify-between text-sm text-gray-500">
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5, delay: 1.2 }}
+        className="flex items-center justify-between text-sm text-gray-500"
+      >
         <div>ジャンル: {quiz.genre} &gt;</div>
         <div className="flex items-center">
           <span className="mr-2">難易度:</span>
           <div className="flex">
             {Array.from({ length: 5 }).map((_, index) => (
-              <span
+              <motion.span
                 key={index}
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ duration: 0.3, delay: 1.3 + index * 0.1 }}
                 className={`w-4 h-4 rounded-full mx-0.5 ${
                   index < quiz.difficulty
                     ? 'bg-yellow-400'
                     : 'bg-gray-200'
                 }`}
-              ></span>
+              ></motion.span>
             ))}
           </div>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

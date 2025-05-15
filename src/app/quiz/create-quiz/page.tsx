@@ -693,7 +693,7 @@ export default function CreateQuizUnitPage() {
                     >
                       <option value="">ジャンルを選択</option>
                       {genreClasses
-                        .find(c => c.name === 'ユーザー作成')?.genres
+                        .find(c => c.name === 'すべて')?.genres
                         .map(g => (
                           <option key={g.name} value={g.name}>{g.name}</option>
                         ))}
@@ -747,14 +747,6 @@ export default function CreateQuizUnitPage() {
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-xl font-semibold">クイズ一覧</h2>
                   <div className="flex space-x-2">
-                    <button
-                      type="button"
-                      onClick={() => setShowAvailableQuizzes(!showAvailableQuizzes)}
-                      className="btn-outline-sm flex items-center"
-                      disabled={!genre}
-                    >
-                      <FaPlus className="mr-1" size={12} /> 既存のクイズから追加
-                    </button>
                     <button
                       type="button"
                       onClick={() => {
