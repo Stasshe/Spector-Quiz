@@ -85,8 +85,10 @@ export function useQuizRoom() {
             }
           }
             
-          // 参加者数を正確に計算
           const participantCount = roomData.participants ? Object.keys(roomData.participants).length : 0;
+            
+          // 参加者数が正確に計算されているか確認するためのログ
+          console.log(`Room ${docSnap.id} participant count:`, participantCount, roomData.participants);
             
           rooms.push({
             roomId: docSnap.id,
@@ -837,6 +839,17 @@ export function useQuizRoom() {
           
           // 待機中ルームの状態も更新
           if (roomData.status === 'waiting') {
+            // participants フィールドが存在することを確認
+            if (!roomData.participants) {
+              console.warn('Room has no participants field:', roomData);
+              // 空のオブジェクトをデフォルトとして使用
+              roomData.participants = {};
+            }
+            
+            // 参加者数の計算を追加
+            const participantCount = Object.keys(roomData.participants).length;
+            console.log(`Room ${doc.id} updated: ${participantCount} participants`);
+            
             setWaitingRoom(roomWithId);
           } else {
             // ゲーム開始・終了で待機中状態をクリア

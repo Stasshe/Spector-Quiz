@@ -30,7 +30,18 @@ export default function WaitingRoomFloating() {
     const unsubscribe = onSnapshot(roomRef, (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.data();
-        setParticipantCount(Object.keys(data.participants || {}).length);
+        // データ変換のデバッグ出力を追加
+        console.log('WaitingRoom participants data:', data.participants);
+        // 参加者が存在するか確実に確認
+        if (data.participants && typeof data.participants === 'object') {
+          setParticipantCount(Object.keys(data.participants).length);
+        } else {
+          console.warn('参加者データが見つからないか不正な形式です', data);
+          setParticipantCount(0);
+        }
+      } else {
+        // ルームが削除された場合
+        setParticipantCount(0);
       }
     });
     
@@ -87,7 +98,7 @@ export default function WaitingRoomFloating() {
         <FaUserFriends className="mr-2" />
         <span className="font-medium">待機中ルーム</span>
         <span className="bg-white text-indigo-700 rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">
-          {participantCount}
+          {participantCount > 0 ? participantCount : 0}
         </span>
       </motion.button>
 
@@ -130,7 +141,7 @@ export default function WaitingRoomFloating() {
                   <p className="font-medium text-indigo-800 mb-1">参加者数:</p>
                   <p className="text-gray-700 flex items-center">
                     <FaUserFriends className="mr-2 text-indigo-600" />
-                    <span>{participantCount}人が待機中</span>
+                    <span>{participantCount > 0 ? `${participantCount}人が待機中` : '参加者情報を読み込み中...'}</span>
                   </p>
                 </div>
               </div>

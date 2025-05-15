@@ -36,8 +36,15 @@ export function useQuizHook() {
         
         // カテゴリごとの単元を整理
         const categoryMap: { [category: string]: string[] } = {};
+        
+        // デバッグ: ユニットドキュメント数を確認
+        console.log(`Genre ${genreId} has ${unitsSnap.docs.length} units`);
+        
         unitsSnap.forEach(unitDoc => {
           const unitData = unitDoc.data();
+          // デバッグ: ユニットデータの内容を確認
+          console.log(`Unit ${unitDoc.id} data:`, unitData);
+          
           if (unitData.title && unitData.category) {
             if (!categoryMap[unitData.category]) {
               categoryMap[unitData.category] = [];
