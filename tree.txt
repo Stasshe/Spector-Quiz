@@ -1,8 +1,10 @@
 .
 ├── CERTIFICATION.md
 ├── Certificate2.md
+├── DB-structure.md
 ├── LICENSE
 ├── README.md
+├── firebase.rules
 ├── next-env.d.ts
 ├── next.config.ts
 ├── package-lock.json
@@ -17,6 +19,17 @@
 ├── re.txt
 ├── src
 │   ├── app
+│   │   ├── admin
+│   │   │   ├── dashboard
+│   │   │   ├── initialize
+│   │   │   │   └── page.tsx
+│   │   │   ├── layout.tsx
+│   │   │   ├── login
+│   │   │   ├── quiz-management
+│   │   │   │   ├── create
+│   │   │   │   └── edit
+│   │   │   ├── statistics
+│   │   │   └── user-management
 │   │   ├── auth
 │   │   │   ├── login
 │   │   │   │   └── page.tsx
@@ -45,7 +58,8 @@
 │   ├── components
 │   │   ├── layout
 │   │   │   ├── Footer.tsx
-│   │   │   └── Header.tsx
+│   │   │   ├── Header.tsx
+│   │   │   └── WaitingRoomFloating.tsx
 │   │   └── quiz
 │   │       ├── AnswerInput
 │   │       │   └── index.tsx
@@ -68,13 +82,15 @@
 │   │   ├── useAuth.ts
 │   │   ├── useLeader.ts
 │   │   ├── useQuiz.ts
-│   │   └── useQuizRoom.ts
+│   │   ├── useQuizRoom.ts
+│   │   └── useQuizUnit.ts
 │   └── types
 │       ├── quiz.ts
 │       ├── room.ts
 │       └── user.ts
 ├── tailwind.config.ts
+├── test-output.txt
 ├── tree.txt
 └── tsconfig.json
 
-27 directories, 50 files
+36 directories, 57 files

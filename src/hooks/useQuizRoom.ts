@@ -139,9 +139,14 @@ export function useQuizRoom() {
   }, []);
 
   // ルームを作成
-  const createRoom = useCallback(async (genre: string, unitId: string, classType: string) => {
-    if (!currentUser || !userProfile) {
-      setError('ログインが必要です');
+  const createRoom = useCallback(async (
+    name: string,
+    genre: string,
+    unitId: string,
+    classType: string,
+    selectedQuizIds: string[]
+  ) => {
+    if (!currentUser || !userProfile || selectedQuizIds.length === 0) {
       return null;
     }
     
@@ -224,29 +229,6 @@ export function useQuizRoom() {
         }
       }
       
-      // クラスタイプに基づいてルーム名を設定
-      const name = `${genre} (${classType})`;
-      
-      const quizQuery = query(
-        collection(db, 'quizzes'),
-        where('genre', '==', genre),
-        orderBy('useCount')
-      );
-      
-      const quizSnapshot = await getDocs(quizQuery);
-      const quizIds: string[] = [];
-      
-      quizSnapshot.forEach(doc => {
-        quizIds.push(doc.id);
-      });
-      
-      if (quizIds.length === 0) {
-        throw new Error('選択したジャンルにクイズがありません');
-      }
-      
-      // 最大10問までランダムに選択
-      const selectedQuizIds = quizIds.sort(() => 0.5 - Math.random()).slice(0, 10);
-      
       const newRoom: Omit<QuizRoom, 'roomId'> = {
         name,
         genre,
@@ -258,6 +240,7 @@ export function useQuizRoom() {
             username: userProfile.username,
             iconId: userProfile.iconId,
             score: 0,
+            missCount: 0, // お手つきカウント追加
             isReady: false,
             isOnline: true
           }
@@ -462,6 +445,7 @@ export function useQuizRoom() {
             username: userProfile.username,
             iconId: userProfile.iconId,
             score: 0,
+            missCount: 0, // お手つきカウント追加
             isReady: false,
             isOnline: true
           }
@@ -683,6 +667,7 @@ export function useQuizRoom() {
               username: userProfile.username,
               iconId: userProfile.iconId,
               score: 0,
+              missCount: 0, // お手つきカウント追加
               isReady: false,
               isOnline: true
             },
@@ -852,7 +837,9 @@ export function useQuizRoom() {
         if (participantCount >= 8) {
           // 単元IDを取得（URLパラメータまたはルームデータから）
           const unitId = roomData.unitId || '';
-          return await createRoom(genre, unitId, classType);
+          // 自動生成されたルーム名を作成
+          const roomName = `${genre}のクイズルーム`;
+          return await createRoom(roomName, genre, unitId, classType, []);
         }
         
         // 既存のルームに参加
@@ -862,7 +849,9 @@ export function useQuizRoom() {
       // 該当するルームがない場合、新しいルームを作成
       // 単元IDがない場合は空文字を渡す（APIの仕様に合わせる）
       const unitId = '';
-      return await createRoom(genre, unitId, classType);
+      // 自動生成されたルーム名を作成
+      const roomName = `${genre}のクイズルーム`;
+      return await createRoom(roomName, genre, unitId, classType, []);
     } catch (err) {
       console.error('Error finding or creating room:', err);
       setError('ルームの探索/作成中にエラーが発生しました');

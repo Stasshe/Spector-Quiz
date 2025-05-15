@@ -38,6 +38,7 @@ export interface ParticipantInfo {
   username: string;
   iconId: number;
   score: number;
+  missCount?: number; // お手つきカウント追加（省略可能にしておく）
   isReady: boolean;
   isOnline: boolean;
 }

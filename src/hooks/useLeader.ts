@@ -620,6 +620,14 @@ export function useLeader(roomId: string) {
           
           // 早押し情報をDBに記録
           try {
+            // 参加者に必要なフィールドが存在するか確認
+            if (!quizRoom.participants[currentUser.uid].hasOwnProperty('missCount')) {
+              // missCountフィールドが存在しない場合は初期化
+              await updateDoc(roomRef, {
+                [`participants.${currentUser.uid}.missCount`]: 0
+              });
+            }
+            
             await addDoc(collection(db, 'quiz_rooms', roomId, 'answers'), {
               userId: currentUser.uid,
               quizId: currentQuiz.quizId,
@@ -759,18 +767,41 @@ export function useLeader(roomId: string) {
           
           // ルームの状態を更新して正誤判定を表示
           try {
-            await updateDoc(roomRef, {
+            const updateData: any = {
               'currentState.answerStatus': isCorrect ? 'correct' : 'incorrect',
               'currentState.isRevealed': true,
               [`participants.${currentUser.uid}.score`]: increment(isCorrect ? 10 : 0)
-            });
+            };
+            
+            // 不正解の場合は、解答権をリセットして他の人が回答できるようにする
+            if (!isCorrect) {
+              updateData['currentState.currentAnswerer'] = null;
+              // お手つきカウントを増やす
+              updateData[`participants.${currentUser.uid}.missCount`] = increment(1);
+            }
+            
+            await updateDoc(roomRef, updateData);
             
             console.log(`ルーム状態を更新しました - 解答は${isCorrect ? '正解' : '不正解'}です`);
             
-            // 5秒後に次の問題に進む（リーダーのみ）
-            if (isLeader) {
-              setTimeout(() => {
-                moveToNextQuestion();
+            // 正解の場合のみ、5秒後に次の問題に進む
+            if (isCorrect) {
+              // ルームが進行中かを確認し、5秒後に次へ
+              setTimeout(async () => {
+                // リーダーの場合は次の問題へ進む
+                if (isLeader) {
+                  moveToNextQuestion();
+                } else {
+                  // リーダーでない場合は、クイズの次の問題遷移が行われているか確認
+                  const currentRoomSnap = await getDoc(roomRef);
+                  if (currentRoomSnap.exists() && 
+                      currentRoomSnap.data().status === 'in_progress' && 
+                      currentRoomSnap.data().currentQuizIndex === quizRoom.currentQuizIndex) {
+                    console.log('5秒経過しましたが、次の問題に移動していません。ページをリロードします。');
+                    // ページをリロードする（静かに）
+                    window.location.reload();
+                  }
+                }
               }, 5000);
             }
           } catch (roomUpdateErr: any) {
@@ -780,13 +811,13 @@ export function useLeader(roomId: string) {
               console.error('権限エラー: ルーム状態の更新が拒否されました');
               
               // 緊急回復策: 自分がリーダーなら強制的に次の問題に進む
-              if (isLeader) {
+              if (isLeader && isCorrect) {
                 console.log('緊急回復策を実行します: 5秒後に次の問題に進みます');
                 setTimeout(() => {
                   moveToNextQuestion();
                 }, 5000);
               } else {
-                console.log('リーダーではないため、次の問題に進むことはできません');
+                console.log('リーダーではないか不正解のため、次の問題に進むことはできません');
               }
             }
           }
