@@ -145,12 +145,14 @@ export default function QuizPage() {
       // 待機中のルームを探すか、なければ作成
       const result = await findOrCreateRoomWithUnit(genre, unitId, selectedClassType);
       
-      // confirmRoomSwitchがtrueの場合は確認ダイアログが表示されているので処理を終了
+      // confirmRoomSwitchがtrueなら確認ダイアログが表示されているので処理を終了
       if (confirmRoomSwitch) {
+        console.log('ルーム切り替え確認ダイアログが表示されています');
         setLoading(false);
         return;
       }
       
+      // 結果がnullの場合（処理失敗）
       if (!result) {
         throw new Error('ルームの作成または参加に失敗しました');
       }
@@ -235,9 +237,19 @@ export default function QuizPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-xl">
             <h2 className="text-xl font-bold text-gray-800 mb-4">待機中のルームから退出しますか？</h2>
-            <p className="text-gray-600 mb-6">
+            <p className="text-gray-600 mb-4">
               あなたは既に別の待機中ルームに参加しています。新しいルームに参加すると、現在の待機中ルームからは退出します。
             </p>
+            
+            {currentWaitingRoomId && (
+              <div className="p-3 mb-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <p className="text-sm font-medium">現在参加中のルーム:</p>
+                <p className="text-gray-700">
+                  {waitingRooms.find(r => r.roomId === currentWaitingRoomId)?.name || 'ルーム情報を取得中...'}
+                </p>
+              </div>
+            )}
+            
             <div className="flex space-x-4">
               <button
                 onClick={cancelJoinNewRoom}

@@ -434,10 +434,12 @@ export function useQuizRoom() {
           // 待機中のルームに参加している場合は確認
           if (currentRoomData.status === 'waiting' && !force) {
             // 確認が必要な場合は状態を保存して確認プロセスを開始
+            console.log(`既に待機中のルーム(${currentRoomId})に参加しています。確認が必要です。`);
             setCurrentWaitingRoomId(currentRoomId);
             setRoomToJoin(roomId);
             setConfirmRoomSwitch(true);
             setLoading(false);
+            setError(null); // 以前のエラーをクリア
             return false;
           }
           
@@ -642,16 +644,26 @@ export function useQuizRoom() {
         
         // 既存のルームに参加
         const joined = await joinRoom(roomId);
+        
+        // 確認ダイアログが表示された場合
+        if (!joined && confirmRoomSwitch) {
+          // 確認ダイアログが表示された場合は、nullを返してplayWithUnit関数で処理を中断
+          console.log('確認ダイアログが表示されました。処理を一時停止します');
+          return null;
+        }
+        
+        // 成功した場合
         if (joined) {
           router.push(`/quiz/room?id=${roomId}`);
           return {
             ...roomData,
             roomId
           } as QuizRoom;
-        } else if (confirmRoomSwitch) {
-          // 確認ダイアログが表示された場合は、nullを返してplayWithUnit関数で処理を中断
-          return null;
-        } else {
+        }
+        
+        // 上記以外のエラーの場合
+        if (!joined) {
+          console.error('ルームへの参加処理が失敗しました');
           throw new Error('ルームへの参加に失敗しました');
         }
       }
