@@ -56,8 +56,9 @@ export default function QuizPage() {
     setSelectedGenre(genre);
     
     // 選択されたジャンルの単元がまだロードされていなければロード
-    if (!units[genre]) {
-      fetchUnitsForGenre(genre);
+    // クラスタイプを考慮したキーを使用
+    if (!units[`${genre}_${selectedClassType}`]) {
+      fetchUnitsForGenre(genre, selectedClassType);
     }
   };
 
@@ -71,6 +72,16 @@ export default function QuizPage() {
       handleGenreChange(genres[0]);
     }
   }, [fetchGenres, genres, selectedGenre, handleGenreChange]);
+
+  // クラスタイプが変更されたときに単元データを再取得
+  useEffect(() => {
+    if (selectedGenre) {
+      // 選択されたクラスタイプの単元データを取得
+      if (!units[`${selectedGenre}_${selectedClassType}`]) {
+        fetchUnitsForGenre(selectedGenre, selectedClassType);
+      }
+    }
+  }, [selectedClassType, selectedGenre, fetchUnitsForGenre, units]);
 
   // 選択されたジャンルが変更されたときに待機中のルームを取得
   useEffect(() => {
@@ -163,8 +174,8 @@ export default function QuizPage() {
       setLoading(true);
       
       try {
-        // 単元名からUnitIDを取得
-        const unitId = await getUnitIdByName(genre, unit);
+        // 単元名からUnitIDを取得（選択中のクラスタイプを渡す）
+        const unitId = await getUnitIdByName(genre, unit, selectedClassType);
         
         if (!unitId) {
           throw new Error(`単元「${unit}」のIDの取得に失敗しました。管理者に連絡してください。`);
@@ -517,11 +528,12 @@ export default function QuizPage() {
                       <span className="ml-2">{selectedGenre}</span>
                     </h3>
                     
-                    {Object.entries(units[selectedGenre] || {}).map(([category, unitList]) => (
+                    {/* クラスタイプを考慮したキーフォーマットを使用 */}
+                    {Object.entries(units[`${selectedGenre}_${selectedClassType}`] || {}).map(([category, unitList]) => (
                       <div key={category} className="mb-6">
                         <h4 className="font-medium text-gray-700 mb-2">{category}</h4>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                          {Array.isArray(unitList) ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">{
+                            Array.isArray(unitList) ? (
                             // 配列の場合（期待される形式）
                             unitList.map((unit: string) => {
                               const waitingRoomCount = getWaitingRoomCountForUnit(unit);

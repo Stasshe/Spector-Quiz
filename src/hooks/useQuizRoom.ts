@@ -701,13 +701,17 @@ export function useQuizRoom() {
   }, [currentUser, userProfile, createRoomWithUnit, joinRoom, router]);
 
   // 単元名から単元IDを取得するヘルパー関数
-  const getUnitIdByName = useCallback(async (genre: string, unitName: string, category?: string) => {
+  const getUnitIdByName = useCallback(async (genre: string, unitName: string, classType: string = '公式') => {
     try {
-      // ジャンル内の単元コレクションへの参照
-      const unitsCollectionRef = collection(db, 'genres', genre, 'quiz_units');
+      const isOfficial = classType === '公式';
+      
+      // ジャンル内の単元コレクションへの参照（クラスタイプに応じたパス）
+      const collectionPath = isOfficial 
+        ? collection(db, 'genres', genre, 'official_quiz_units') 
+        : collection(db, 'genres', genre, 'quiz_units');
       
       // 単元名で絞り込むクエリ
-      const unitQuery = query(unitsCollectionRef, where('title', '==', unitName));
+      const unitQuery = query(collectionPath, where('title', '==', unitName));
       const unitSnapshot = await getDocs(unitQuery);
       
       if (unitSnapshot.empty) {

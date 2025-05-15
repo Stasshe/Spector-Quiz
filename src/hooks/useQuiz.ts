@@ -13,47 +13,92 @@ export function useQuizHook() {
   const [genres, setGenres] = useState<string[]>([]);
   const [units, setUnits] = useState<{ [genre: string]: { [category: string]: string[] } }>({});
 
-  // 特定のジャンルの単元を取得
-  const fetchUnitsForGenre = useCallback(async (genreId: string) => {
+  // 特定のジャンルの単元を取得（クラスタイプ別）
+  const fetchUnitsForGenre = useCallback(async (genreId: string, classType: string = '公式') => {
     try {
       setLoading(true);
+      const isUserCreated = classType === 'ユーザー作成';
       
-      // 指定されたジャンルの単元を取得
-      const unitsRef = collection(db, 'genres', genreId, 'quiz_units');
-      const unitsSnap = await getDocs(unitsRef);
-      
-      // カテゴリごとの単元を整理
-      const categoryMap: { [category: string]: string[] } = {};
-      
-      unitsSnap.forEach(unitDoc => {
-        const unitData = unitDoc.data();
+      if (isUserCreated) {
+        // ユーザー作成の場合: Firestoreからユーザー作成単元をフラットなリストで表示
+        const unitsRef = collection(db, 'genres', genreId, 'quiz_units');
+        // ユーザー作成の単元を取得（インデックスなし）
+        const unitsSnap = await getDocs(unitsRef);
         
-        if (unitData.title && unitData.category) {
-          if (!categoryMap[unitData.category]) {
-            categoryMap[unitData.category] = [];
+        // ユーザー作成単元はカテゴリなしでフラットに表示
+        // ゆえに、一つのカテゴリに全単元を入れる
+        const unitList: string[] = [];
+        
+        unitsSnap.forEach(unitDoc => {
+          const unitData = unitDoc.data();
+          if (unitData.title) {
+            unitList.push(unitData.title);
           }
-          categoryMap[unitData.category].push(unitData.title);
-        } else if (unitData.title) {
-          // カテゴリが未設定の場合はデフォルトカテゴリを使用
-          if (!categoryMap['その他']) {
-            categoryMap['その他'] = [];
-          }
-          categoryMap['その他'].push(unitData.title);
+        });
+        
+        // カテゴリマップを作成（カテゴリは「単元」のみで全てフラット）
+        const categoryMap: { [category: string]: string[] } = {
+          '単元': unitList
+        };
+        
+        // 単元が一つもない場合
+        if (unitList.length === 0) {
+          categoryMap['単元'] = [];
         }
-      });
-      
-      // カテゴリがない場合はデフォルト構造を使用
-      if (Object.keys(categoryMap).length === 0) {
-        categoryMap['単元'] = [];
+        
+        // クラスタイプごとに分けて保存
+        setUnits(prevUnits => ({
+          ...prevUnits,
+          [`${genreId}_${classType}`]: categoryMap
+        }));
+        
+        return categoryMap;
+      } else {
+        // 公式の場合: genres.tsを参照して、定義済みの構造を使用
+        try {
+          // genres.tsからデータを取得（公式クイズは常にgenres.tsから取得）
+          const { genreClasses } = await import('@/constants/genres');
+          
+          // 該当するジャンルのデータを検索
+          const genreInfo = genreClasses
+            .find(gc => gc.name === 'すべて')?.genres
+            .find(g => g.name === genreId);
+          
+          if (genreInfo && genreInfo.units) {
+            // ユーザー作成カテゴリは除外
+            const filteredUnits = { ...genreInfo.units };
+            if (filteredUnits['ユーザー作成']) {
+              delete filteredUnits['ユーザー作成'];
+            }
+            
+            // クラスタイプごとに分けて保存
+            setUnits(prevUnits => ({
+              ...prevUnits,
+              [`${genreId}_${classType}`]: filteredUnits
+            }));
+            
+            return filteredUnits;
+          } else {
+            // genres.tsに該当ジャンルが見つからない場合は空のマップを返す
+            const emptyMap = { '単元': [] };
+            setUnits(prevUnits => ({
+              ...prevUnits,
+              [`${genreId}_${classType}`]: emptyMap
+            }));
+            return emptyMap;
+          }
+        } catch (importErr) {
+          console.error('Error importing genres.ts:', importErr);
+          const emptyMap = { '単元': [] };
+          setUnits(prevUnits => ({
+            ...prevUnits,
+            [`${genreId}_${classType}`]: emptyMap
+          }));
+          return emptyMap;
+        }
       }
       
-      // ジャンルごとの単元マップを更新
-      setUnits(prevUnits => ({
-        ...prevUnits,
-        [genreId]: categoryMap
-      }));
-      
-      return categoryMap;
+      return {};
     } catch (err) {
       console.error(`Error fetching units for genre ${genreId}:`, err);
       setError('単元一覧の取得中にエラーが発生しました');
@@ -64,7 +109,7 @@ export function useQuizHook() {
   }, []);
 
   // 利用可能なジャンル一覧を取得（単元は必要になったときだけ取得）
-  const fetchGenres = useCallback(async () => {
+  const fetchGenres = useCallback(async (defaultClassType: string = '公式') => {
     try {
       setLoading(true);
       
@@ -81,9 +126,9 @@ export function useQuizHook() {
       
       setGenres(genreArray);
       
-      // 最初のジャンルの単元を取得
-      if (genreArray.length > 0 && !units[genreArray[0]]) {
-        fetchUnitsForGenre(genreArray[0]);
+      // 最初のジャンルの単元を取得（デフォルトクラスタイプで）
+      if (genreArray.length > 0 && !units[`${genreArray[0]}_${defaultClassType}`]) {
+        fetchUnitsForGenre(genreArray[0], defaultClassType);
       }
     } catch (err) {
       console.error('Error fetching genres:', err);
