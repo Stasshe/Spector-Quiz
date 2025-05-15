@@ -59,7 +59,13 @@ service cloud.firestore {
       allow read;
       allow create: if request.auth != null;
       allow update: if request.auth != null;
-      allow delete: if request.auth.uid == resource.data.roomLeaderId;
+      allow delete: if 
+        // ルームリーダーは常に削除可能
+        request.auth.uid == resource.data.roomLeaderId ||
+        // 8分(480秒)以上経過した待機中ルームは誰でも削除可能
+        (resource.data.status == 'waiting' && 
+         resource.data.startedAt != null && 
+         request.time.toMillis() - resource.data.startedAt.toMillis() >= 480000);
       
       // 参加者
       match /participants/{userId} {

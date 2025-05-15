@@ -18,12 +18,16 @@ import {
   onSnapshot, 
   serverTimestamp,
   increment,
-  runTransaction
+  runTransaction,
+  Timestamp
 } from 'firebase/firestore';
 import { useAuth } from '@/context/AuthContext';
 import { QuizRoom, RoomListing, RoomStatus } from '@/types/room';
 import { useQuiz } from '@/context/QuizContext';
 import { genreClasses } from '@/constants/genres';
+
+// 8分（ミリ秒）- WaitingRoomFloating.tsxと同期を保つ
+const AUTO_DISBAND_TIME_MS = 8 * 60 * 1000;
 
 export function useQuizRoom() {
   const { currentUser, userProfile } = useAuth();
@@ -48,11 +52,15 @@ export function useQuizRoom() {
   const fetchAvailableRooms = useCallback(async (genre: string, classType: string) => {
     try {
       setLoading(true);
+      
+      // 古いルームを自動解散チェック
+      await checkAndDisbandOldRooms();
+      
       const roomsQuery = query(
         collection(db, 'quiz_rooms'),
         where('status', '==', 'waiting'),
         where('genre', '==', genre),
-        orderBy('createdAt', 'desc')
+        orderBy('startedAt', 'desc')
       );
       
       const roomsSnapshot = await getDocs(roomsQuery);
@@ -906,6 +914,105 @@ export function useQuizRoom() {
     return room;
   };
 
+  // 8分以上経過した待機ルームを確認・解散する
+  const checkAndDisbandOldRooms = useCallback(async () => {
+    try {
+      // waitingステータスのルームのみを取得
+      const roomsQuery = query(
+        collection(db, 'quiz_rooms'),
+        where('status', '==', 'waiting')
+      );
+      
+      const roomsSnapshot = await getDocs(roomsQuery);
+      
+      if (roomsSnapshot.empty) {
+        console.log('待機中のルームはありません');
+        return;
+      }
+      
+      console.log(`${roomsSnapshot.size}個の待機中ルームをチェックします`);
+      const currentTime = new Date();
+      
+      for (const roomDoc of roomsSnapshot.docs) {
+        try {
+          const roomData = roomDoc.data();
+          
+          // 開始時間が設定されていない場合はスキップ
+          if (!roomData.startedAt) {
+            console.warn(`ルーム ${roomDoc.id} の開始時間が設定されていません`);
+            continue;
+          }
+          
+          const startTime = roomData.startedAt.toDate();
+          const elapsedMs = currentTime.getTime() - startTime.getTime();
+          
+          // 8分以上経過している場合、自動解散
+          if (elapsedMs >= AUTO_DISBAND_TIME_MS) {
+            console.log(`ルーム ${roomDoc.id} (${roomData.name}) は${Math.floor(AUTO_DISBAND_TIME_MS / 60000)}分以上経過したため自動解散します`);
+            
+            try {
+              // エラーハンドリングを追加：すでに削除されている可能性があるので、再度存在確認
+              const freshRoomRef = doc(db, 'quiz_rooms', roomDoc.id);
+              const freshRoomSnap = await getDoc(freshRoomRef);
+              
+              if (!freshRoomSnap.exists()) {
+                console.log(`ルーム ${roomDoc.id} はすでに削除されています。スキップします。`);
+                continue;
+              }
+              
+              // リーダーかどうかチェック
+              const isLeaderOfRoom = roomData.roomLeaderId === (currentUser?.uid || '');
+              
+              // ルームを削除（権限エラーが発生する可能性がある）
+              try {
+                await deleteDoc(freshRoomRef);
+                console.log(`ルーム ${roomDoc.id} の自動解散が完了しました`);
+              } catch (deleteErr: any) {
+                // 権限エラーの場合、代替手段を試行
+                if (deleteErr?.code === 'permission-denied') {
+                  console.warn(`ルーム ${roomDoc.id} の削除権限がありません。代替手段を試行します。`);
+                  
+                  // 代替手段1: リーダーの場合は新しい状態でルームを強制的に更新
+                  if (isLeaderOfRoom) {
+                    try {
+                      await updateDoc(freshRoomRef, {
+                        status: 'completed',
+                        updatedAt: serverTimestamp(),
+                        // 他の必要なデータを更新
+                        automaticallyClosed: true,
+                        closeReason: '8分以上の未活動'
+                      });
+                      console.log(`ルーム ${roomDoc.id} を完了状態に更新しました`);
+                    } catch (updateErr) {
+                      console.error(`ルーム ${roomDoc.id} の更新中にエラーが発生しました:`, updateErr);
+                    }
+                  } else {
+                    console.log(`ルーム ${roomDoc.id} はあなたが作成したルームではないため、削除できません。`);
+                  }
+                } else {
+                  // その他のエラー
+                  console.error(`ルーム ${roomDoc.id} の削除中に不明なエラーが発生しました:`, deleteErr);
+                }
+              }
+              
+              // 自分が参加中で、かつ現在表示されているルームなら、状態を更新
+              if (currentWaitingRoomId === roomDoc.id) {
+                setCurrentWaitingRoomId(null);
+                setWaitingRoom(null);
+              }
+            } catch (roomErr) {
+              console.error(`ルーム ${roomDoc.id} の処理中にエラーが発生しました:`, roomErr);
+            }
+          }
+        } catch (roomErr) {
+          console.error(`ルーム ${roomDoc.id} の処理中にエラーが発生しました:`, roomErr);
+        }
+      }
+    } catch (err) {
+      console.error('待機ルームのチェック中にエラーが発生しました:', err);
+    }
+  }, [currentUser, currentWaitingRoomId, setWaitingRoom]);
+
   return {
     availableRooms,
     currentRoom,
@@ -922,6 +1029,7 @@ export function useQuizRoom() {
     getUnitIdByName,
     createUnitIfNotExists,
     updateUserStatsOnRoomComplete, // 新しい関数をエクスポート
+    checkAndDisbandOldRooms, // 新しい関数をエクスポート
     // 確認関連の状態と関数
     confirmRoomSwitch,
     currentWaitingRoomId,

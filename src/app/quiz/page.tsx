@@ -299,7 +299,7 @@ export default function QuizPage() {
           
           <div className="flex gap-2">
             <Link
-              href={`/profile/user?id=${userProfile.userId}`}
+              href={`/profile/user?id=${currentUser.uid}`}
               className="btn-outline flex items-center"
             >
               プロフィール <FaChevronRight className="ml-2" />

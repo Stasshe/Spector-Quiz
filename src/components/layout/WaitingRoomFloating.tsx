@@ -1,13 +1,15 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { FaUserFriends, FaTimes, FaSignOutAlt, FaPlay } from 'react-icons/fa';
+import { FaUserFriends, FaTimes, FaSignOutAlt, FaPlay, FaClock } from 'react-icons/fa';
 import { useQuiz } from '@/context/QuizContext';
 import { useRouter } from 'next/navigation';
 import { db } from '@/config/firebase';
-import { doc, deleteDoc, updateDoc, onSnapshot } from 'firebase/firestore';
+import { doc, deleteDoc, updateDoc, onSnapshot, getDoc, collection, query, where, getDocs, Timestamp,serverTimestamp } from 'firebase/firestore';
 import { useAuth } from '@/context/AuthContext';
+
+const AUTO_DISBAND_TIME_MS = 8 * 60 * 1000; // 8分（ミリ秒）
 
 export default function WaitingRoomFloating() {
   const { 
@@ -20,6 +22,117 @@ export default function WaitingRoomFloating() {
   const { currentUser } = useAuth();
   const router = useRouter();
   const [participantCount, setParticipantCount] = useState(0);
+  const [waitTimeMs, setWaitTimeMs] = useState(0);
+  const [roomCreationTime, setRoomCreationTime] = useState<Date | null>(null);
+  const autoCheckTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // 自動解散処理を行う関数
+  const checkAndDisbandRoom = async (roomId: string) => {
+    try {
+      // 一旦ルームが存在するか確認（すでに削除済みなら何もしない）
+      const roomRef = doc(db, 'quiz_rooms', roomId);
+      const roomSnap = await getDoc(roomRef);
+      
+      if (!roomSnap.exists()) {
+        console.log(`ルーム ${roomId} はすでに存在しません。自動解散処理をスキップします。`);
+        return;
+      }
+      
+      const roomData = roomSnap.data();
+      
+      // タイムスタンプが存在する場合のみ処理を続行
+      if (!roomData.startedAt) {
+        console.warn(`ルーム ${roomId} の作成時間が見つかりません。自動解散をスキップします。`);
+        return;
+      }
+      
+      // ルーム作成時間を取得
+      const creationTime = roomData.startedAt.toDate();
+      const currentTime = new Date();
+      const elapsedMs = currentTime.getTime() - creationTime.getTime();
+      
+      console.log(`ルーム ${roomId} の経過時間: ${Math.floor(elapsedMs / 1000 / 60)}分${Math.floor((elapsedMs / 1000) % 60)}秒`);
+      
+      // 8分以上経過していたら自動解散
+      if (elapsedMs >= AUTO_DISBAND_TIME_MS) {
+        console.log(`ルーム ${roomId} は作成から${Math.floor(AUTO_DISBAND_TIME_MS / 1000 / 60)}分以上経過したため自動解散します`);
+        
+        try {
+          // 自分がリーダーかどうかチェック
+          const isLeaderOfRoom = roomData.roomLeaderId === (currentUser?.uid || '');
+          
+          // ルームを削除
+          try {
+            await deleteDoc(roomRef);
+            console.log(`ルーム ${roomId} の自動解散が完了しました`);
+          } catch (deleteErr: any) {
+            // 権限エラーの場合、代替手段を試行
+            if (deleteErr?.code === 'permission-denied') {
+              console.warn(`ルーム ${roomId} の削除権限がありません。代替手段を試行します。`);
+              
+              // 代替手段1: リーダーの場合は新しい状態でルームを強制的に更新
+              if (isLeaderOfRoom) {
+                try {
+                  await updateDoc(roomRef, {
+                    status: 'completed',
+                    updatedAt: serverTimestamp(),
+                    // 他の必要なデータを更新
+                    automaticallyClosed: true,
+                    closeReason: '8分以上の未活動'
+                  });
+                  console.log(`ルーム ${roomId} を完了状態に更新しました`);
+                } catch (updateErr) {
+                  console.error(`ルーム ${roomId} の更新中にエラーが発生しました:`, updateErr);
+                }
+              } else {
+                console.log(`ルーム ${roomId} はあなたが作成したルームではないため、削除できません。`);
+              }
+            } else {
+              // その他のエラー
+              console.error(`ルーム ${roomId} の削除中に不明なエラーが発生しました:`, deleteErr);
+            }
+          }
+          
+          // 自分が参加中だった場合、状態をクリア
+          if (waitingRoom && waitingRoom.roomId === roomId) {
+            setWaitingRoom(null);
+            setIsWaitingRoomModalOpen(false);
+            
+            // 自動解散通知
+            alert(`待機ルーム「${waitingRoom.name}」は${Math.floor(AUTO_DISBAND_TIME_MS / 1000 / 60)}分以上経過したため自動解散されました。`);
+          }
+        } catch (err) {
+          console.error('自動解散処理中にエラーが発生しました:', err);
+        }
+      }
+    } catch (err) {
+      console.error('ルーム自動解散チェック中にエラーが発生しました:', err);
+    }
+  };
+
+  // すべての待機中ルームをチェックして古いものを解散する（定期的に実行）
+  const checkAllWaitingRooms = async () => {
+    try {
+      // 'waiting' ステータスのルームのみを取得
+      const roomsRef = collection(db, 'quiz_rooms');
+      const q = query(roomsRef, where('status', '==', 'waiting'));
+      const roomsSnap = await getDocs(q);
+      
+      if (roomsSnap.empty) {
+        console.log('待機中のルームはありません');
+        return;
+      }
+      
+      console.log(`${roomsSnap.size}個の待機中ルームをチェックします`);
+      
+      // 各ルームをチェック
+      for (const roomDoc of roomsSnap.docs) {
+        await checkAndDisbandRoom(roomDoc.id);
+      }
+    } catch (err) {
+      console.error('待機中ルームの確認中にエラーが発生しました:', err);
+    }
+  };
 
   // 参加者数をリアルタイムで監視
   useEffect(() => {
@@ -32,6 +145,18 @@ export default function WaitingRoomFloating() {
         const data = snapshot.data();
         // データ変換のデバッグ出力を追加
         console.log('WaitingRoom participants data:', data.participants);
+        
+        // ルーム作成時間を更新
+        if (data.startedAt) {
+          const creationTime = data.startedAt.toDate();
+          setRoomCreationTime(creationTime);
+          
+          // 経過時間の計算
+          const currentTime = new Date();
+          const elapsedMs = currentTime.getTime() - creationTime.getTime();
+          setWaitTimeMs(elapsedMs);
+        }
+        
         // 参加者が存在するか確実に確認
         if (data.participants && typeof data.participants === 'object') {
           setParticipantCount(Object.keys(data.participants).length);
@@ -42,11 +167,48 @@ export default function WaitingRoomFloating() {
       } else {
         // ルームが削除された場合
         setParticipantCount(0);
+        setWaitingRoom(null);
       }
     });
     
     return () => unsubscribe();
-  }, [waitingRoom]);
+  }, [waitingRoom, setWaitingRoom]);
+
+  // 経過時間の定期的な更新
+  useEffect(() => {
+    if (!roomCreationTime || !waitingRoom) return;
+    
+    // 1秒ごとに経過時間を更新
+    const timerInterval = setInterval(() => {
+      const currentTime = new Date();
+      const elapsedMs = currentTime.getTime() - roomCreationTime.getTime();
+      setWaitTimeMs(elapsedMs);
+      
+      // 8分以上経過した場合、現在のルームをチェック
+      if (elapsedMs >= AUTO_DISBAND_TIME_MS) {
+        checkAndDisbandRoom(waitingRoom.roomId);
+      }
+    }, 1000);
+    
+    return () => clearInterval(timerInterval);
+  }, [roomCreationTime, waitingRoom]);
+
+  // 定期的に全ての待機ルームをチェック（バックグラウンド）
+  useEffect(() => {
+    // 3分ごとに全待機ルームをチェック
+    autoCheckTimerRef.current = setInterval(() => {
+      checkAllWaitingRooms();
+    }, 3 * 60 * 1000);
+    
+    // 初回は即時実行
+    checkAllWaitingRooms();
+    
+    return () => {
+      if (autoCheckTimerRef.current) {
+        clearInterval(autoCheckTimerRef.current);
+      }
+    };
+  }, []);
 
   // 待機ルームを退出
   const leaveRoom = async () => {
@@ -137,11 +299,23 @@ export default function WaitingRoomFloating() {
                   <p className="text-gray-700">{waitingRoom.genre}</p>
                 </div>
                 
-                <div className="bg-indigo-50 rounded p-4">
+                <div className="bg-indigo-50 rounded p-4 mb-3">
                   <p className="font-medium text-indigo-800 mb-1">参加者数:</p>
                   <p className="text-gray-700 flex items-center">
                     <FaUserFriends className="mr-2 text-indigo-600" />
                     <span>{participantCount > 0 ? `${participantCount}人が待機中` : '参加者情報を読み込み中...'}</span>
+                  </p>
+                </div>
+                
+                <div className="bg-indigo-50 rounded p-4">
+                  <p className="font-medium text-indigo-800 mb-1">待機時間:</p>
+                  <p className={`text-gray-700 flex items-center ${waitTimeMs > AUTO_DISBAND_TIME_MS * 0.75 ? 'text-red-600 font-medium' : ''}`}>
+                    <FaClock className="mr-2 text-indigo-600" />
+                    <span>
+                      {Math.floor(waitTimeMs / 1000 / 60)}分{Math.floor((waitTimeMs / 1000) % 60)}秒
+                      {waitTimeMs > AUTO_DISBAND_TIME_MS * 0.75 && 
+                        ` (あと${Math.max(0, Math.ceil((AUTO_DISBAND_TIME_MS - waitTimeMs) / 1000 / 60))}分で自動解散)`}
+                    </span>
                   </p>
                 </div>
               </div>
