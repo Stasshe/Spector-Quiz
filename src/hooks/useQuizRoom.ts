@@ -169,15 +169,56 @@ export function useQuizRoom() {
           
           // 待機中のルームに参加している場合は退出
           if (currentRoomData.status === 'waiting') {
-            if (currentRoomData.roomLeaderId === currentUser.uid) {
-              // リーダーの場合はルームを削除
-              await deleteDoc(currentRoomRef);
-            } else {
-              // 参加者の場合は参加者リストから削除
-              await updateDoc(currentRoomRef, {
-                [`participants.${currentUser.uid}`]: deleteField(),
-                updatedAt: serverTimestamp()
-              });
+            try {
+              if (currentRoomData.roomLeaderId === currentUser.uid) {
+                // リーダーの場合はルームを削除
+                try {
+                  await deleteDoc(currentRoomRef);
+                  console.log(`以前のルーム(${currentRoomId})を削除しました`);
+                } catch (deleteErr: any) {
+                  // 削除に失敗した場合、ステータスを変更する
+                  if (deleteErr?.code === 'permission-denied') {
+                    console.warn(`ルーム ${currentRoomId} の削除権限がありません。状態を更新します。`);
+                    try {
+                      await updateDoc(currentRoomRef, {
+                        status: 'completed',
+                        updatedAt: serverTimestamp(),
+                        automaticallyClosed: true,
+                        closeReason: 'ユーザーが新しいルームを作成'
+                      });
+                      console.log(`ルーム ${currentRoomId} を完了状態に更新しました`);
+                    } catch (updateErr) {
+                      console.error(`ルーム ${currentRoomId} の更新中にエラー:`, updateErr);
+                    }
+                  } else {
+                    console.error(`ルーム ${currentRoomId} の削除中にエラー:`, deleteErr);
+                  }
+                }
+              } else {
+                // 参加者の場合は参加者リストから削除
+                try {
+                  await updateDoc(currentRoomRef, {
+                    [`participants.${currentUser.uid}`]: deleteField(),
+                    updatedAt: serverTimestamp()
+                  });
+                  console.log(`以前のルーム(${currentRoomId})から退出しました`);
+                } catch (err) {
+                  console.error(`ルーム ${currentRoomId} からの退出中にエラー:`, err);
+                }
+              }
+              
+              // ユーザーの現在のルーム情報をクリア（トランザクションの前に行う）
+              try {
+                await updateDoc(userRef, {
+                  currentRoomId: null
+                });
+                console.log(`ユーザー ${currentUser.uid} のルーム情報をクリアしました`);
+              } catch (err) {
+                console.error(`ユーザー ${currentUser.uid} のルーム情報更新エラー:`, err);
+              }
+            } catch (err) {
+              console.error(`以前のルーム(${currentRoomId})からの退出中にエラー:`, err);
+              // エラーが発生しても続行する
             }
           }
         }
@@ -237,13 +278,20 @@ export function useQuizRoom() {
         }
       };
       
+      // まずルームを作成
       const roomRef = await addDoc(collection(db, 'quiz_rooms'), newRoom);
       const roomId = roomRef.id;
+      console.log(`新しいルーム(${roomId})を作成しました`);
       
-      // ユーザーの現在のルーム情報を更新
-      await updateDoc(doc(db, 'users', currentUser.uid), {
-        currentRoomId: roomId
-      });
+      try {
+        // ユーザーの現在のルーム情報を更新
+        await updateDoc(doc(db, 'users', currentUser.uid), {
+          currentRoomId: roomId
+        });
+      } catch (updateErr) {
+        console.error('ユーザー情報の更新中にエラー:', updateErr);
+        // エラーが発生しても続行する（ルームは作成済み）
+      }
       
       // 作成したルームを返す
       const createdRoom = {
@@ -260,7 +308,23 @@ export function useQuizRoom() {
       return createdRoom;
     } catch (err: any) {
       console.error('Error creating room:', err);
-      setError(err.message || 'ルームの作成中にエラーが発生しました');
+      // Firebaseの権限エラーを特別に処理
+      if (err.code === 'permission-denied') {
+        setError('権限エラーが発生しました。以前のルームからの退出処理に問題がある可能性があります。ページをリロードして再試行してください。');
+        
+        // ユーザーの現在のルーム情報をクリアする試み
+        if (currentUser) {
+          try {
+            const userRef = doc(db, 'users', currentUser.uid);
+            await updateDoc(userRef, { currentRoomId: null });
+            console.log('ユーザーのルーム情報をリセットしました');
+          } catch (clearErr) {
+            console.error('ユーザーのルーム情報リセット中にエラー:', clearErr);
+          }
+        }
+      } else {
+        setError(err.message || 'ルームの作成中にエラーが発生しました');
+      }
       return null;
     } finally {
       setLoading(false);
@@ -298,15 +362,56 @@ export function useQuizRoom() {
           
           // 待機中のルームに参加している場合は退出
           if (currentRoomData.status === 'waiting') {
-            if (currentRoomData.roomLeaderId === currentUser.uid) {
-              // リーダーの場合はルームを削除
-              await deleteDoc(currentRoomRef);
-            } else {
-              // 参加者の場合は参加者リストから削除
-              await updateDoc(currentRoomRef, {
-                [`participants.${currentUser.uid}`]: deleteField(),
-                updatedAt: serverTimestamp()
-              });
+            try {
+              if (currentRoomData.roomLeaderId === currentUser.uid) {
+                // リーダーの場合はルームを削除
+                try {
+                  await deleteDoc(currentRoomRef);
+                  console.log(`以前のルーム(${currentRoomId})を削除しました`);
+                } catch (deleteErr: any) {
+                  // 削除に失敗した場合、ステータスを変更する
+                  if (deleteErr?.code === 'permission-denied') {
+                    console.warn(`ルーム ${currentRoomId} の削除権限がありません。状態を更新します。`);
+                    try {
+                      await updateDoc(currentRoomRef, {
+                        status: 'completed',
+                        updatedAt: serverTimestamp(),
+                        automaticallyClosed: true,
+                        closeReason: 'ユーザーが新しいルームを作成'
+                      });
+                      console.log(`ルーム ${currentRoomId} を完了状態に更新しました`);
+                    } catch (updateErr) {
+                      console.error(`ルーム ${currentRoomId} の更新中にエラー:`, updateErr);
+                    }
+                  } else {
+                    console.error(`ルーム ${currentRoomId} の削除中にエラー:`, deleteErr);
+                  }
+                }
+              } else {
+                // 参加者の場合は参加者リストから削除
+                try {
+                  await updateDoc(currentRoomRef, {
+                    [`participants.${currentUser.uid}`]: deleteField(),
+                    updatedAt: serverTimestamp()
+                  });
+                  console.log(`以前のルーム(${currentRoomId})から退出しました`);
+                } catch (err) {
+                  console.error(`ルーム ${currentRoomId} からの退出中にエラー:`, err);
+                }
+              }
+              
+              // ユーザーの現在のルーム情報をクリア（トランザクションの前に行う）
+              try {
+                await updateDoc(userRef, {
+                  currentRoomId: null
+                });
+                console.log(`ユーザー ${currentUser.uid} のルーム情報をクリアしました`);
+              } catch (err) {
+                console.error(`ユーザー ${currentUser.uid} のルーム情報更新エラー:`, err);
+              }
+            } catch (err) {
+              console.error(`以前のルーム(${currentRoomId})からの退出中にエラー:`, err);
+              // エラーが発生しても続行する
             }
           }
         }
@@ -377,18 +482,25 @@ export function useQuizRoom() {
         }
       };
       
+      // まずルームを作成
       const roomRef = await addDoc(collection(db, 'quiz_rooms'), newRoom);
       const roomId = roomRef.id;
+      console.log(`新しいルーム(${roomId})を作成しました`);
       
-      // ユーザーの現在のルーム情報を更新
-      await updateDoc(doc(db, 'users', currentUser.uid), {
-        currentRoomId: roomId
-      });
-      
-      // 単元の使用回数を増やす
-      await updateDoc(unitRef, {
-        useCount: (unitData.useCount || 0) + 1
-      });
+      try {
+        // ユーザーの現在のルーム情報を更新
+        await updateDoc(doc(db, 'users', currentUser.uid), {
+          currentRoomId: roomId
+        });
+        
+        // 単元の使用回数を増やす
+        await updateDoc(unitRef, {
+          useCount: (unitData.useCount || 0) + 1
+        });
+      } catch (updateErr) {
+        console.error('ユーザー情報または単元使用回数の更新中にエラー:', updateErr);
+        // エラーが発生しても続行する（ルームは作成済み）
+      }
       
       // 作成したルームを返す
       const createdRoom = {
@@ -408,7 +520,23 @@ export function useQuizRoom() {
       return createdRoom;
     } catch (err: any) {
       console.error('Error creating room with unit:', err);
-      setError(err.message || 'ルームの作成中にエラーが発生しました');
+      // Firebaseの権限エラーを特別に処理
+      if (err.code === 'permission-denied') {
+        setError('権限エラーが発生しました。以前のルームからの退出処理に問題がある可能性があります。ページをリロードして再試行してください。');
+        
+        // ユーザーの現在のルーム情報をクリアする試み
+        if (currentUser) {
+          try {
+            const userRef = doc(db, 'users', currentUser.uid);
+            await updateDoc(userRef, { currentRoomId: null });
+            console.log('ユーザーのルーム情報をリセットしました');
+          } catch (clearErr) {
+            console.error('ユーザーのルーム情報リセット中にエラー:', clearErr);
+          }
+        }
+      } else {
+        setError(err.message || 'ルームの作成中にエラーが発生しました');
+      }
       return null;
     } finally {
       setLoading(false);
@@ -466,21 +594,63 @@ export function useQuizRoom() {
           
           // 確認済みまたは自動退出の場合
           if (force || currentRoomData.status === 'waiting') {
-            // 古いルームから退出
-            if (currentRoomData.roomLeaderId === currentUser.uid) {
-              // リーダーの場合はルームを削除
-              await deleteDoc(currentRoomRef);
-            } else {
-              // 参加者の場合は参加者リストから削除
-              await updateDoc(currentRoomRef, {
-                [`participants.${currentUser.uid}`]: deleteField(),
-                updatedAt: serverTimestamp()
-              });
+            // 古いルームから退出する処理
+            try {
+              if (currentRoomData.roomLeaderId === currentUser.uid) {
+                // リーダーの場合はルームを削除
+                try {
+                  await deleteDoc(currentRoomRef);
+                  console.log(`以前のルーム(${currentRoomId})を削除しました`);
+                } catch (deleteErr: any) {
+                  // 削除に失敗した場合、ステータスを変更する代替手段
+                  if (deleteErr?.code === 'permission-denied') {
+                    console.warn(`ルーム ${currentRoomId} の削除権限がありません。状態を更新します。`);
+                    try {
+                      await updateDoc(currentRoomRef, {
+                        status: 'completed',
+                        updatedAt: serverTimestamp(),
+                        automaticallyClosed: true,
+                        closeReason: 'ユーザーが他のルームに参加'
+                      });
+                      console.log(`ルーム ${currentRoomId} を完了状態に更新しました`);
+                    } catch (updateErr) {
+                      console.error(`ルーム ${currentRoomId} の更新中にエラー:`, updateErr);
+                    }
+                  } else {
+                    console.error(`ルーム ${currentRoomId} の削除中にエラー:`, deleteErr);
+                  }
+                }
+              } else {
+                // 参加者の場合は参加者リストから削除
+                try {
+                  await updateDoc(currentRoomRef, {
+                    [`participants.${currentUser.uid}`]: deleteField(),
+                    updatedAt: serverTimestamp()
+                  });
+                  console.log(`以前のルーム(${currentRoomId})から退出しました`);
+                } catch (err) {
+                  console.error(`ルーム ${currentRoomId} からの退出中にエラー:`, err);
+                }
+              }
+              
+              // ユーザーの現在のルーム情報をクリア（トランザクションの前に行う）
+              try {
+                await updateDoc(userRef, {
+                  currentRoomId: null
+                });
+                console.log(`ユーザー ${currentUser.uid} のルーム情報をクリアしました`);
+              } catch (err) {
+                console.error(`ユーザー ${currentUser.uid} のルーム情報更新エラー:`, err);
+              }
+            } catch (err) {
+              console.error(`以前のルーム(${currentRoomId})からの退出中にエラー:`, err);
+              // エラーが発生しても続行する
             }
           }
         }
       }
       
+      // 参加先のルームの情報を確認
       const roomRef = doc(db, 'quiz_rooms', roomId);
       const roomSnap = await getDoc(roomRef);
       
@@ -530,7 +700,23 @@ export function useQuizRoom() {
       return true;
     } catch (err: any) {
       console.error('Error joining room:', err);
-      setError(err.message || 'ルームへの参加中にエラーが発生しました');
+      // Firebaseの権限エラーを特別に処理
+      if (err.code === 'permission-denied') {
+        setError('権限エラーが発生しました。以前のルームからの退出処理に問題がある可能性があります。ページをリロードして再試行してください。');
+        
+        // ユーザーの現在のルーム情報をクリアする試み
+        if (currentUser) {
+          try {
+            const userRef = doc(db, 'users', currentUser.uid);
+            await updateDoc(userRef, { currentRoomId: null });
+            console.log('ユーザーのルーム情報をリセットしました');
+          } catch (clearErr) {
+            console.error('ユーザーのルーム情報リセット中にエラー:', clearErr);
+          }
+        }
+      } else {
+        setError(err.message || 'ルームへの参加中にエラーが発生しました');
+      }
       return false;
     } finally {
       setLoading(false);
