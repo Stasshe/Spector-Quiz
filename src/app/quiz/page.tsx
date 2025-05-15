@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
@@ -20,22 +20,52 @@ import {
   FaPlay,
   FaSearch, 
   FaFilter, 
-  FaCheck 
+  FaCheck,
+  FaSort,
+  FaUsers,
+  FaSortAmountDown,
+  FaClock
 } from 'react-icons/fa';
+import { RoomListing } from '@/types/room';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function QuizPage() {
   const { currentUser, userProfile } = useAuth();
-  const { findOrCreateRoomWithUnit, getUnitIdByName } = useQuizRoom();
+  const { findOrCreateRoomWithUnit, getUnitIdByName, fetchAvailableRooms, joinRoom } = useQuizRoom();
   const { fetchGenres, genres, units } = useQuizHook();
-  const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
-  const [selectedClassTypes, setSelectedClassTypes] = useState<string[]>(['公式', 'ユーザー作成']);
+  const [selectedGenre, setSelectedGenre] = useState<string>("");
+  const [selectedClassType, setSelectedClassType] = useState<string>("公式");
   const [loading, setLoading] = useState(false);
+  const [waitingRooms, setWaitingRooms] = useState<RoomListing[]>([]);
+  const [sortBy, setSortBy] = useState<'participants' | 'popularity' | 'newest'>('participants');
   const router = useRouter();
 
   useEffect(() => {
     // ジャンル情報を取得
     fetchGenres();
-  }, [fetchGenres]);
+
+    // ジャンルが読み込まれたら最初のジャンルを選択
+    if (genres.length > 0 && !selectedGenre) {
+      setSelectedGenre(genres[0]);
+    }
+  }, [fetchGenres, genres, selectedGenre]);
+
+  // 選択されたジャンルが変更されたときに待機中のルームを取得
+  useEffect(() => {
+    if (selectedGenre) {
+      fetchWaitingRooms();
+    }
+  }, [selectedGenre, selectedClassType]);
+
+  // 待機中のルームを取得
+  const fetchWaitingRooms = async () => {
+    if (!selectedGenre) return;
+    
+    setLoading(true);
+    const rooms = await fetchAvailableRooms(selectedGenre, selectedClassType);
+    setWaitingRooms(rooms);
+    setLoading(false);
+  };
 
   // アイコン定義
   const renderGenreIcon = (genreName: string) => {
@@ -51,33 +81,31 @@ export default function QuizPage() {
     }
   };
 
-  // ジャンル選択の切り替え
-  const toggleGenreSelection = (genre: string) => {
-    if (selectedGenres.includes(genre)) {
-      setSelectedGenres(selectedGenres.filter(g => g !== genre));
-    } else {
-      setSelectedGenres([...selectedGenres, genre]);
-    }
-  };
-
-  // クラスタイプ選択の切り替え
-  const toggleClassTypeSelection = (classType: string) => {
-    if (selectedClassTypes.includes(classType)) {
-      if (selectedClassTypes.length > 1) { // 少なくとも1つは選択されている必要がある
-        setSelectedClassTypes(selectedClassTypes.filter(t => t !== classType));
-      }
-    } else {
-      setSelectedClassTypes([...selectedClassTypes, classType]);
-    }
-  };
-
   // クイズ作成ページに移動
   const navigateToCreateQuiz = () => {
     router.push('/quiz/create-quiz');
   };
 
-  // ルームを見つけるか作成
-  const findOrJoinRoom = async (genre: string, unit: string) => {
+  // 既存のルームに参加
+  const joinExistingRoom = async (roomId: string) => {
+    try {
+      setLoading(true);
+      const joined = await joinRoom(roomId);
+      if (joined) {
+        router.push(`/quiz/room?id=${roomId}`);
+      } else {
+        throw new Error('ルームへの参加に失敗しました');
+      }
+    } catch (err) {
+      console.error('Error joining room:', err);
+      alert(`エラーが発生しました: ${err instanceof Error ? err.message : '不明なエラー'}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 単元でプレイする
+  const playWithUnit = async (genre: string, unit: string) => {
     try {
       setLoading(true);
       
@@ -89,18 +117,34 @@ export default function QuizPage() {
       }
       
       // 待機中のルームを探すか、なければ作成
-      const result = await findOrCreateRoomWithUnit(genre, unitId, selectedClassTypes[0]);
+      const result = await findOrCreateRoomWithUnit(genre, unitId, selectedClassType);
       if (!result) {
         throw new Error('ルームの作成または参加に失敗しました');
       }
     } catch (err) {
       console.error('Error finding or joining room:', err);
-      // エラーが発生した場合はアラート表示などの対応を行う
       alert(`エラーが発生しました: ${err instanceof Error ? err.message : '不明なエラー'}`);
     } finally {
       setLoading(false);
     }
   };
+
+  // ルーム一覧をソート
+  const sortedRooms = useMemo(() => {
+    if (!waitingRooms.length) return [];
+    
+    return [...waitingRooms].sort((a, b) => {
+      if (sortBy === 'participants') {
+        return b.participantCount - a.participantCount;
+      } else if (sortBy === 'popularity') {
+        // 仮で参加者数でソート（本来は人気度の指標があるはず）
+        return b.participantCount - a.participantCount;
+      } else {
+        // 最新順 - roomIdは時間的に増加するはずなので仮の実装
+        return b.roomId.localeCompare(a.roomId);
+      }
+    });
+  }, [waitingRooms, sortBy]);
 
   // ユーザーが未ログインの場合、ログインを促す
   if (!currentUser) {
@@ -190,81 +234,150 @@ export default function QuizPage() {
         </div>
       ) : (
         <div className="card">
-          {/* フィルタリングセクション */}
+          {/* ジャンル選択タブ */}
           <div className="mb-8">
-            {/* ジャンル選択 */}
             <h2 className="text-xl font-semibold mb-4">ジャンル</h2>
-            <div className="flex flex-wrap gap-3 mb-6">
+            <div className="flex overflow-x-auto space-x-2 pb-2 mb-4 border-b border-gray-200">
               {genres.map((genre) => (
                 <button
                   key={genre}
-                  onClick={() => toggleGenreSelection(genre)}
-                  className={`px-4 py-2 rounded-full border transition-all ${
-                    selectedGenres.includes(genre)
-                      ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                      : 'border-gray-200 hover:border-indigo-200 text-gray-700'
+                  onClick={() => setSelectedGenre(genre)}
+                  className={`px-6 py-2 whitespace-nowrap rounded-t-lg transition-all ${
+                    selectedGenre === genre
+                      ? 'bg-indigo-100 text-indigo-700 font-medium border-b-2 border-indigo-500'
+                      : 'text-gray-700 hover:bg-gray-50'
                   }`}
                 >
                   <div className="flex items-center">
                     {renderGenreIcon(genre)}
                     <span className="ml-2">{genre}</span>
-                    {selectedGenres.includes(genre) && (
-                      <FaCheck className="ml-2 text-indigo-500 text-sm" />
-                    )}
                   </div>
                 </button>
               ))}
               {genres.length === 0 && (
-                <p className="text-gray-500">ジャンルが読み込まれていません</p>
+                <p className="text-gray-500 p-2">ジャンルが読み込まれていません</p>
               )}
             </div>
 
             {/* クラスタイプ選択 */}
-            <h2 className="text-xl font-semibold mb-4">クラスタイプ</h2>
-            <div className="flex flex-wrap gap-3">
-              {['公式', 'ユーザー作成'].map((classType) => (
-                <button
-                  key={classType}
-                  onClick={() => toggleClassTypeSelection(classType)}
-                  className={`px-4 py-2 rounded-full border transition-all ${
-                    selectedClassTypes.includes(classType)
-                      ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                      : 'border-gray-200 hover:border-indigo-200 text-gray-700'
-                  }`}
-                >
-                  <div className="flex items-center">
-                    {classType === '公式' ? 
-                      <FaBookOpen className="text-blue-500" /> : 
-                      <FaGamepad className="text-purple-500" />
-                    }
-                    <span className="ml-2">{classType}</span>
-                    {selectedClassTypes.includes(classType) && (
-                      <FaCheck className="ml-2 text-indigo-500 text-sm" />
-                    )}
-                  </div>
-                </button>
-              ))}
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h2 className="text-xl font-semibold mb-2">クラスタイプ</h2>
+                <div className="flex space-x-3">
+                  {['公式', 'ユーザー作成'].map((classType) => (
+                    <button
+                      key={classType}
+                      onClick={() => setSelectedClassType(classType)}
+                      className={`px-4 py-2 rounded-full border transition-all ${
+                        selectedClassType === classType
+                          ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                          : 'border-gray-200 hover:border-indigo-200 text-gray-700'
+                      }`}
+                    >
+                      <div className="flex items-center">
+                        {classType === '公式' ? 
+                          <FaBookOpen className="text-blue-500" /> : 
+                          <FaGamepad className="text-purple-500" />
+                        }
+                        <span className="ml-2">{classType}</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              {/* 並べ替え */}
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-gray-600">並び替え:</span>
+                <div className="flex border rounded-lg overflow-hidden">
+                  <button
+                    onClick={() => setSortBy('participants')}
+                    className={`px-3 py-1 text-sm ${sortBy === 'participants' ? 'bg-indigo-100 text-indigo-700' : 'bg-white'}`}
+                    title="参加者数順"
+                  >
+                    <FaUsers />
+                  </button>
+                  <button
+                    onClick={() => setSortBy('popularity')}
+                    className={`px-3 py-1 text-sm ${sortBy === 'popularity' ? 'bg-indigo-100 text-indigo-700' : 'bg-white'}`}
+                    title="人気順"
+                  >
+                    <FaSortAmountDown />
+                  </button>
+                  <button
+                    onClick={() => setSortBy('newest')}
+                    className={`px-3 py-1 text-sm ${sortBy === 'newest' ? 'bg-indigo-100 text-indigo-700' : 'bg-white'}`}
+                    title="最新順"
+                  >
+                    <FaClock />
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* クイズ一覧 */}
-          <div>
-            <h2 className="text-xl font-semibold mb-4">単元一覧</h2>
-            
-            {selectedGenres.length === 0 ? (
-              <div className="text-center py-8 border border-dashed border-gray-300 rounded-md">
-                <p className="text-gray-500">上部のジャンルボタンから選択してください</p>
+          {/* 待機中のルーム一覧 */}
+          {selectedGenre && waitingRooms.length > 0 && (
+            <div className="mb-8">
+              <h2 className="text-xl font-semibold mb-4">
+                <span className="flex items-center text-indigo-600">
+                  <FaGamepad className="mr-2" /> 
+                  待機中のルーム
+                  <span className="ml-2 text-sm bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">
+                    {waitingRooms.length}個
+                  </span>
+                </span>
+              </h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {sortedRooms.map(room => (
+                  <motion.div
+                    key={room.roomId}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="border border-indigo-100 bg-indigo-50 rounded-xl p-4 hover:shadow-md transition-all"
+                  >
+                    <div className="flex justify-between items-start mb-3">
+                      <h3 className="font-medium text-indigo-800">{room.name}</h3>
+                      <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full flex items-center">
+                        <FaUsers className="mr-1" /> {room.participantCount}/8
+                      </span>
+                    </div>
+                    <div className="flex justify-end mt-2">
+                      <button
+                        onClick={() => joinExistingRoom(room.roomId)}
+                        className="w-full flex items-center justify-center p-2 rounded-lg bg-indigo-500 text-white hover:bg-indigo-600 transition-colors"
+                      >
+                        <FaPlay className="mr-2" /> 参加する
+                      </button>
+                    </div>
+                  </motion.div>
+                ))}
               </div>
-            ) : (
-              <div className="space-y-6">
-                {selectedGenres.map(genre => (
-                  <div key={genre} className="mb-8">
+            </div>
+          )}
+
+          {/* 単元一覧 */}
+          <AnimatePresence mode="wait">
+            {selectedGenre && (
+              <motion.div
+                key={selectedGenre}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <h2 className="text-xl font-semibold mb-4">単元一覧</h2>
+                
+                <div className="space-y-6">
+                  <div className="mb-8">
                     <h3 className="text-lg font-medium mb-3 flex items-center">
-                      {renderGenreIcon(genre)}
-                      <span className="ml-2">{genre}</span>
+                      {renderGenreIcon(selectedGenre)}
+                      <span className="ml-2">{selectedGenre}</span>
                     </h3>
                     
-                    {Object.entries(units[genre] || {}).map(([category, unitList]) => (
+                    {Object.entries(units[selectedGenre] || {}).map(([category, unitList]) => (
                       <div key={category} className="mb-6">
                         <h4 className="font-medium text-gray-700 mb-2">{category}</h4>
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
@@ -276,8 +389,8 @@ export default function QuizPage() {
                               <h5 className="font-medium mb-3 text-gray-800">{unit}</h5>
                               <div className="flex justify-center">
                                 <button
-                                  onClick={() => findOrJoinRoom(genre, unit)}
-                                  className="w-full flex items-center justify-center p-2 rounded-lg bg-indigo-500 text-white hover:bg-indigo-600 transition-colors duration-200"
+                                  onClick={() => playWithUnit(selectedGenre, unit)}
+                                  className="w-full flex items-center justify-center p-2 rounded-lg bg-indigo-500 text-white hover:bg-indigo-600 transition-colors"
                                 >
                                   <FaPlay className="mr-2" /> プレイする
                                 </button>
@@ -288,10 +401,10 @@ export default function QuizPage() {
                       </div>
                     ))}
                   </div>
-                ))}
-              </div>
+                </div>
+              </motion.div>
             )}
-          </div>
+          </AnimatePresence>
         </div>
       )}
     </div>
