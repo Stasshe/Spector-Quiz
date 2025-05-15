@@ -1,18 +1,40 @@
 import { Quiz } from '@/types/quiz';
 import { ParticipantInfo } from '@/types/user';
-import { FaCheck, FaTimes } from 'react-icons/fa';
+import { FaCheck, FaTimes, FaClock } from 'react-icons/fa';
 
 interface QuizResultProps {
   isCorrect: boolean;
   quiz: Quiz | null;
   answererId: string;
   participants: { [userId: string]: ParticipantInfo };
+  isTimeout?: boolean;
 }
 
-export default function QuizResult({ isCorrect, quiz, answererId, participants }: QuizResultProps) {
+export default function QuizResult({ isCorrect, quiz, answererId, participants, isTimeout = false }: QuizResultProps) {
   if (!quiz) return null;
 
   const answererName = participants[answererId]?.username || '不明なプレイヤー';
+
+  // タイムアウトの場合の表示内容を準備
+  if (isTimeout) {
+    return (
+      <div className="mt-6 p-4 rounded-md bg-orange-50 border border-orange-200">
+        <div className="flex items-start mb-4">
+          <div className="flex items-center justify-center w-10 h-10 rounded-full flex-shrink-0 mr-4 bg-orange-100 text-orange-600">
+            <FaClock size={20} />
+          </div>
+          <div>
+            <h3 className="font-bold text-lg text-orange-800">
+              時間切れ！
+            </h3>
+            <p className="text-gray-600">
+              制限時間が終了しました
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`mt-6 p-4 rounded-md ${isCorrect ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>

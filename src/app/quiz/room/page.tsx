@@ -81,6 +81,45 @@ function QuizRoomContent() {
     prevStatusRef.current = room.status;
   }, [room, currentUser, roomId, updateUserStatsOnRoomComplete, statsUpdated]);
 
+  // 問題の遷移を監視
+  useEffect(() => {
+    if (!quizRoom || !room || !currentUser) return;
+
+    // 前回のインデックスとステータスを保持
+    const lastIndex = useRef(quizRoom.currentQuizIndex);
+    const lastStatus = useRef(room.status);
+    
+    // インデックスが変わったか、ステータスが変わった場合
+    if (
+      (lastIndex.current !== quizRoom.currentQuizIndex) || 
+      (lastStatus.current !== room.status)
+    ) {
+      console.log('状態変更検出: インデックス', lastIndex.current, '->', quizRoom.currentQuizIndex);
+      console.log('ステータス:', lastStatus.current, '->', room.status);
+      
+      // 前回と今回のインデックスが違う場合（問題が進んだ場合）
+      if (lastIndex.current !== quizRoom.currentQuizIndex) {
+        console.log('問題が遷移しました。UIを更新します。');
+        // 自分が回答していない場合は自動リロード
+        if (quizRoom.currentState.currentAnswerer !== currentUser.uid) {
+          console.log('自分が回答していないため、ページをリロードします。');
+          window.location.reload();
+        }
+        // 状態を更新
+        lastIndex.current = quizRoom.currentQuizIndex;
+      }
+      
+      // ルームのステータスが変わった場合（特に完了に変わった場合）
+      if (lastStatus.current !== room.status && room.status === 'completed') {
+        console.log('クイズが終了しました。UIを更新します。');
+        window.location.reload();
+      }
+      
+      // 最後に状態を更新
+      lastStatus.current = room.status;
+    }
+  }, [quizRoom, room, currentUser]);
+
   // ルームからの退出処理
   const handleLeaveRoom = async () => {
     await leaveRoom();
@@ -99,6 +138,7 @@ function QuizRoomContent() {
   // 正解/不正解の状態
   const isCorrect = quizRoom.currentState.answerStatus === 'correct';
   const isIncorrect = quizRoom.currentState.answerStatus === 'incorrect';
+  const isTimeout = quizRoom.currentState.answerStatus === 'timeout';
   const isRevealed = quizRoom.currentState.isRevealed;
 
   return (
@@ -209,13 +249,14 @@ function QuizRoomContent() {
                   </div>
                 )}
 
-                {/* 正解/不正解の表示 */}
+                {/* 正解/不正解/タイムアウトの表示 */}
                 {isRevealed && (
                   <QuizResult
                     isCorrect={isCorrect}
                     quiz={currentQuiz}
                     answererId={quizRoom.currentState.currentAnswerer || ''}
                     participants={quizRoom.participants}
+                    isTimeout={isTimeout}
                   />
                 )}
               </div>

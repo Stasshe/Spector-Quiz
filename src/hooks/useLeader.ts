@@ -26,12 +26,16 @@ import { useQuiz } from '@/context/QuizContext';
 import { useAuth } from '@/context/AuthContext';
 import { useQuizHook } from '@/hooks/useQuiz';
 
+// 型定義
+type MoveToNextQuestionType = () => Promise<void>;
+type StartQuestionTimerType = () => void;
+type FinishQuizGameType = () => Promise<void>;
+
 export function useLeader(roomId: string) {
   const { isLeader, quizRoom, currentQuiz, setCurrentQuiz, setShowChoices } = useQuiz();
   const { currentUser } = useAuth();
   const { updateGenreStats } = useQuizHook();
 
-  // 現在の問題を取得してセット
   const fetchCurrentQuiz = useCallback(async () => {
     if (!quizRoom) {
       console.log('クイズルームが設定されていません');
@@ -106,6 +110,11 @@ export function useLeader(roomId: string) {
               'currentState.answerStatus': 'waiting',
               'currentState.isRevealed': false
             });
+            
+            // リーダーの場合、タイマーを開始
+            if (isLeader) {
+              startQuestionTimer();
+            }
           } catch (roomError: any) {
             console.error('ルーム状態の更新中にエラーが発生しました:', roomError);
             
@@ -159,25 +168,131 @@ export function useLeader(roomId: string) {
     }
   }, [quizRoom, isLeader, roomId, setCurrentQuiz, updateGenreStats, setShowChoices, currentUser]);
 
-  // クイズゲームを開始する
-  const startQuizGame = useCallback(async () => {
-    if (!isLeader || !quizRoom) return;
+  // クイズゲーム終了処理（経験値付与など）
+  const finishQuizGame = useCallback(async () => {
+    if (!isLeader || !quizRoom || !currentUser) return;
     
     try {
-      // ルームのステータスを更新
-      await updateDoc(doc(db, 'quiz_rooms', roomId), {
-        status: 'in_progress',
-        startedAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
+      // 参加者の経験値を更新
+      const batch = writeBatch(db);
+      
+      // 参加者数を確認
+      const participantCount = Object.keys(quizRoom.participants).length;
+      // 一人プレイの場合は経験値を1/10に
+      const soloMultiplier = participantCount === 1 ? 0.1 : 1;
+      
+      // 各参加者の処理
+      Object.entries(quizRoom.participants).forEach(([userId, participant]) => {
+        const userRef = doc(db, 'users', userId);
+        
+        // 獲得経験値の計算（例）
+        let expGain = participant.score + 20; // スコア + セッション完了ボーナス
+        
+        // 一人プレイの場合は1/10に
+        expGain = Math.round(expGain * soloMultiplier);
+        
+        batch.update(userRef, {
+          exp: increment(expGain),
+          'stats.totalAnswered': increment(quizRoom.totalQuizCount),
+          [`stats.genres.${quizRoom.genre}.totalAnswered`]: increment(quizRoom.totalQuizCount)
+        });
       });
       
-      // 最初の問題を取得
-      await fetchCurrentQuiz();
-    } catch (error) {
-      console.error('Error starting quiz game:', error);
+      try {
+        await batch.commit();
+        console.log('ユーザー統計情報を更新しました');
+      } catch (statsError) {
+        console.error('統計情報の更新に失敗しました:', statsError);
+        // 統計更新の失敗は無視して処理を続行
+      }
+      
+      console.log(`Quiz room ${roomId} completed - scheduling deletion in 3 seconds`);
+      
+      // 3秒後にルームを削除（結果表示時間確保）
+      setTimeout(async () => {
+        try {
+          // まず、各参加者のcurrentRoomIdをnullに設定して参照を解除
+          const participantUpdates = Object.keys(quizRoom.participants).map(async (userId) => {
+            try {
+              await updateDoc(doc(db, 'users', userId), { currentRoomId: null });
+              console.log(`User ${userId} room reference cleared`);
+            } catch (userErr) {
+              console.warn(`Failed to clear room reference for user ${userId}:`, userErr);
+              // 個別ユーザーのエラーは無視して続行
+            }
+          });
+          
+          // すべての参加者の更新を待つ
+          await Promise.allSettled(participantUpdates);
+          console.log('All participant references cleared');
+          
+          // ルーム参照を再取得
+          const roomRef = doc(db, 'quiz_rooms', roomId);
+          const roomCheck = await getDoc(roomRef);
+          
+          // ルームがすでに削除されている場合は何もしない
+          if (!roomCheck.exists()) {
+            console.log(`Room ${roomId} already deleted, skipping cleanup`);
+            return;
+          }
+          
+          try {
+            // ルーム内の回答データを削除
+            const answersRef = collection(db, 'quiz_rooms', roomId, 'answers');
+            
+            // まず回答数を確認（小さなバッチで取得）
+            const countQuery = query(answersRef, limit(50));
+            const countSnap = await getDocs(countQuery);
+            
+            if (!countSnap.empty) {
+              console.log(`Deleting answers from room ${roomId}`);
+              
+              // 一度に少数の回答だけを削除する
+              for (const doc of countSnap.docs) {
+                try {
+                  await deleteDoc(doc.ref);
+                } catch (deleteAnswerError) {
+                  console.warn(`Failed to delete answer ${doc.id}:`, deleteAnswerError);
+                  // 個別の回答削除エラーは無視
+                }
+              }
+            }
+          } catch (answersError) {
+            console.warn('Failed to cleanup answers, continuing with room deletion:', answersError);
+            // 回答のクリーンアップエラーは無視して続行
+          }
+          
+          // 最後にルーム自体を削除
+          try {
+            await deleteDoc(roomRef);
+            console.log(`Successfully deleted room ${roomId}`);
+          } catch (roomDeleteError) {
+            console.error('Error deleting room:', roomDeleteError);
+            console.log('fucking error');
+          }
+        } catch (error) {
+          console.error('Error in room cleanup process:', error);
+        }
+      }, 3000);
+    } catch (error: any) {
+      console.error('Error finishing quiz game:', error);
+      
+      // エラーが発生しても、ルームを非アクティブとしてマークしてリソースを解放する
+      if (error?.code === 'permission-denied') {
+        try {
+          await updateDoc(doc(db, 'quiz_rooms', roomId), {
+            status: 'inactive',
+            updatedAt: serverTimestamp(),
+            isDeleted: true
+          });
+          console.log(`Marked room ${roomId} as inactive due to permission error in game finish`);
+        } catch (markError) {
+          console.error('Failed to mark room as inactive after game finish error:', markError);
+        }
+      }
     }
-  }, [isLeader, quizRoom, roomId, fetchCurrentQuiz]);
-
+  }, [isLeader, quizRoom, roomId, currentUser]);
+  
   // 次の問題に進む
   const moveToNextQuestion = useCallback(async () => {
     if (!isLeader || !quizRoom) return;
@@ -210,8 +325,8 @@ export function useLeader(roomId: string) {
     } catch (error) {
       console.error('Error moving to next question:', error);
     }
-  }, [isLeader, quizRoom, roomId, fetchCurrentQuiz]);
-
+  }, [isLeader, quizRoom, roomId, fetchCurrentQuiz, finishQuizGame]);
+  
   // 問題のタイマーを開始（30秒制限）
   const startQuestionTimer = useCallback(() => {
     if (!isLeader || !quizRoom || !roomId) return;
@@ -240,19 +355,66 @@ export function useLeader(roomId: string) {
           // 時間切れであることを記録
           await updateDoc(roomRef, {
             'currentState.answerStatus': 'timeout',
-            'currentState.isRevealed': true
+            'currentState.isRevealed': true,
+            // タイムアウト時はcurrentAnswererをnullのままにする（特定の回答者なし）
+            'currentState.currentAnswerer': null
           });
           
           // 2秒後に次の問題へ
           setTimeout(() => {
             moveToNextQuestion();
           }, 2000);
+          
+          // 参加者全体に通知を送る（全員が次の問題に進む）
+          try {
+            // 全参加者のwrongQuizIdsを更新
+            const batch = writeBatch(db);
+            const participants = roomData.participants;
+            
+            Object.keys(participants).forEach(userId => {
+              const participant = participants[userId];
+              const wrongQuizIds = participant.wrongQuizIds || [];
+              
+              if (!wrongQuizIds.includes(roomData.currentState.quizId)) {
+                wrongQuizIds.push(roomData.currentState.quizId);
+                batch.update(roomRef, {
+                  [`participants.${userId}.wrongQuizIds`]: wrongQuizIds
+                });
+              }
+            });
+            
+            await batch.commit();
+          } catch (error) {
+            console.error('参加者の不正解データ更新に失敗しました:', error);
+          }
         }
       } catch (error) {
         console.error('タイマー処理中にエラーが発生しました:', error);
       }
     }, 30000); // 30秒
   }, [isLeader, quizRoom, roomId, moveToNextQuestion]);
+
+  // クイズゲームを開始する
+  const startQuizGame = useCallback(async () => {
+    if (!isLeader || !quizRoom) return;
+    
+    try {
+      // ルームのステータスを更新
+      await updateDoc(doc(db, 'quiz_rooms', roomId), {
+        status: 'in_progress',
+        startedAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+      
+      // 最初の問題を取得
+      await fetchCurrentQuiz();
+      
+      // タイマーを開始
+      startQuestionTimer();
+    } catch (error) {
+      console.error('Error starting quiz game:', error);
+    }
+  }, [isLeader, quizRoom, roomId, fetchCurrentQuiz, startQuestionTimer]);
 
   // 早押し監視
   const handleBuzzerUpdates = useCallback(() => {
@@ -473,130 +635,7 @@ export function useLeader(roomId: string) {
     }
   }, [isLeader, quizRoom, currentQuiz, roomId, moveToNextQuestion]);
 
-  // クイズゲーム終了時の処理
-  const finishQuizGame = useCallback(async () => {
-    if (!isLeader || !quizRoom) return;
-    
-    try {
-      // 参加者の経験値を更新
-      const batch = writeBatch(db);
-      
-      // 参加者数を確認
-      const participantCount = Object.keys(quizRoom.participants).length;
-      // 一人プレイの場合は経験値を1/10に
-      const soloMultiplier = participantCount === 1 ? 0.1 : 1;
-      
-      // 各参加者の処理
-      Object.entries(quizRoom.participants).forEach(([userId, participant]) => {
-        const userRef = doc(db, 'users', userId);
-        
-        // 獲得経験値の計算（例）
-        let expGain = participant.score + 20; // スコア + セッション完了ボーナス
-        
-        // 一人プレイの場合は1/10に
-        expGain = Math.round(expGain * soloMultiplier);
-        
-        batch.update(userRef, {
-          exp: increment(expGain),
-          'stats.totalAnswered': increment(quizRoom.totalQuizCount),
-          [`stats.genres.${quizRoom.genre}.totalAnswered`]: increment(quizRoom.totalQuizCount)
-        });
-      });
-      
-      try {
-        await batch.commit();
-        console.log('ユーザー統計情報を更新しました');
-      } catch (statsError) {
-        console.error('統計情報の更新に失敗しました:', statsError);
-        // 統計更新の失敗は無視して処理を続行
-      }
-      
-      console.log(`Quiz room ${roomId} completed - scheduling deletion in 3 seconds`);
-      
-      // 3秒後にルームを削除（結果表示時間確保）
-      setTimeout(async () => {
-        try {
-          // まず、各参加者のcurrentRoomIdをnullに設定して参照を解除
-          const participantUpdates = Object.keys(quizRoom.participants).map(async (userId) => {
-            try {
-              await updateDoc(doc(db, 'users', userId), { currentRoomId: null });
-              console.log(`User ${userId} room reference cleared`);
-            } catch (userErr) {
-              console.warn(`Failed to clear room reference for user ${userId}:`, userErr);
-              // 個別ユーザーのエラーは無視して続行
-            }
-          });
-          
-          // すべての参加者の更新を待つ
-          await Promise.allSettled(participantUpdates);
-          console.log('All participant references cleared');
-          
-          // ルーム参照を再取得
-          const roomRef = doc(db, 'quiz_rooms', roomId);
-          const roomCheck = await getDoc(roomRef);
-          
-          // ルームがすでに削除されている場合は何もしない
-          if (!roomCheck.exists()) {
-            console.log(`Room ${roomId} already deleted, skipping cleanup`);
-            return;
-          }
-          
-          try {
-            // ルーム内の回答データを削除
-            const answersRef = collection(db, 'quiz_rooms', roomId, 'answers');
-            
-            // まず回答数を確認（小さなバッチで取得）
-            const countQuery = query(answersRef, limit(50));
-            const countSnap = await getDocs(countQuery);
-            
-            if (!countSnap.empty) {
-              console.log(`Deleting answers from room ${roomId}`);
-              
-              // 一度に少数の回答だけを削除する
-              for (const doc of countSnap.docs) {
-                try {
-                  await deleteDoc(doc.ref);
-                } catch (deleteAnswerError) {
-                  console.warn(`Failed to delete answer ${doc.id}:`, deleteAnswerError);
-                  // 個別の回答削除エラーは無視
-                }
-              }
-            }
-          } catch (answersError) {
-            console.warn('Failed to cleanup answers, continuing with room deletion:', answersError);
-            // 回答のクリーンアップエラーは無視して続行
-          }
-          
-          // 最後にルーム自体を削除
-          try {
-            await deleteDoc(roomRef);
-            console.log(`Successfully deleted room ${roomId}`);
-          } catch (roomDeleteError) {
-            console.error('Error deleting room:', roomDeleteError);
-            console.log('fucking error');
-          }
-        } catch (error) {
-          console.error('Error in room cleanup process:', error);
-        }
-      }, 3000);
-    } catch (error: any) {
-      console.error('Error finishing quiz game:', error);
-      
-      // エラーが発生しても、ルームを非アクティブとしてマークしてリソースを解放する
-      if (error?.code === 'permission-denied') {
-        try {
-          await updateDoc(doc(db, 'quiz_rooms', roomId), {
-            status: 'inactive',
-            updatedAt: serverTimestamp(),
-            isDeleted: true
-          });
-          console.log(`Marked room ${roomId} as inactive due to permission error in game finish`);
-        } catch (markError) {
-          console.error('Failed to mark room as inactive after game finish error:', markError);
-        }
-      }
-    }
-  }, [isLeader, quizRoom, roomId]);
+  // この行は削除予定のため使用しないでください
 
   // リーダー監視の設定
   useEffect(() => {
