@@ -13,7 +13,57 @@ export function useQuizHook() {
   const [genres, setGenres] = useState<string[]>([]);
   const [units, setUnits] = useState<{ [genre: string]: { [category: string]: string[] } }>({});
 
-  // 利用可能なジャンル一覧と単元を取得
+  // 特定のジャンルの単元を取得
+  const fetchUnitsForGenre = useCallback(async (genreId: string) => {
+    try {
+      setLoading(true);
+      
+      // 指定されたジャンルの単元を取得
+      const unitsRef = collection(db, 'genres', genreId, 'quiz_units');
+      const unitsSnap = await getDocs(unitsRef);
+      
+      // カテゴリごとの単元を整理
+      const categoryMap: { [category: string]: string[] } = {};
+      
+      unitsSnap.forEach(unitDoc => {
+        const unitData = unitDoc.data();
+        
+        if (unitData.title && unitData.category) {
+          if (!categoryMap[unitData.category]) {
+            categoryMap[unitData.category] = [];
+          }
+          categoryMap[unitData.category].push(unitData.title);
+        } else if (unitData.title) {
+          // カテゴリが未設定の場合はデフォルトカテゴリを使用
+          if (!categoryMap['その他']) {
+            categoryMap['その他'] = [];
+          }
+          categoryMap['その他'].push(unitData.title);
+        }
+      });
+      
+      // カテゴリがない場合はデフォルト構造を使用
+      if (Object.keys(categoryMap).length === 0) {
+        categoryMap['単元'] = [];
+      }
+      
+      // ジャンルごとの単元マップを更新
+      setUnits(prevUnits => ({
+        ...prevUnits,
+        [genreId]: categoryMap
+      }));
+      
+      return categoryMap;
+    } catch (err) {
+      console.error(`Error fetching units for genre ${genreId}:`, err);
+      setError('単元一覧の取得中にエラーが発生しました');
+      return {};
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // 利用可能なジャンル一覧を取得（単元は必要になったときだけ取得）
   const fetchGenres = useCallback(async () => {
     try {
       setLoading(true);
@@ -23,60 +73,25 @@ export function useQuizHook() {
       const genresSnap = await getDocs(genresRef);
       
       const genreArray: string[] = [];
-      const unitMap: { [genre: string]: { [category: string]: string[] } } = {};
       
-      // 各ジャンルについて処理
-      for (const genreDoc of genresSnap.docs) {
-        const genreId = genreDoc.id;
-        genreArray.push(genreId);
-        
-        // 各ジャンルの単元を取得
-        const unitsRef = collection(db, 'genres', genreId, 'quiz_units');
-        const unitsSnap = await getDocs(unitsRef);
-        
-        // カテゴリごとの単元を整理
-        const categoryMap: { [category: string]: string[] } = {};
-        
-        // デバッグ: ユニットドキュメント数を確認
-        console.log(`Genre ${genreId} has ${unitsSnap.docs.length} units`);
-        
-        unitsSnap.forEach(unitDoc => {
-          const unitData = unitDoc.data();
-          // デバッグ: ユニットデータの内容を確認
-          console.log(`Unit ${unitDoc.id} data:`, unitData);
-          
-          if (unitData.title && unitData.category) {
-            if (!categoryMap[unitData.category]) {
-              categoryMap[unitData.category] = [];
-            }
-            categoryMap[unitData.category].push(unitData.title);
-          } else if (unitData.title) {
-            // カテゴリが未設定の場合はデフォルトカテゴリを使用
-            if (!categoryMap['その他']) {
-              categoryMap['その他'] = [];
-            }
-            categoryMap['その他'].push(unitData.title);
-          }
-        });
-        
-        // カテゴリがない場合はデフォルト構造を使用
-        if (Object.keys(categoryMap).length === 0) {
-          categoryMap['単元'] = [];
-        }
-        
-        // ジャンルごとの単元マップを更新
-        unitMap[genreId] = categoryMap;
-      }
+      // ジャンル名のリストだけを取得
+      genresSnap.forEach(doc => {
+        genreArray.push(doc.id);
+      });
       
       setGenres(genreArray);
-      setUnits(unitMap);
+      
+      // 最初のジャンルの単元を取得
+      if (genreArray.length > 0 && !units[genreArray[0]]) {
+        fetchUnitsForGenre(genreArray[0]);
+      }
     } catch (err) {
       console.error('Error fetching genres:', err);
       setError('ジャンル一覧の取得中にエラーが発生しました');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [fetchUnitsForGenre, units]);
 
   // 特定のクイズを取得
   const fetchQuiz = useCallback(async (genreId: string, unitId: string, quizId: string) => {
@@ -233,6 +248,7 @@ export function useQuizHook() {
     loading,
     error,
     fetchGenres,
+    fetchUnitsForGenre,
     fetchQuiz,
     searchQuizzes,
     updateGenreStats

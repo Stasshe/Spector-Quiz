@@ -19,7 +19,8 @@ import {
   serverTimestamp,
   increment,
   runTransaction,
-  Timestamp
+  Timestamp,
+  limit
 } from 'firebase/firestore';
 import { useAuth } from '@/context/AuthContext';
 import { QuizRoom, RoomListing, RoomStatus } from '@/types/room';
@@ -64,10 +65,40 @@ export function useQuizRoom() {
       );
       
       const roomsSnapshot = await getDocs(roomsQuery);
-      const rooms: RoomListing[] = [];
       
-      // 単元情報の取得のためのキャッシュ
+      // 事前にすべての単元IDを収集
+      const unitIds = new Set<string>();
       const unitCache: { [unitId: string]: { title: string } } = {};
+      
+      // まず、必要な単元IDを集める
+      roomsSnapshot.docs.forEach(docSnap => {
+        const roomData = docSnap.data() as QuizRoom;
+        if (roomData.unitId) {
+          unitIds.add(roomData.unitId);
+        }
+      });
+      
+      // 単元情報を一括でフェッチ（必要な場合のみ）
+      if (unitIds.size > 0) {
+        const unitPromises = Array.from(unitIds).map(async unitId => {
+          try {
+            const unitRef = doc(db, 'genres', genre, 'quiz_units', unitId);
+            const unitSnap = await getDoc(unitRef);
+            if (unitSnap.exists()) {
+              const unitData = unitSnap.data();
+              unitCache[unitId] = { title: unitData.title || '' };
+            }
+          } catch (err) {
+            console.error(`Error fetching unit data for ID ${unitId}:`, err);
+          }
+        });
+        
+        // すべての単元データを並行してフェッチ
+        await Promise.all(unitPromises);
+      }
+      
+      // ルーム情報を構築
+      const rooms: RoomListing[] = [];
       
       for (const docSnap of roomsSnapshot.docs) {
         const roomData = docSnap.data() as QuizRoom;
@@ -76,31 +107,13 @@ export function useQuizRoom() {
         if ((classType === 'ユーザー作成' && isUserCreated) || 
             (classType === '公式' && !isUserCreated)) {
             
-          // 単元名を取得（キャッシュに無い場合はFirestoreから取得）
+          // キャッシュから単元名を取得
           let unitName = '';
-          if (roomData.unitId) {
-            if (unitCache[roomData.unitId]) {
-              unitName = unitCache[roomData.unitId].title;
-            } else {
-              try {
-                const unitRef = doc(db, 'genres', genre, 'quiz_units', roomData.unitId);
-                const unitSnap = await getDoc(unitRef);
-                if (unitSnap.exists()) {
-                  const unitData = unitSnap.data();
-                  unitName = unitData.title || '';
-                  // キャッシュに追加
-                  unitCache[roomData.unitId] = { title: unitName };
-                }
-              } catch (err) {
-                console.error('Error fetching unit data:', err);
-              }
-            }
+          if (roomData.unitId && unitCache[roomData.unitId]) {
+            unitName = unitCache[roomData.unitId].title;
           }
             
           const participantCount = roomData.participants ? Object.keys(roomData.participants).length : 0;
-            
-          // 参加者数が正確に計算されているか確認するためのログ
-          console.log(`Room ${docSnap.id} participant count:`, participantCount, roomData.participants);
             
           rooms.push({
             roomId: docSnap.id,
@@ -698,17 +711,16 @@ export function useQuizRoom() {
       const unitSnapshot = await getDocs(unitQuery);
       
       if (unitSnapshot.empty) {
-        console.log(`単元が見つかりません: ジャンル=${genre}, 単元名=${unitName}`);
-        
-        // 単元がない場合は作成する
-        return await createUnitIfNotExists(genre, unitName, category);
+        // 単元が見つからない場合はユーザーに通知するためのエラーをスロー
+        throw new Error(`単元「${unitName}」が見つかりません。管理者に連絡してください。`);
       }
       
       // 見つかった単元の最初のIDを返す
       return unitSnapshot.docs[0].id;
     } catch (err) {
       console.error('Error getting unit ID:', err);
-      return null;
+      // エラーを上位に伝播させる
+      throw err;
     }
   }, []);
   

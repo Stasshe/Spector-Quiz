@@ -41,7 +41,7 @@ export default function QuizPage() {
     confirmJoinNewRoom,
     cancelJoinNewRoom
   } = useQuizRoom();
-  const { fetchGenres, genres, units } = useQuizHook();
+  const { fetchGenres, fetchUnitsForGenre, genres, units } = useQuizHook();
   const [selectedGenre, setSelectedGenre] = useState<string>("");
   const [selectedClassType, setSelectedClassType] = useState<string>("公式");
   const [loading, setLoading] = useState(false);
@@ -49,35 +49,62 @@ export default function QuizPage() {
   const [sortBy, setSortBy] = useState<'participants' | 'popularity' | 'newest'>('participants');
   const router = useRouter();
 
+  const [waitingRoomsLastFetch, setWaitingRoomsLastFetch] = useState(0);
+
+  // ジャンル変更時に対応する単元データをロード
+  const handleGenreChange = (genre: string) => {
+    setSelectedGenre(genre);
+    
+    // 選択されたジャンルの単元がまだロードされていなければロード
+    if (!units[genre]) {
+      fetchUnitsForGenre(genre);
+    }
+  };
+
+
   useEffect(() => {
     // ジャンル情報を取得
     fetchGenres();
 
     // ジャンルが読み込まれたら最初のジャンルを選択
     if (genres.length > 0 && !selectedGenre) {
-      setSelectedGenre(genres[0]);
+      handleGenreChange(genres[0]);
     }
-  }, [fetchGenres, genres, selectedGenre]);
+  }, [fetchGenres, genres, selectedGenre, handleGenreChange]);
 
   // 選択されたジャンルが変更されたときに待機中のルームを取得
   useEffect(() => {
     if (selectedGenre) {
       fetchWaitingRooms();
-      
-      // デバッグ: 単元データの確認
-      if (units && units[selectedGenre]) {
-        console.log(`Selected genre: ${selectedGenre}, Units:`, units[selectedGenre]);
-      } else {
-        console.warn(`No units found for genre: ${selectedGenre}`);
-      }
     }
   }, [selectedGenre, selectedClassType]);
+
+  // 定期的なルーム情報更新 (60秒ごと)
+  useEffect(() => {
+    // 初回フェッチはジャンル変更時のuseEffectで行う
+    
+    // 60秒ごとに更新
+    const interval = setInterval(() => {
+      if (selectedGenre) {
+        fetchWaitingRooms();
+      }
+    }, 60000); // 60秒間隔
+    
+    return () => clearInterval(interval);
+  }, [selectedGenre]);
 
   // 待機中のルームを取得
   const fetchWaitingRooms = async () => {
     if (!selectedGenre) return;
     
+    // 最後のフェッチから3秒以内は重複フェッチを防止
+    const now = Date.now();
+    if (now - waitingRoomsLastFetch < 3000) {
+      return;
+    }
+    
     setLoading(true);
+    setWaitingRoomsLastFetch(now);
     const rooms = await fetchAvailableRooms(selectedGenre, selectedClassType);
     setWaitingRooms(rooms);
     setLoading(false);
@@ -135,30 +162,52 @@ export default function QuizPage() {
     try {
       setLoading(true);
       
-      // 単元名からUnitIDを取得
-      const unitId = await getUnitIdByName(genre, unit);
-      
-      if (!unitId) {
-        throw new Error('単元IDの取得に失敗しました');
-      }
-      
-      // 待機中のルームを探すか、なければ作成
-      const result = await findOrCreateRoomWithUnit(genre, unitId, selectedClassType);
-      
-      // confirmRoomSwitchがtrueなら確認ダイアログが表示されているので処理を終了
-      if (confirmRoomSwitch) {
-        console.log('ルーム切り替え確認ダイアログが表示されています');
-        setLoading(false);
-        return;
-      }
-      
-      // 結果がnullの場合（処理失敗）
-      if (!result) {
-        throw new Error('ルームの作成または参加に失敗しました');
+      try {
+        // 単元名からUnitIDを取得
+        const unitId = await getUnitIdByName(genre, unit);
+        
+        if (!unitId) {
+          throw new Error(`単元「${unit}」のIDの取得に失敗しました。管理者に連絡してください。`);
+        }
+        
+        // 待機中のルームを探すか、なければ作成
+        const result = await findOrCreateRoomWithUnit(genre, unitId, selectedClassType);
+        
+        // confirmRoomSwitchがtrueなら確認ダイアログが表示されているので処理を終了
+        if (confirmRoomSwitch) {
+          console.log('ルーム切り替え確認ダイアログが表示されています');
+          setLoading(false);
+          return;
+        }
+        
+        // 結果がnullの場合（処理失敗）
+        if (!result) {
+          throw new Error('ルームの作成または参加に失敗しました');
+        }
+      } catch (innerErr) {
+        // 内部エラーを外部エラーとして再スロー
+        throw innerErr;
       }
     } catch (err) {
       console.error('Error finding or joining room:', err);
-      alert(`エラーが発生しました: ${err instanceof Error ? err.message : '不明なエラー'}`);
+      
+      // より具体的なエラーメッセージを表示
+      if (err instanceof Error) {
+        // エラーメッセージに「単元」が含まれる場合は単元関連のエラー
+        if (err.message.includes('単元')) {
+          alert(`単元エラー: ${err.message}`);
+        } 
+        // エラーメッセージに「クイズ」が含まれる場合はクイズ関連のエラー
+        else if (err.message.includes('クイズ')) {
+          alert(`クイズエラー: ${err.message}`);
+        }
+        // その他のエラー
+        else {
+          alert(`ルーム作成エラー: ${err.message}`);
+        }
+      } else {
+        alert('予期しないエラーが発生しました。しばらく経ってから再度お試しください。');
+      }
     } finally {
       if (!confirmRoomSwitch) {
         setLoading(false);
@@ -332,7 +381,7 @@ export default function QuizPage() {
               {genres.map((genre) => (
                 <button
                   key={genre}
-                  onClick={() => setSelectedGenre(genre)}
+                  onClick={() => handleGenreChange(genre)}
                   className={`px-6 py-2 whitespace-nowrap rounded-t-lg transition-all ${
                     selectedGenre === genre
                       ? 'bg-indigo-100 text-indigo-700 font-medium border-b-2 border-indigo-500'
