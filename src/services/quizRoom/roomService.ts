@@ -298,9 +298,20 @@ export async function updateUserStatsOnRoomComplete(
     
     // トランザクションで安全に更新
     await runTransaction(db, async (transaction) => {
+      // 1. すべての読み取り操作を先に実行 ----------------------------------------
+      // ユーザーの統計情報を読み取り
       const statsDoc = await transaction.get(userStatsRef);
       
-      // スコアに基づいて加算するEXP
+      // ジャンルと単元の統計情報を読み取り（条件付き）
+      let genreStatsRef;
+      let genreStatsSnap;
+      if (roomData.genre) {
+        genreStatsRef = doc(db, 'genre_stats', roomData.genre);
+        genreStatsSnap = await transaction.get(genreStatsRef);
+      }
+      
+      // 2. すべての書き込み操作を後で実行 ----------------------------------------
+      // スコアに基づいて加算するEXP計算
       let expToAdd = Math.floor(score / 100);
       
       if (expToAdd < 1 && score > 0) expToAdd = 1; // 最低1EXP
@@ -313,6 +324,7 @@ export async function updateUserStatsOnRoomComplete(
         expToAdd += difficultyBonus;
       }
       
+      // ユーザー統計情報の更新
       if (!statsDoc.exists()) {
         // 新規ユーザーの場合は統計レコードを作成
         transaction.set(userStatsRef, {
@@ -344,11 +356,8 @@ export async function updateUserStatsOnRoomComplete(
         });
       }
       
-      // ジャンルと単元の使用統計も更新
-      if (roomData.genre) {
-        const genreStatsRef = doc(db, 'genre_stats', roomData.genre);
-        const genreStatsSnap = await transaction.get(genreStatsRef);
-        
+      // ジャンルと単元の使用統計の更新
+      if (roomData.genre && genreStatsRef && genreStatsSnap) {
         if (genreStatsSnap.exists()) {
           transaction.update(genreStatsRef, {
             useCount: increment(1)

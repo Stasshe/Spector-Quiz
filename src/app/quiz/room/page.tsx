@@ -32,7 +32,7 @@ function QuizRoomContent() {
   const roomId = params.get('id') || '';
   const router = useRouter();
   const { quizRoom, isLeader, currentQuiz, hasAnsweringRight } = useQuiz();
-  const { useRoomListener, leaveRoom, updateUserStatsOnRoomComplete } = useQuizRoom();
+  const { useRoomListener, exitRoom, updateUserStatsOnRoomComplete } = useQuizRoom();
   const { startQuizGame, handleBuzzer, submitAnswer } = useLeader(roomId);
   
   // 統計更新のステータスを追跡
@@ -61,20 +61,29 @@ function QuizRoomContent() {
   useEffect(() => {
     if (!room || !currentUser || statsUpdated) return;
     
-    // ルームステータスが「待機中」または「進行中」から「完了」に変わった場合
-    if (
-      (prevStatusRef.current === 'waiting' || prevStatusRef.current === 'in_progress') && 
-      room.status === 'completed'
-    ) {
-      // 統計情報を更新
-      updateUserStatsOnRoomComplete(roomId)
-        .then(() => {
+    // 非同期処理を行うための内部関数
+    const updateStats = async () => {
+      try {
+        const updated = await updateUserStatsOnRoomComplete(roomId);
+        if (updated) {
           setStatsUpdated(true);
-          console.log('ユーザー統計を更新しました');
-        })
-        .catch(err => {
-          console.error('統計更新エラー:', err);
-        });
+          console.log('ユーザー統計情報を更新しました');
+        } else {
+          console.log('統計情報の更新はスキップされました（ユーザー情報なし）');
+          // エラーではないのでゲームプレイは続行
+          setStatsUpdated(true);
+        }
+      } catch (err) {
+        console.error('統計更新エラー:', err);
+        // エラーが発生してもゲームプレイを続行できるように統計更新済みとマーク
+        setStatsUpdated(true);
+      }
+    };
+    
+    // ルームステータスが「待機中」または「進行中」から「完了」に変わった場合
+    if ((prevStatusRef.current === 'waiting' || prevStatusRef.current === 'in_progress') && 
+        room.status === 'completed') {
+      updateStats();
     }
     
     // 現在のステータスを記録
@@ -83,8 +92,10 @@ function QuizRoomContent() {
 
   // ルームからの退出処理
   const handleLeaveRoom = async () => {
-    await leaveRoom();
-    router.push('/quiz');
+    if (roomId) {
+      await exitRoom(roomId);
+      router.push('/quiz');
+    }
   };
 
   // ルーム情報が読み込まれていない場合のローディング表示

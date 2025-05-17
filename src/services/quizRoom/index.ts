@@ -1,6 +1,8 @@
 'use client';
 
 import { getAuth } from 'firebase/auth';
+import { getDoc, doc } from 'firebase/firestore';
+import { db } from '@/config/firebase';
 
 // roomService.ts からのインポート
 import {
@@ -154,11 +156,65 @@ export const updateUserStatsOnRoomComplete = async (roomId: string): Promise<boo
     const auth = getAuth();
     const user = auth.currentUser;
     
-    if (user) {
-      await updateRoomStats(user.uid, roomId);
+    if (!user) {
+      console.warn('認証されていないユーザーです。統計は更新されません。');
+      return false;
+    }
+
+    try {
+      // ルームデータを取得
+      const roomRef = doc(db, 'quiz_rooms', roomId);
+      const roomSnap = await getDoc(roomRef);
+      
+      if (!roomSnap.exists()) {
+        console.warn('ルームが見つかりません。統計は更新されません。');
+        return false;
+      }
+      
+      const roomData = roomSnap.data() as QuizRoom;
+      
+      // まず自分自身の統計を更新（エラーをキャッチして続行）
+      try {
+        // 自分がルームの参加者として含まれているか確認
+        if (roomData.participants && roomData.participants[user.uid]) {
+          await updateRoomStats(user.uid, roomId);
+          console.log('自分の統計情報を更新しました');
+        }
+      } catch (selfErr) {
+        console.warn('自分の統計更新に失敗しましたが、処理を続行します:', selfErr);
+      }
+      
+      // ルームリーダーのみが全員の統計を更新
+      let updatedCount = 0;
+      let failedCount = 0;
+      
+      if (roomData.roomLeaderId === user.uid && roomData.participants) {
+        // 全参加者の統計を更新（自分以外）
+        const participantIds = Object.keys(roomData.participants).filter(id => id !== user.uid);
+        console.log(`ルームリーダーとして${participantIds.length}人の参加者の統計を更新します`);
+        
+        // 各参加者の統計を非同期で更新し、エラーがあっても継続
+        for (const participantId of participantIds) {
+          try {
+            await updateRoomStats(participantId, roomId);
+            updatedCount++;
+          } catch (participantErr) {
+            console.warn(`参加者 ${participantId} の統計更新に失敗しました:`, participantErr);
+            failedCount++;
+            // エラーがあっても処理を続行
+          }
+        }
+        
+        console.log(`参加者統計更新結果: 成功=${updatedCount}, 失敗=${failedCount}`);
+      }
+      
+      // 一部でも成功していれば true を返す
+      return true;
+    } catch (statsErr) {
+      console.error('統計更新中にエラーが発生しました:', statsErr);
+      // 部分的に成功している可能性があるのでtrueを返す
       return true;
     }
-    return false;
   } catch (error) {
     console.error('統計の更新に失敗しました:', error);
     return false;

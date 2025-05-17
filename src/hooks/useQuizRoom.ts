@@ -553,7 +553,7 @@ export function useQuizRoom() {
   useEffect(() => {
     if (!currentWaitingRoomId || !currentUser) return;
 
-    const roomRef = doc(db, 'quizRooms', currentWaitingRoomId);
+    const roomRef = doc(db, 'quiz_rooms', currentWaitingRoomId);
     
     const unsubscribe = onSnapshot(roomRef, async (docSnap) => {
       if (docSnap.exists()) {
@@ -596,6 +596,90 @@ export function useQuizRoom() {
   }, [currentWaitingRoomId, currentUser, setQuizRoom, setIsLeader, setHasAnsweringRight, setWaitingRoom, router]);
 
   /**
+   * 特定のルームの情報をリアルタイムで監視する
+   */
+  const useRoomListener = useCallback((roomId: string) => {
+    const [room, setRoom] = useState<QuizRoom | null>(null);
+    const [previousStatus, setPreviousStatus] = useState<RoomStatus | null>(null);
+    
+    useEffect(() => {
+      if (!roomId) return;
+      
+      const roomRef = doc(db, 'quiz_rooms', roomId);
+      const unsubscribe = onSnapshot(roomRef, (docSnap) => {
+        if (docSnap.exists()) {
+          const roomData = docSnap.data() as Omit<QuizRoom, 'roomId'>;
+          const roomWithId = { ...roomData, roomId: docSnap.id } as QuizRoom;
+          
+          // ルームのステータスが変わったかを確認
+          if (previousStatus !== null && previousStatus !== roomData.status) {
+            // ルームが完了状態になったら統計情報を更新
+            if (roomData.status === 'completed') {
+              updateUserStatsOnRoomComplete(docSnap.id).catch(err => {
+                console.error('統計更新エラー:', err);
+              });
+            }
+          }
+          
+          // 現在のステータスを保存
+          setPreviousStatus(roomData.status);
+          
+          setRoom(roomWithId);
+          setQuizRoom(roomWithId);
+          
+          // 待機中ルームの状態も更新
+          if (roomData.status === 'waiting') {
+            // participants フィールドが存在することを確認
+            if (!roomData.participants) {
+              console.warn('Room has no participants field:', roomData);
+              // 空のオブジェクトをデフォルトとして使用
+              roomData.participants = {};
+            }
+            
+            // 参加者数の計算を追加
+            const participantCount = Object.keys(roomData.participants).length;
+            console.log(`Room ${docSnap.id} updated: ${participantCount} participants`);
+            
+            setWaitingRoom(roomWithId);
+          } else {
+            // ゲーム開始・終了で待機中状態をクリア
+            setWaitingRoom(null);
+          }
+          
+          if (currentUser) {
+            setIsLeader(currentUser.uid === roomData.roomLeaderId);
+            
+            // 解答権の状態を更新
+            if (roomData.currentState && roomData.currentState.currentAnswerer) {
+              setHasAnsweringRight(roomData.currentState.currentAnswerer === currentUser.uid);
+            } else {
+              setHasAnsweringRight(false);
+            }
+            
+            // 現在のクイズデータを取得
+            if (roomData.status === 'in_progress' && roomData.currentState) {
+              fetchCurrentQuizData(roomWithId);
+            }
+          }
+        } else {
+          // ルームが削除された場合はリダイレクトと状態クリア
+          setRoom(null);
+          setQuizRoom(null);
+          setWaitingRoom(null);
+          router.push('/quiz');
+        }
+      }, (error) => {
+        console.error('Room listener error:', error);
+        setError('ルーム情報の取得中にエラーが発生しました');
+      });
+      
+      return () => unsubscribe();
+    }, [roomId, currentUser, router, previousStatus, setQuizRoom, setIsLeader, setHasAnsweringRight, setWaitingRoom]);
+    
+    return room;
+  }, [currentUser, setQuizRoom, setIsLeader, setHasAnsweringRight, setWaitingRoom, router]);
+
+  /**
    * 現在のクイズデータを取得する (内部用)
    */
   const fetchCurrentQuizData = async (roomData: QuizRoom) => {
@@ -626,7 +710,9 @@ export function useQuizRoom() {
   return {
     // 状態
     availableRooms,
+    useRoomListener,
     currentRoom,
+    updateUserStatsOnRoomComplete,
     loading,
     error,
     currentWaitingRoomId,
