@@ -18,6 +18,8 @@ export interface QuizRoom {
   status: RoomStatus;
   currentState: QuizRoomState;
   statsUpdated?: boolean; // 統計情報が更新済みかどうか
+  readyForNextQuestion?: boolean; // 次の問題に進む準備ができているか
+  lastCorrectTimestamp?: Timestamp; // 最後に正解した時間
   
   // 移行期間中は互換性のためquizIdsも保持
   quizIds?: string[];

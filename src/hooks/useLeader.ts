@@ -632,16 +632,50 @@ export function useLeader(roomId: string) {
     }
   }, [isLeader, quizRoom, roomId]);
 
+  // 正解フラグの監視
+  const watchForCorrectAnswer = useCallback(() => {
+    if (!isLeader || !roomId) return () => {};
+    
+    console.log('正解フラグの監視を開始します');
+    const roomRef = doc(db, 'quiz_rooms', roomId);
+    
+    return onSnapshot(roomRef, async (docSnap) => {
+      if (!docSnap.exists()) return;
+      
+      const roomData = docSnap.data() as QuizRoom;
+      
+      // readyForNextQuestionフラグが立っていて、正解状態であれば次の問題に進む
+      if (roomData.readyForNextQuestion === true && 
+          roomData.currentState?.answerStatus === 'correct' && 
+          roomData.status === 'in_progress') {
+        
+        console.log('正解フラグが検知されました。次の問題に進みます');
+        
+        try {
+          // フラグをリセット
+          await updateDoc(roomRef, { readyForNextQuestion: false });
+          
+          // 次の問題に進む
+          moveToNextQuestion();
+        } catch (error) {
+          console.error('正解フラグ処理中にエラーが発生しました:', error);
+        }
+      }
+    });
+  }, [isLeader, roomId, moveToNextQuestion]);
+
   // リーダー監視の設定
   useEffect(() => {
     if (!isLeader || !roomId) return;
     
-    const unsubscribe = handleBuzzerUpdates();
+    const unsubscribeBuzzer = handleBuzzerUpdates();
+    const unsubscribeCorrect = watchForCorrectAnswer();
     
     return () => {
-      unsubscribe();
+      unsubscribeBuzzer();
+      unsubscribeCorrect();
     };
-  }, [isLeader, roomId, handleBuzzerUpdates]);
+  }, [isLeader, roomId, handleBuzzerUpdates, watchForCorrectAnswer]);
 
   // ユーザーが早押しボタンを押した時
   const handleBuzzer = useCallback(async () => {
@@ -874,31 +908,20 @@ export function useLeader(roomId: string) {
                   updateData[`participants.${currentUser.uid}.wrongQuizIds`] = [currentQuiz.quizId];
                 }
               }
+            } else {
+              // 正解の場合、次の問題に進むためのフラグを設定
+              updateData['readyForNextQuestion'] = true;
+              updateData['lastCorrectTimestamp'] = serverTimestamp();
             }
             
             await updateDoc(roomRef, updateData);
             
             console.log(`ルーム状態を更新しました - 解答は${isCorrect ? '正解' : '不正解'}です`);
             
-            // 正解の場合のみ、5秒後に次の問題に進む
-            if (isCorrect) {
-              // ルームが進行中かを確認し、5秒後に次へ
-              setTimeout(async () => {
-                // リーダーの場合は次の問題へ進む
-                if (isLeader) {
-                  moveToNextQuestion();
-                } else {
-                  // リーダーでない場合は、クイズの次の問題遷移が行われているか確認
-                  const currentRoomSnap = await getDoc(roomRef);
-                  if (currentRoomSnap.exists() && 
-                      currentRoomSnap.data().status === 'in_progress' && 
-                      currentRoomSnap.data().currentQuizIndex === quizRoom.currentQuizIndex) {
-                    console.log('5秒経過しましたが、次の問題に移動していません。ページをリロードします。');
-                    // ページをリロードする（静かに）
-                    window.location.reload();
-                  }
-                }
-              }, 5000);
+            // 正解の場合のみ、リーダーなら次の問題に進む
+            if (isCorrect && isLeader) {
+              console.log('正解が確認されたため、次の問題に進みます');
+              moveToNextQuestion();
             }
           } catch (roomUpdateErr: any) {
             console.error('ルーム状態の更新に失敗しました:', roomUpdateErr);

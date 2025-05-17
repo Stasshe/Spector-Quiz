@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { onSnapshot, doc, getDoc } from 'firebase/firestore';
+import { onSnapshot, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useAuth } from '../context/AuthContext';
 import { QuizRoom, RoomListing, RoomStatus, QuizRoomState, AnswerStatus } from '../types/room';
@@ -602,6 +602,8 @@ export function useQuizRoom() {
     const [room, setRoom] = useState<QuizRoom | null>(null);
     const [previousStatus, setPreviousStatus] = useState<RoomStatus | null>(null);
     const [previousStatsUpdated, setPreviousStatsUpdated] = useState<boolean | undefined>(undefined);
+    const [prevQuizIndex, setPrevQuizIndex] = useState<number>(-1);
+    const [previousReadyForNext, setPreviousReadyForNext] = useState<boolean | undefined>(undefined);
     
     useEffect(() => {
       if (!roomId) return;
@@ -654,9 +656,34 @@ export function useQuizRoom() {
             router.push('/quiz');
           }
           
-          // 現在のステータスとstatsUpdatedフラグを保存
+          // クイズインデックスの変更を検知
+          if (prevQuizIndex !== -1 && prevQuizIndex !== roomData.currentQuizIndex) {
+            console.log(`問題が更新されました: ${prevQuizIndex} → ${roomData.currentQuizIndex}`);
+          }
+          
+          // readyForNextQuestionフラグの検出 - リーダーでない場合に使用
+          if (roomData.readyForNextQuestion === true && previousReadyForNext !== true && 
+              roomData.status === 'in_progress' && currentUser && 
+              roomData.roomLeaderId === currentUser.uid) {
+            
+            console.log('次の問題に進むフラグが検出されました。次の問題に進みます');
+            
+            // 一度だけ実行するためにフラグをリセット
+            updateDoc(roomRef, { readyForNextQuestion: false }).catch(err => {
+              console.error('readyForNextQuestionフラグのリセットに失敗:', err);
+            });
+            
+            // goToNextQuizを呼び出す
+            goToNextQuiz(roomId).catch(err => {
+              console.error('次の問題への移動に失敗:', err);
+            });
+          }
+          
+          // 現在の状態を保存
           setPreviousStatus(roomData.status);
           setPreviousStatsUpdated(roomData.statsUpdated);
+          setPrevQuizIndex(roomData.currentQuizIndex);
+          setPreviousReadyForNext(roomData.readyForNextQuestion);
           
           setRoom(roomWithId);
           setQuizRoom(roomWithId);
@@ -708,10 +735,10 @@ export function useQuizRoom() {
       });
       
       return () => unsubscribe();
-    }, [roomId, currentUser, router, previousStatus, previousStatsUpdated, setQuizRoom, setIsLeader, setHasAnsweringRight, setWaitingRoom]);
+    }, [roomId, currentUser, router, previousStatus, previousStatsUpdated, previousReadyForNext, prevQuizIndex, setQuizRoom, setIsLeader, setHasAnsweringRight, setWaitingRoom, goToNextQuiz]);
     
     return room;
-  }, [currentUser, setQuizRoom, setIsLeader, setHasAnsweringRight, setWaitingRoom, router]);
+  }, [currentUser, setQuizRoom, setIsLeader, setHasAnsweringRight, setWaitingRoom, router, goToNextQuiz]);
 
   /**
    * 現在のクイズデータを取得する (内部用)
