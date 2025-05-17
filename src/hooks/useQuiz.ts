@@ -127,7 +127,8 @@ export function useQuizHook() {
       setGenres(genreArray);
       
       // 最初のジャンルの単元を取得（デフォルトクラスタイプで）
-      if (genreArray.length > 0 && !units[`${genreArray[0]}_${defaultClassType}`]) {
+      // unitsの状態に依存せず、最初のジャンルの単元を常に取得するように変更
+      if (genreArray.length > 0) {
         fetchUnitsForGenre(genreArray[0], defaultClassType);
       }
     } catch (err) {
@@ -136,7 +137,7 @@ export function useQuizHook() {
     } finally {
       setLoading(false);
     }
-  }, [fetchUnitsForGenre, units]);
+  }, [fetchUnitsForGenre]); // unitsを依存配列から削除
 
   // 特定のクイズを取得
   const fetchQuiz = useCallback(async (genreId: string, unitId: string, quizId: string) => {
@@ -265,26 +266,36 @@ export function useQuizHook() {
 
   // genres.tsからローカルデータを使用してunitsを初期化するフォールバック機能
   useEffect(() => {
-    if (genres.length > 0 && Object.keys(units).length === 0) {
+    if (genres.length > 0) {
       // Firestoreから取得したデータが空の場合、ローカルのgenres.tsのデータを使用
       import('@/constants/genres').then(({ genreClasses }) => {
-        const localUnitMap: { [genre: string]: { [category: string]: string[] } } = {};
-        
-        for (const genreClass of genreClasses) {
-          for (const genreInfo of genreClass.genres) {
-            if (genres.includes(genreInfo.name)) {
-              localUnitMap[genreInfo.name] = genreInfo.units;
+        // 最新のunitsの状態を確認するためにコールバック形式を使用
+        setUnits(prevUnits => {
+          // ユニットデータがすでに存在する場合は何もしない
+          if (Object.keys(prevUnits).length > 0) {
+            return prevUnits;
+          }
+          
+          const localUnitMap: { [genre: string]: { [category: string]: string[] } } = {};
+          
+          for (const genreClass of genreClasses) {
+            for (const genreInfo of genreClass.genres) {
+              if (genres.includes(genreInfo.name)) {
+                localUnitMap[genreInfo.name] = genreInfo.units;
+              }
             }
           }
-        }
-        
-        if (Object.keys(localUnitMap).length > 0) {
-          console.log('Firestoreのユニットデータがないためローカルデータをフォールバックとして使用します');
-          setUnits(localUnitMap);
-        }
+          
+          if (Object.keys(localUnitMap).length > 0) {
+            console.log('Firestoreのユニットデータがないためローカルデータをフォールバックとして使用します');
+            return localUnitMap;
+          }
+          
+          return prevUnits;
+        });
       });
     }
-  }, [genres, units]);
+  }, [genres]); // unitsを依存配列から削除し、関数型のsetStateを使用して最新の状態を参照
 
   return {
     currentQuiz,
