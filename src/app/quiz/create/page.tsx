@@ -19,7 +19,7 @@ function CreateRoomLoading() {
 // ルーム作成コンテンツコンポーネント
 function CreateRoomContent() {
   const { currentUser } = useAuth();
-  const { createRoom, loading, error } = useQuizRoom();
+  const { createNewRoom, loading, error } = useQuizRoom();
   const [roomName, setRoomName] = useState('');
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -50,10 +50,11 @@ function CreateRoomContent() {
       return;
     }
 
-    const room = await createRoom(roomName, genre, unitId, classType, []);
+    // createNewRoomの引数を正しく渡す（roomName, genre, classType, unitId）
+    const roomId = await createNewRoom(roomName, genre, classType, unitId);
     
-    if (room) {
-      router.push(`/quiz/room?id=${room.roomId}`);
+    if (roomId) {
+      router.push(`/quiz/room?roomId=${roomId}`);
     }
   };
 
