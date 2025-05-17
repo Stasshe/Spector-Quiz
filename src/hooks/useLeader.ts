@@ -508,13 +508,41 @@ export function useLeader(roomId: string) {
         console.log('ユーザー統計情報をバッチ処理で更新しました');
         
         // 統計更新済みのフラグをルームに設定（重複更新防止）
-        const roomRef = doc(db, 'quiz_rooms', roomId);
-        await updateDoc(roomRef, {
-          statsUpdated: true
-        });
+        // 重要なフラグなので、エラー発生時は複数回試行
+        const setStatsFlag = async (retryCount = 0) => {
+          try {
+            const roomRef = doc(db, 'quiz_rooms', roomId);
+            await updateDoc(roomRef, {
+              statsUpdated: true
+            });
+            console.log('統計更新フラグを設定しました');
+          } catch (flagError) {
+            console.error(`統計更新フラグの設定に失敗しました (試行: ${retryCount + 1}/3):`, flagError);
+            
+            // 最大3回まで再試行
+            if (retryCount < 2) {
+              console.log(`統計更新フラグの設定を ${retryCount + 1} 秒後に再試行します...`);
+              setTimeout(() => setStatsFlag(retryCount + 1), (retryCount + 1) * 1000);
+            } else {
+              console.error('統計更新フラグの設定に失敗しましたが、処理を続行します');
+            }
+          }
+        };
+        
+        // 統計更新フラグの設定を開始
+        setStatsFlag();
       } catch (statsError) {
         console.error('統計情報の更新に失敗しました:', statsError);
         // 統計更新の失敗は無視して処理を続行
+        
+        // それでも統計更新フラグは設定を試みる（重要なため）
+        try {
+          const roomRef = doc(db, 'quiz_rooms', roomId);
+          await updateDoc(roomRef, { statsUpdated: true });
+          console.log('バッチ処理エラー後に統計更新フラグを設定しました');
+        } catch (flagError) {
+          console.error('バッチエラー後の統計更新フラグの設定に失敗しました:', flagError);
+        }
       }
       
       console.log(`Quiz room ${roomId} completed - scheduling deletion in 10 seconds`);

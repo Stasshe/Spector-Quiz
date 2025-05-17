@@ -601,6 +601,7 @@ export function useQuizRoom() {
   const useRoomListener = useCallback((roomId: string) => {
     const [room, setRoom] = useState<QuizRoom | null>(null);
     const [previousStatus, setPreviousStatus] = useState<RoomStatus | null>(null);
+    const [previousStatsUpdated, setPreviousStatsUpdated] = useState<boolean | undefined>(undefined);
     
     useEffect(() => {
       if (!roomId) return;
@@ -619,17 +620,43 @@ export function useQuizRoom() {
                 console.error('統計更新エラー:', err);
               });
               
-              // ルーム完了時に全員が8秒後に自動的にクイズ選択画面に戻るようにする
-              // page.tsxで実装した自動リダイレクトのバックアップとして機能
-              console.log('クイズが完了しました。8秒後に自動的にクイズ選択画面に戻ります...');
+              // statsUpdatedフラグが設定されない場合のバックアップとして機能
+              // 統計が更新されないエラーケースでも、ユーザーが画面に残されないようにする
+              console.log('クイズが完了しました。統計更新フラグが8秒以内に設定されない場合は自動リダイレクト実行します');
               setTimeout(() => {
-                router.push('/quiz');
-              }, 8000); // 8秒後（ページ上の5秒よりも遅く設定して、ページ上での処理を優先）
+                // 最新のルーム情報を取得して確認
+                getDoc(roomRef).then(latestSnapshot => {
+                  if (latestSnapshot.exists()) {
+                    const latestData = latestSnapshot.data();
+                    // statsUpdatedフラグが設定されていない場合のみリダイレクト
+                    if (!latestData.statsUpdated) {
+                      console.log('統計更新フラグが設定されていないため、バックアップリダイレクトを実行します');
+                      router.push('/quiz');
+                    }
+                  } else {
+                    // ルームが存在しなくなった場合もリダイレクト
+                    router.push('/quiz');
+                  }
+                }).catch(err => {
+                  console.error('バックアップリダイレクトチェック中にエラー:', err);
+                  // エラー時はデフォルトでリダイレクト
+                  router.push('/quiz');
+                });
+              }, 8000);
             }
           }
           
-          // 現在のステータスを保存
+          // statsUpdatedフラグが変更されたか確認（undefinedからtrueへの変更も検出）
+          if ((previousStatsUpdated === undefined && roomData.statsUpdated === true) || 
+              (previousStatsUpdated === false && roomData.statsUpdated === true)) {
+            console.log('統計更新フラグが設定されました。クイズ選択画面に戻ります...');
+            // 統計更新完了時にクイズ選択画面にリダイレクト
+            router.push('/quiz');
+          }
+          
+          // 現在のステータスとstatsUpdatedフラグを保存
           setPreviousStatus(roomData.status);
+          setPreviousStatsUpdated(roomData.statsUpdated);
           
           setRoom(roomWithId);
           setQuizRoom(roomWithId);
@@ -681,7 +708,7 @@ export function useQuizRoom() {
       });
       
       return () => unsubscribe();
-    }, [roomId, currentUser, router, previousStatus, setQuizRoom, setIsLeader, setHasAnsweringRight, setWaitingRoom]);
+    }, [roomId, currentUser, router, previousStatus, previousStatsUpdated, setQuizRoom, setIsLeader, setHasAnsweringRight, setWaitingRoom]);
     
     return room;
   }, [currentUser, setQuizRoom, setIsLeader, setHasAnsweringRight, setWaitingRoom, router]);

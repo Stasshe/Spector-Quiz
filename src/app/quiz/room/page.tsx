@@ -57,6 +57,14 @@ function QuizRoomContent() {
     }
   }, [currentUser, roomId, router]);
 
+  // ルームからの退出処理
+  const handleLeaveRoom = async () => {
+    if (roomId) {
+      await exitRoom(roomId);
+      router.push('/quiz');
+    }
+  };
+
   // ルームのステータスが完了に変わったときに統計情報を更新
   useEffect(() => {
     if (!room || !currentUser || statsUpdated) return;
@@ -70,32 +78,21 @@ function QuizRoomContent() {
           setStatsUpdated(true);
           console.log('ユーザー統計情報を更新しました');
           
-          // 5秒後に自動的にクイズ選択画面に戻る（リーダーもそれ以外の参加者も共通処理）
-          setTimeout(() => {
-            console.log('クイズ終了後の自動リダイレクト実行');
+          // 統計更新完了済みのフラグを確認
+          if (room.statsUpdated) {
+            // すでに更新済みの場合は即時リダイレクトのバックアップとして機能
+            console.log('統計更新フラグが既に設定されているため、自動リダイレクト実行');
             handleLeaveRoom();
-          }, 5000); // 5秒後に自動遷移
+          }
         } else {
           console.log('統計情報の更新はスキップされました（ユーザー情報なし）');
           // エラーではないのでゲームプレイは続行
           setStatsUpdated(true);
-          
-          // こちらも同様に5秒後にリダイレクト
-          setTimeout(() => {
-            console.log('クイズ終了後の自動リダイレクト実行（統計更新スキップ）');
-            handleLeaveRoom();
-          }, 5000);
         }
       } catch (err) {
         console.error('統計更新エラー:', err);
         // エラーが発生してもゲームプレイを続行できるように統計更新済みとマーク
         setStatsUpdated(true);
-        
-        // エラー時も同様に5秒後にリダイレクト
-        setTimeout(() => {
-          console.log('クイズ終了後の自動リダイレクト実行（エラー発生）');
-          handleLeaveRoom();
-        }, 5000);
       }
     };
     
@@ -107,15 +104,7 @@ function QuizRoomContent() {
     
     // 現在のステータスを記録
     prevStatusRef.current = room.status;
-  }, [room, currentUser, roomId, updateUserStatsOnRoomComplete, statsUpdated]);
-
-  // ルームからの退出処理
-  const handleLeaveRoom = async () => {
-    if (roomId) {
-      await exitRoom(roomId);
-      router.push('/quiz');
-    }
-  };
+  }, [room, currentUser, roomId, updateUserStatsOnRoomComplete, statsUpdated, handleLeaveRoom]);
 
   // ルーム情報が読み込まれていない場合のローディング表示
   if (!quizRoom || !room) {
@@ -261,8 +250,11 @@ function QuizRoomContent() {
                 {statsUpdated && (
                   <div className="my-4 p-4 bg-green-50 border border-green-200 rounded-md">
                     <p className="text-green-600">✓ プレイ結果が統計に反映されました！</p>
-                    <p className="text-gray-600 mt-1">このルームは自動的に削除されます。</p>
-                    <p className="text-gray-600 mt-1">5秒後にクイズ選択画面に戻ります...</p>
+                    {room && room.statsUpdated ? (
+                      <p className="text-gray-600 mt-1">全ての処理が完了しました。自動的にクイズ選択画面に戻ります...</p>
+                    ) : (
+                      <p className="text-gray-600 mt-1">統計更新処理が進行中です。完了後に自動的に画面が切り替わります...</p>
+                    )}
                   </div>
                 )}
                 <button
