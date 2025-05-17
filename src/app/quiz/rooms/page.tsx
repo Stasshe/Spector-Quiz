@@ -19,7 +19,7 @@ function RoomsLoading() {
 
 function RoomsContent() {
   const { currentUser } = useAuth();
-  const { availableRooms, fetchAvailableRooms, joinRoom, loading, error } = useQuizRoom();
+  const { availableRooms, fetchRoomList, joinExistingRoom: joinRoom, loading, error } = useQuizRoom();
   const [joinLoading, setJoinLoading] = useState(false);
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
   const [refreshTimer, setRefreshTimer] = useState(30); // 30秒ごとに自動更新
@@ -33,13 +33,13 @@ function RoomsContent() {
   // 初回ロード時にルーム一覧を取得
   useEffect(() => {
     if (!currentUser) return;
-    fetchAvailableRooms(genre, classType);
+    fetchRoomList(genre, classType);
     
     // 30秒ごとに自動更新するタイマーを設定
     const interval = setInterval(() => {
       setRefreshTimer(prev => {
         if (prev <= 1) {
-          fetchAvailableRooms(genre, classType);
+          fetchRoomList(genre, classType);
           return 30;
         }
         return prev - 1;
@@ -47,7 +47,7 @@ function RoomsContent() {
     }, 1000);
     
     return () => clearInterval(interval);
-  }, [currentUser, fetchAvailableRooms, genre, classType]);
+  }, [currentUser, fetchRoomList, genre, classType]);
 
   // ジャンルと単元でフィルタリングする
   const filteredRooms = availableRooms.filter((room) => {
@@ -60,7 +60,7 @@ function RoomsContent() {
   });
 
   const handleRefresh = () => {
-    fetchAvailableRooms(genre, classType);
+    fetchRoomList(genre, classType);
     setRefreshTimer(30);
   };
 
