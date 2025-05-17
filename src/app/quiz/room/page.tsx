@@ -64,6 +64,7 @@ function QuizRoomContent() {
     // 非同期処理を行うための内部関数
     const updateStats = async () => {
       try {
+        // 引数は1つのみ（roomId）に修正
         const updated = await updateUserStatsOnRoomComplete(roomId);
         if (updated) {
           setStatsUpdated(true);

@@ -201,7 +201,7 @@ export function useQuizRoom() {
           setWaitingRoom(roomData);
           
           // 自動的にルームページに移動
-          router.push(`/quiz/room?roomId=${roomId}`);
+          router.push(`/quiz/room?id=${roomId}`);
           return true;
         } catch (err) {
           console.error('ルーム情報の取得に失敗しました', err);
@@ -234,7 +234,7 @@ export function useQuizRoom() {
       setWaitingRoom(roomData); // QuizRoom型のオブジェクトを渡す
       
       // 自動的にルームページに移動
-      router.push(`/quiz/room?roomId=${roomId}`);
+      router.push(`/quiz/room?id=${roomId}`);
       return true;
     } catch (err) {
       console.error('ルーム情報の取得に失敗しました', err);
@@ -509,7 +509,7 @@ export function useQuizRoom() {
       const success = await finishQuiz(roomId);
       
       if (success) {
-        // 統計を更新
+        // 統計を更新（引数は1つのみに修正）
         await updateUserStatsOnRoomComplete(roomId);
         
         // ルーム状態を完了に設定

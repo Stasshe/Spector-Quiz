@@ -266,6 +266,7 @@ export function useQuizHook() {
 
   // genres.tsからローカルデータを使用してunitsを初期化するフォールバック機能
   useEffect(() => {
+    // genres配列が変更され、かつ配列が空でなく、unitsが空の場合のみ実行
     if (genres.length > 0) {
       // Firestoreから取得したデータが空の場合、ローカルのgenres.tsのデータを使用
       import('@/constants/genres').then(({ genreClasses }) => {
@@ -276,6 +277,7 @@ export function useQuizHook() {
             return prevUnits;
           }
           
+          // ローカルデータからユニットを構築
           const localUnitMap: { [genre: string]: { [category: string]: string[] } } = {};
           
           for (const genreClass of genreClasses) {
@@ -295,7 +297,9 @@ export function useQuizHook() {
         });
       });
     }
-  }, [genres]); // unitsを依存配列から削除し、関数型のsetStateを使用して最新の状態を参照
+  // 初回のみ実行するために空の依存配列を使用
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return {
     currentQuiz,

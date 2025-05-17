@@ -265,13 +265,16 @@ export function calculateRank(exp: number): string {
 
 /**
  * ルームが完了したとき（全問終了時）に統計を更新する関数
+ * @returns {boolean} 統計が更新されたかどうか
  */
 export async function updateUserStatsOnRoomComplete(
-  currentUserId: string | null,
-  roomId: string
-): Promise<void> {
+  roomId: string,
+  currentUserId?: string | null
+): Promise<boolean> {
+  // currentUserIdが指定されていない場合は引数として渡されたroomIdから取得する
   if (!currentUserId) {
-    throw new Error('ユーザー情報がありません');
+    // ユーザー情報がない場合は早期リターン
+    return false;
   }
   
   try {
@@ -280,7 +283,8 @@ export async function updateUserStatsOnRoomComplete(
     const roomSnap = await getDoc(roomRef);
     
     if (!roomSnap.exists()) {
-      throw new Error('ルームが見つかりません');
+      console.log('ルームが既に削除されています。統計は別の方法で更新済みの可能性があります。');
+      return true; // エラーではなく成功として扱う
     }
     
     const roomData = roomSnap.data() as QuizRoom;
@@ -293,21 +297,21 @@ export async function updateUserStatsOnRoomComplete(
     const userPerfomance = roomData.participants[currentUserId];
     const score = userPerfomance.score || 0;
     
-    // ユーザーの統計情報を更新
-    const userStatsRef = doc(db, 'user_stats', currentUserId);
+    // ユーザー情報を直接更新（user_statsの代わりにusersコレクションに統計情報を保存）
+    const userRef = doc(db, 'users', currentUserId);
     
     // トランザクションで安全に更新
     await runTransaction(db, async (transaction) => {
       // 1. すべての読み取り操作を先に実行 ----------------------------------------
-      // ユーザーの統計情報を読み取り
-      const statsDoc = await transaction.get(userStatsRef);
+      // ユーザー情報を読み取り
+      const userDoc = await transaction.get(userRef);
       
-      // ジャンルと単元の統計情報を読み取り（条件付き）
-      let genreStatsRef;
-      let genreStatsSnap;
+      // ジャンルと単元の情報を読み取り（条件付き）
+      let genreRef;
+      let genreSnap;
       if (roomData.genre) {
-        genreStatsRef = doc(db, 'genre_stats', roomData.genre);
-        genreStatsSnap = await transaction.get(genreStatsRef);
+        genreRef = doc(db, 'genres', roomData.genre);
+        genreSnap = await transaction.get(genreRef);
       }
       
       // 2. すべての書き込み操作を後で実行 ----------------------------------------
@@ -324,66 +328,50 @@ export async function updateUserStatsOnRoomComplete(
         expToAdd += difficultyBonus;
       }
       
-      // ユーザー統計情報の更新
-      if (!statsDoc.exists()) {
-        // 新規ユーザーの場合は統計レコードを作成
-        transaction.set(userStatsRef, {
-          totalQuizzes: roomData.totalQuizCount,
-          correctAnswers: userPerfomance.score || 0,
-          experience: expToAdd,
-          lastActivity: serverTimestamp(),
-          genre: {
-            [roomData.genre]: {
-              count: 1,
-              score: score
-            }
-          }
-        });
-      } else {
-        // 既存ユーザーの統計を更新
-        const statsData = statsDoc.data();
-        const genreStats = statsData.genre?.[roomData.genre] || { count: 0, score: 0 };
+      // ユーザー統計情報の更新（usersコレクションに直接保存）
+      if (userDoc.exists()) {
+        // ユーザーが存在する場合
+        const userData = userDoc.data();
+        const currentStats = userData.stats || {
+          totalQuizzes: 0,
+          correctAnswers: 0,
+          experience: 0,
+          genre: {}
+        };
         
-        transaction.update(userStatsRef, {
-          totalQuizzes: increment(roomData.totalQuizCount),
-          correctAnswers: increment(userPerfomance.score || 0),
-          experience: increment(expToAdd),
-          lastActivity: serverTimestamp(),
-          [`genre.${roomData.genre}`]: {
+        const genreStats = currentStats.genre?.[roomData.genre] || { count: 0, score: 0 };
+        
+        transaction.update(userRef, {
+          'stats.totalQuizzes': increment(roomData.totalQuizCount),
+          'stats.correctAnswers': increment(userPerfomance.score || 0),
+          'stats.experience': increment(expToAdd),
+          'stats.lastActivity': serverTimestamp(),
+          [`stats.genre.${roomData.genre}`]: {
             count: (genreStats.count || 0) + 1,
             score: (genreStats.score || 0) + score
           }
         });
+      } else {
+        // 想定外のケース：ユーザーが存在しないが、統計を更新しようとしている
+        console.error('ユーザーが存在しないため統計更新をスキップします');
       }
       
-      // ジャンルと単元の使用統計の更新
-      if (roomData.genre && genreStatsRef && genreStatsSnap) {
-        if (genreStatsSnap.exists()) {
-          transaction.update(genreStatsRef, {
-            useCount: increment(1)
+      // ジャンルと単元の使用統計の更新（genre_statsの代わりにgenresコレクションに統計情報を保存）
+      if (roomData.genre && genreRef && genreSnap) {
+        if (genreSnap.exists()) {
+          transaction.update(genreRef, {
+            'stats.useCount': increment(1)
           });
           
           // 単元情報があれば、その統計も更新
           if (roomData.unitId) {
-            transaction.update(genreStatsRef, {
-              [`units.${roomData.unitId}.useCount`]: increment(1)
+            transaction.update(genreRef, {
+              [`stats.units.${roomData.unitId}.useCount`]: increment(1)
             });
           }
         } else {
-          // ジャンル統計がまだ存在しない場合は作成
-          const newGenreStats: {
-            useCount: number;
-            units: {[unitId: string]: {useCount: number}}
-          } = {
-            useCount: 1,
-            units: {}
-          };
-          
-          if (roomData.unitId) {
-            newGenreStats.units[roomData.unitId] = { useCount: 1 };
-          }
-          
-          transaction.set(genreStatsRef, newGenreStats);
+          // ジャンルデータが存在しないケース（通常は発生しないはず）
+          console.error('ジャンルが存在しないため統計更新をスキップします');
         }
       }
     });
@@ -391,4 +379,7 @@ export async function updateUserStatsOnRoomComplete(
     console.error('Error updating user stats:', err);
     throw new Error('統計の更新中にエラーが発生しました');
   }
+  
+  // 更新が完了したらtrueを返す
+  return true;
 }

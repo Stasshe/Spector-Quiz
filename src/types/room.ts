@@ -17,6 +17,7 @@ export interface QuizRoom {
   updatedAt: Timestamp;
   status: RoomStatus;
   currentState: QuizRoomState;
+  statsUpdated?: boolean; // 統計情報が更新済みかどうか
   
   // 移行期間中は互換性のためquizIdsも保持
   quizIds?: string[];

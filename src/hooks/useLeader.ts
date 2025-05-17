@@ -505,15 +505,21 @@ export function useLeader(roomId: string) {
       
       try {
         await batch.commit();
-        console.log('ユーザー統計情報を更新しました');
+        console.log('ユーザー統計情報をバッチ処理で更新しました');
+        
+        // 統計更新済みのフラグをルームに設定（重複更新防止）
+        const roomRef = doc(db, 'quiz_rooms', roomId);
+        await updateDoc(roomRef, {
+          statsUpdated: true
+        });
       } catch (statsError) {
         console.error('統計情報の更新に失敗しました:', statsError);
         // 統計更新の失敗は無視して処理を続行
       }
       
-      console.log(`Quiz room ${roomId} completed - scheduling deletion in 3 seconds`);
+      console.log(`Quiz room ${roomId} completed - scheduling deletion in 10 seconds`);
       
-      // 3秒後にルームを削除（結果表示時間確保）
+      // 10秒後にルームを削除（結果表示と統計更新の時間確保）
       setTimeout(async () => {
         try {
           // まず、各参加者のcurrentRoomIdをnullに設定して参照を解除

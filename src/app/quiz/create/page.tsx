@@ -54,7 +54,7 @@ function CreateRoomContent() {
     const roomId = await createNewRoom(roomName, genre, classType, unitId);
     
     if (roomId) {
-      router.push(`/quiz/room?roomId=${roomId}`);
+      router.push(`/quiz/room?id=${roomId}`);
     }
   };
 

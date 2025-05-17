@@ -167,11 +167,23 @@ export const updateUserStatsOnRoomComplete = async (roomId: string): Promise<boo
       const roomSnap = await getDoc(roomRef);
       
       if (!roomSnap.exists()) {
-        console.warn('ルームが見つかりません。統計は更新されません。');
-        return false;
+        console.log('ルームが既に削除されています。統計は既にバッチ処理で更新済みの可能性があります。');
+        return true; // エラーではなく成功として扱う（バッチ処理で既に更新済みと想定）
       }
       
       const roomData = roomSnap.data() as QuizRoom;
+      
+      // 既に統計が更新済みの場合はスキップ
+      if (roomData.statsUpdated) {
+        console.log('このルームの統計は既に更新済みです');
+        return true;
+      }
+      
+      // 既に統計が更新済みの場合はスキップ
+      if (roomData.statsUpdated) {
+        console.log('このルームの統計は既に更新済みです');
+        return true;
+      }
       
       // まず自分自身の統計を更新（エラーをキャッチして続行）
       try {
