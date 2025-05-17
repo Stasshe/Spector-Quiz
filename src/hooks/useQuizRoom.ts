@@ -618,6 +618,13 @@ export function useQuizRoom() {
               updateUserStatsOnRoomComplete(docSnap.id).catch(err => {
                 console.error('統計更新エラー:', err);
               });
+              
+              // ルーム完了時に全員が8秒後に自動的にクイズ選択画面に戻るようにする
+              // page.tsxで実装した自動リダイレクトのバックアップとして機能
+              console.log('クイズが完了しました。8秒後に自動的にクイズ選択画面に戻ります...');
+              setTimeout(() => {
+                router.push('/quiz');
+              }, 8000); // 8秒後（ページ上の5秒よりも遅く設定して、ページ上での処理を優先）
             }
           }
           

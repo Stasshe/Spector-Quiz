@@ -69,15 +69,33 @@ function QuizRoomContent() {
         if (updated) {
           setStatsUpdated(true);
           console.log('ユーザー統計情報を更新しました');
+          
+          // 5秒後に自動的にクイズ選択画面に戻る（リーダーもそれ以外の参加者も共通処理）
+          setTimeout(() => {
+            console.log('クイズ終了後の自動リダイレクト実行');
+            handleLeaveRoom();
+          }, 5000); // 5秒後に自動遷移
         } else {
           console.log('統計情報の更新はスキップされました（ユーザー情報なし）');
           // エラーではないのでゲームプレイは続行
           setStatsUpdated(true);
+          
+          // こちらも同様に5秒後にリダイレクト
+          setTimeout(() => {
+            console.log('クイズ終了後の自動リダイレクト実行（統計更新スキップ）');
+            handleLeaveRoom();
+          }, 5000);
         }
       } catch (err) {
         console.error('統計更新エラー:', err);
         // エラーが発生してもゲームプレイを続行できるように統計更新済みとマーク
         setStatsUpdated(true);
+        
+        // エラー時も同様に5秒後にリダイレクト
+        setTimeout(() => {
+          console.log('クイズ終了後の自動リダイレクト実行（エラー発生）');
+          handleLeaveRoom();
+        }, 5000);
       }
     };
     
@@ -244,6 +262,7 @@ function QuizRoomContent() {
                   <div className="my-4 p-4 bg-green-50 border border-green-200 rounded-md">
                     <p className="text-green-600">✓ プレイ結果が統計に反映されました！</p>
                     <p className="text-gray-600 mt-1">このルームは自動的に削除されます。</p>
+                    <p className="text-gray-600 mt-1">5秒後にクイズ選択画面に戻ります...</p>
                   </div>
                 )}
                 <button

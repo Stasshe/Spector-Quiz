@@ -1,7 +1,7 @@
 'use client';
 
 import { getAuth } from 'firebase/auth';
-import { getDoc, doc } from 'firebase/firestore';
+import { getDoc, doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/config/firebase';
 
 // roomService.ts からのインポート
@@ -196,28 +196,23 @@ export const updateUserStatsOnRoomComplete = async (roomId: string): Promise<boo
         console.warn('自分の統計更新に失敗しましたが、処理を続行します:', selfErr);
       }
       
-      // ルームリーダーのみが全員の統計を更新
-      let updatedCount = 0;
-      let failedCount = 0;
+      // 各ユーザーは自身の統計のみ更新する（セキュリティ上の理由）
+      // リーダーが他の参加者の統計を更新しようとするとパーミッションエラーが発生するため、
+      // 各ユーザーは自分の統計情報のみを自己責任で更新する
       
       if (roomData.roomLeaderId === user.uid && roomData.participants) {
-        // 全参加者の統計を更新（自分以外）
-        const participantIds = Object.keys(roomData.participants).filter(id => id !== user.uid);
-        console.log(`ルームリーダーとして${participantIds.length}人の参加者の統計を更新します`);
-        
-        // 各参加者の統計を非同期で更新し、エラーがあっても継続
-        for (const participantId of participantIds) {
-          try {
-            await updateRoomStats(participantId, roomId);
-            updatedCount++;
-          } catch (participantErr) {
-            console.warn(`参加者 ${participantId} の統計更新に失敗しました:`, participantErr);
-            failedCount++;
-            // エラーがあっても処理を続行
-          }
+        // 他のユーザーの統計情報は更新しない（SecurityRulesの制限のため）
+        // 代わりに、完了フラグを設定して各ユーザーが自分の統計を更新できるようにする
+        try {
+          // ルームに統計処理完了フラグを設定（各ユーザーが確認できるように）
+          const roomRef = doc(db, 'quiz_rooms', roomId);
+          await updateDoc(roomRef, {
+            statsUpdated: true
+          });
+          console.log('ルームの統計処理完了フラグを設定しました。各ユーザーは次回ログイン時に自身の統計を更新します。');
+        } catch (flagErr) {
+          console.warn('統計処理フラグの設定に失敗しました:', flagErr);
         }
-        
-        console.log(`参加者統計更新結果: 成功=${updatedCount}, 失敗=${failedCount}`);
       }
       
       // 一部でも成功していれば true を返す

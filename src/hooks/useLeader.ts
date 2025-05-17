@@ -584,7 +584,7 @@ export function useLeader(roomId: string) {
         } catch (error) {
           console.error('Error in room cleanup process:', error);
         }
-      }, 3000);
+      }, 10000); // 10秒後に削除（前の修正と合わせる）
     } catch (error: any) {
       console.error('Error finishing quiz game:', error);
       
