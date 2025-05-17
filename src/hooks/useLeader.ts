@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect } from 'react';
 import { db } from '@/config/firebase';
+import { TIMING, SCORING } from '@/config/quizConfig';
 import { 
   collection, 
   doc, 
@@ -435,10 +436,10 @@ export function useLeader(roomId: string) {
           }
         }
         
-        // 数秒後に次の問題に進む
+        // 設定された時間待ってから次の問題に進む
         setTimeout(() => {
           moveToNextQuestion();
-        }, 5000);
+        }, TIMING.NEXT_QUESTION_DELAY);
       } catch (getAnswerError: any) {
         console.error('解答データの取得に失敗しました:', getAnswerError);
         
@@ -453,12 +454,12 @@ export function useLeader(roomId: string) {
               'currentState.isRevealed': true
             });
             
-            // 数秒後に次の問題に進む
+            // 設定された時間待ってから次の問題に進む
             setTimeout(() => {
               moveToNextQuestion();
-            }, 5000);
+            }, TIMING.NEXT_QUESTION_DELAY);
             
-            console.log('緊急リカバリー: 次の問題に進みます');
+            console.log(`緊急リカバリー: ${TIMING.NEXT_QUESTION_DELAY/1000}秒後に次の問題に進みます`);
           } catch (recoveryError) {
             console.error('緊急リカバリーに失敗しました:', recoveryError);
           }
@@ -469,7 +470,7 @@ export function useLeader(roomId: string) {
       // 何らかのエラーがあった場合も、タイムアウトで次の問題に進む
       setTimeout(() => {
         moveToNextQuestion();
-      }, 5000);
+      }, TIMING.NEXT_QUESTION_DELAY);
     }
   }, [isLeader, quizRoom, currentQuiz, roomId, moveToNextQuestion]);
 
@@ -649,14 +650,16 @@ export function useLeader(roomId: string) {
           roomData.currentState?.answerStatus === 'correct' && 
           roomData.status === 'in_progress') {
         
-        console.log('正解フラグが検知されました。次の問題に進みます');
+        console.log(`正解フラグが検知されました。${TIMING.NEXT_QUESTION_DELAY/1000}秒後に次の問題に進みます`);
         
         try {
           // フラグをリセット
           await updateDoc(roomRef, { readyForNextQuestion: false });
           
-          // 次の問題に進む
-          moveToNextQuestion();
+          // 設定された遅延時間後に次の問題へ
+          setTimeout(() => {
+            moveToNextQuestion();
+          }, TIMING.NEXT_QUESTION_DELAY);
         } catch (error) {
           console.error('正解フラグ処理中にエラーが発生しました:', error);
         }
@@ -918,10 +921,12 @@ export function useLeader(roomId: string) {
             
             console.log(`ルーム状態を更新しました - 解答は${isCorrect ? '正解' : '不正解'}です`);
             
-            // 正解の場合のみ、リーダーなら次の問題に進む
+            // 正解の場合のみ、リーダーなら待ち時間後に次の問題に進む
             if (isCorrect && isLeader) {
-              console.log('正解が確認されたため、次の問題に進みます');
-              moveToNextQuestion();
+              console.log(`正解が確認されました。${TIMING.NEXT_QUESTION_DELAY/1000}秒後に次の問題に進みます`);
+              setTimeout(() => {
+                moveToNextQuestion();
+              }, TIMING.NEXT_QUESTION_DELAY);
             }
           } catch (roomUpdateErr: any) {
             console.error('ルーム状態の更新に失敗しました:', roomUpdateErr);
@@ -931,10 +936,10 @@ export function useLeader(roomId: string) {
               
               // 緊急回復策: 自分がリーダーなら強制的に次の問題に進む
               if (isLeader && isCorrect) {
-                console.log('緊急回復策を実行します: 5秒後に次の問題に進みます');
+                console.log(`緊急回復策を実行します: ${TIMING.NEXT_QUESTION_DELAY/1000}秒後に次の問題に進みます`);
                 setTimeout(() => {
                   moveToNextQuestion();
-                }, 5000);
+                }, TIMING.NEXT_QUESTION_DELAY);
               } else {
                 console.log('リーダーではないか不正解のため、次の問題に進むことはできません');
               }

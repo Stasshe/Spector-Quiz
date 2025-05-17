@@ -7,6 +7,7 @@ import { useQuiz } from '@/hooks/useQuiz';
 import { useQuizRoom } from '@/hooks/useQuizRoom';
 import { useLeader } from '@/hooks/useLeader';
 import { RoomStatus } from '@/types/room';
+import { TIMING } from '@/config/quizConfig';
 import QuizQuestion from '@/components/quiz/QuizQuestion';
 import ParticipantList from '@/components/quiz/ParticipantList';
 import AnswerInput from '@/components/quiz/AnswerInput';
