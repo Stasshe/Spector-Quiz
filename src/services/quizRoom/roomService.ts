@@ -138,43 +138,98 @@ export async function checkAndDisbandOldRooms(
     
     const oldRooms = await getDocs(oldRoomsQuery);
     
+    if (oldRooms.empty) {
+      // 古いルームが無い場合は早期リターン
+      return;
+    }
+    
+    console.log(`${oldRooms.size}個の古いルームを解散処理します`);
+    
     // 解散処理を実行
     const deletePromises = oldRooms.docs.map(async (roomDoc) => {
-      const roomData = roomDoc.data() as QuizRoom;
-      console.log(`古いルーム解散: ${roomDoc.id}, 作成時間: ${roomData.startedAt?.toDate().toLocaleString()}`);
-      
-      // 参加者のcurrentRoomIdをクリア
-      const participantIds = Object.keys(roomData.participants || {});
-      const userUpdatePromises = participantIds.map(async (userId) => {
-        const userRef = doc(db, 'users', userId);
-        try {
-          const userDoc = await getDoc(userRef);
-          if (userDoc.exists() && userDoc.data().currentRoomId === roomDoc.id) {
-            await updateDoc(userRef, { currentRoomId: null });
+      try {
+        const roomData = roomDoc.data() as QuizRoom;
+        console.log(`古いルーム解散: ${roomDoc.id}, 作成時間: ${roomData.startedAt?.toDate().toLocaleString()}`);
+        
+        // 参加者のcurrentRoomIdをクリア
+        const participantIds = Object.keys(roomData.participants || {});
+        
+        // 各参加者のユーザー情報を更新（権限エラー対策のため個別処理）
+        for (const userId of participantIds) {
+          try {
+            const userRef = doc(db, 'users', userId);
+            const userDoc = await getDoc(userRef);
+            
+            // ユーザーが存在し、そのルームに参加中の場合のみ更新
+            if (userDoc.exists() && userDoc.data().currentRoomId === roomDoc.id) {
+              try {
+                await updateDoc(userRef, { currentRoomId: null });
+                console.log(`ユーザー ${userId} のルーム参加情報をクリアしました`);
+              } catch (updateErr: any) {
+                // 権限エラーは個別に処理（スキップしてログ記録のみ）
+                if (updateErr?.code === 'permission-denied') {
+                  console.warn(`ユーザー ${userId} の更新権限がありません`);
+                } else {
+                  console.error(`ユーザー ${userId} の更新中にエラーが発生しました:`, updateErr);
+                }
+              }
+            }
+          } catch (userErr) {
+            console.error(`ユーザー ${userId} の情報取得中にエラー:`, userErr);
           }
-        } catch (userErr) {
-          console.error(`Failed to update user ${userId}:`, userErr);
         }
-      });
-      
-      await Promise.all(userUpdatePromises);
-      
-      // ルームを削除
-      await deleteDoc(roomDoc.ref);
-      
-      // 現在ユーザーが待機中のルームが解散された場合、待機中ルーム状態をクリア
-      if (
-        currentUserId && 
-        setWaitingRoom && 
-        currentWaitingRoomId === roomDoc.id
-      ) {
-        setWaitingRoom(null);
+        
+        // ルームを削除（リーダーまたは管理者権限がある場合のみ可能）
+        try {
+          await deleteDoc(roomDoc.ref);
+          console.log(`ルーム ${roomDoc.id} を完全に削除しました`);
+        } catch (deleteErr: any) {
+          // 権限エラーは異なる処理を行う
+          if (deleteErr?.code === 'permission-denied') {
+            console.warn(`ルーム ${roomDoc.id} の削除権限がありません。代替手段を試行します`);
+            
+            // 権限エラーの場合は、ルームのステータスを更新して完了とマーク
+            try {
+              await updateDoc(roomDoc.ref, {
+                status: 'completed',
+                updatedAt: serverTimestamp(),
+                automaticallyClosed: true,
+                closeReason: '8分以上の未活動'
+              });
+              console.log(`ルーム ${roomDoc.id} を完了状態に更新しました`);
+            } catch (updateErr: any) {
+              // 更新の権限もない場合は諦める
+              if (updateErr?.code === 'permission-denied') {
+                console.error(`ルーム ${roomDoc.id} を更新する権限もありません`);
+              } else {
+                console.error(`ルーム ${roomDoc.id} の更新中にエラー:`, updateErr);
+              }
+            }
+          } else {
+            console.error(`ルーム ${roomDoc.id} の削除中にエラー:`, deleteErr);
+          }
+        }
+        
+        // 現在ユーザーが待機中のルームが解散された場合、待機中ルーム状態をクリア
+        if (
+          currentUserId && 
+          setWaitingRoom && 
+          currentWaitingRoomId === roomDoc.id
+        ) {
+          setWaitingRoom(null);
+          console.log(`ユーザーの待機中ルーム状態をクリアしました: ${roomDoc.id}`);
+        }
+      } catch (roomErr) {
+        // 個別のルーム処理でエラーが発生しても他のルームの処理を続行
+        console.error(`ルーム ${roomDoc.id} の処理中にエラー:`, roomErr);
       }
     });
     
-    await Promise.all(deletePromises);
+    // 全ての非同期処理が完了するまで待機
+    await Promise.allSettled(deletePromises);
+    console.log('古いルームの解散処理が完了しました');
   } catch (err) {
-    console.error('Error disbanding old rooms:', err);
+    console.error('古いルームの解散処理中にエラーが発生しました:', err);
     // エラーはスローせず、ログだけ記録（バックグラウンド操作のため）
   }
 }

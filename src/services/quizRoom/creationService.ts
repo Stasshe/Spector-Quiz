@@ -42,6 +42,9 @@ export async function createRoomService(
     const userRef = doc(db, 'users', userId);
     const userDoc = await getDoc(userRef);
     
+    // 注意: ここでは前のルームからの自動退室を行うが、
+    // 実際のUIフローでは useQuizRoom の中で roomSwitchConfirmModal を
+    // 表示するように処理が追加されている
     if (userDoc.exists() && userDoc.data().currentRoomId) {
       // ユーザーが既に他のルームに参加している場合、そのルームから強制的に退出
       try {

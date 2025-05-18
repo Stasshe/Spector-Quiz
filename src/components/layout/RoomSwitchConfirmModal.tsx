@@ -48,8 +48,12 @@ export default function RoomSwitchConfirmModal() {
         <div className="mb-6">
           <p className="text-gray-600 mb-4">
             あなたは現在「{waitingRoom?.name || "待機中ルーム"}」に参加中です。
-            新しいルーム「{roomToJoin?.roomName || "別のルーム"}」に参加するには、
-            現在のルームから退出する必要があります。
+            {roomToJoin?.roomId === 'pending-creation' ? (
+              <>新しいルームを作成するには、現在のルームから退出する必要があります。</>
+            ) : (
+              <>新しいルーム「{roomToJoin?.roomName || "別のルーム"}」に参加するには、
+              現在のルームから退出する必要があります。</>
+            )}
           </p>
           <p className="text-yellow-600 font-medium">
             注意: 現在のルームで得た情報やスコアは失われます。
@@ -58,13 +62,26 @@ export default function RoomSwitchConfirmModal() {
         
         <div className="flex justify-end space-x-2">
           <button
-            onClick={cancelRoomSwitch}
+            onClick={() => {
+              console.log('キャンセルボタンがクリックされました');
+              cancelRoomSwitch();
+            }}
             className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition-colors"
           >
             キャンセル
           </button>
           <button
-            onClick={switchRoom}
+            onClick={() => {
+              console.log('ルーム切り替えボタンがクリックされました', roomToJoin);
+              if (roomToJoin) {
+                // roomToJoinの値を明示的にログ出力
+                console.log('切り替え先ルーム情報', {
+                  roomId: roomToJoin.roomId,
+                  roomName: roomToJoin.roomName
+                });
+              }
+              switchRoom();
+            }}
             className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors flex items-center"
           >
             <FaExchangeAlt className="mr-2" />

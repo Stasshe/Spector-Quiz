@@ -38,10 +38,15 @@ export default function WaitingRoomFloating() {
 
   // 画面ロード時にユーザーの現在参加中のルームを確認
   useEffect(() => {
+    // ルームチェックの重複実行を防ぐためのフラグ
+    let isChecking = false;
+    
     const checkUserCurrentRoom = async () => {
-      if (!currentUser) return;
+      if (!currentUser || isChecking) return;
       
       try {
+        isChecking = true;
+        
         // ユーザーのドキュメントから現在のルームIDを取得
         const userRef = doc(db, 'users', currentUser.uid);
         const userDoc = await getDoc(userRef);
@@ -50,7 +55,10 @@ export default function WaitingRoomFloating() {
           const currentRoomId = userDoc.data().currentRoomId;
           
           // 既に設定されているwaitingRoomと同じ場合は何もしない
-          if (waitingRoom && waitingRoom.roomId === currentRoomId) return;
+          if (waitingRoom && waitingRoom.roomId === currentRoomId) {
+            isChecking = false;
+            return;
+          }
           
           // currentRoomIdが存在する場合、そのルーム情報を取得
           try {
@@ -73,6 +81,8 @@ export default function WaitingRoomFloating() {
         }
       } catch (err) {
         console.error('ユーザーの現在のルーム確認中にエラーが発生しました:', err);
+      } finally {
+        isChecking = false;
       }
     };
     
@@ -194,11 +204,20 @@ export default function WaitingRoomFloating() {
     
     const roomRef = doc(db, 'quiz_rooms', waitingRoom.roomId);
     
+    // コンソールログの重複を防ぐためのデバウンス処理
+    let lastLogTime = 0;
+    const LOG_THROTTLE_MS = 1000; // 1秒間に1回のみログを出力
+    
     const unsubscribe = onSnapshot(roomRef, (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.data();
-        // データ変換のデバッグ出力を追加
-        console.log('WaitingRoom participants data:', data.participants);
+        
+        // ログの重複出力を防止
+        const now = Date.now();
+        if (now - lastLogTime > LOG_THROTTLE_MS) {
+          console.log('WaitingRoom participants data:', data.participants);
+          lastLogTime = now;
+        }
         
         // ルーム作成時間を更新
         if (data.startedAt) {

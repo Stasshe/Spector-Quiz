@@ -175,12 +175,18 @@ export function useQuizRoom() {
       return false;
     }
 
+    console.log(`ルーム参加リクエスト: ${roomId}, 現在のルーム: ${currentWaitingRoomId}`);
+
     // 既に別の待機中ルームにいる場合は確認
     if (currentWaitingRoomId && currentWaitingRoomId !== roomId) {
+      console.log('別のルームに既に参加中のため、切り替え確認ダイアログを表示します');
       // 確認用にルーム情報を取得しておく
       try {
         const currentRoomData = await getRoomById(currentWaitingRoomId);
+        console.log('現在参加中のルーム情報:', currentRoomData);
+        
         const roomToJoinData = await getRoomById(roomId);
+        console.log('参加先のルーム情報:', roomToJoinData);
         
         // ルーム情報を保存して確認ダイアログを表示
         setRoomToJoin({
@@ -188,16 +194,23 @@ export function useQuizRoom() {
           roomName: roomToJoinData.name
         });
         setConfirmRoomSwitch(true);
+        console.log('ルーム切り替え確認ダイアログを表示しました');
         return false;
       } catch (err) {
         console.error('ルーム情報の取得中にエラーが発生しました:', err);
-        setError('ルーム情報の取得に失敗しました');
+        // エラーの詳細を表示
+        if (err instanceof Error) {
+          setError(`ルーム情報の取得に失敗しました: ${err.message}`);
+        } else {
+          setError('ルーム情報の取得に失敗しました');
+        }
         return false;
       }
     }
 
     try {
       setLoading(true);
+      console.log(`ルーム参加処理を開始: ${roomId}`);
       
       const success = await joinRoom(
         roomId, 
@@ -207,33 +220,48 @@ export function useQuizRoom() {
       );
       
       if (success) {
+        console.log('ルーム参加が成功しました');
         // コンテキストに待機中ルーム情報を設定
         setCurrentWaitingRoomId(roomId);
         
         try {
+          console.log('ルーム情報を取得しています...');
           // ルーム情報を取得してからセット
           const roomData = await getRoomById(roomId);
           setWaitingRoom(roomData);
           
           // 自動的にルームページに移動
+          console.log(`ルームページに移動します: /quiz/room?id=${roomId}`);
           router.push(`/quiz/room?id=${roomId}`);
           return true;
         } catch (err) {
           console.error('ルーム情報の取得に失敗しました', err);
-          setError('ルーム情報の取得に失敗しました');
+          // エラーの詳細を表示
+          if (err instanceof Error) {
+            setError(`ルーム情報の取得に失敗しました: ${err.message}`);
+          } else {
+            setError('ルーム情報の取得に失敗しました');
+          }
           return false;
         }
+      } else {
+        console.error('ルーム参加処理が失敗しました');
       }
       
       return false;
     } catch (err) {
       console.error('ルームへの参加に失敗しました', err);
-      setError('ルームへの参加に失敗しました');
+      // エラーの詳細を表示
+      if (err instanceof Error) {
+        setError(`ルームへの参加に失敗しました: ${err.message}`);
+      } else {
+        setError('ルームへの参加に失敗しました');
+      }
       return false;
     } finally {
       setLoading(false);
     }
-  }, [currentUser, userProfile, currentWaitingRoomId, router, setWaitingRoom]);
+  }, [currentUser, userProfile, currentWaitingRoomId, router, setWaitingRoom, getRoomById]);
 
   /**
    * 作成したルームに参加する (内部用)
@@ -299,7 +327,14 @@ export function useQuizRoom() {
    * 参加中のルームを抜けて新しいルームに参加
    */
   const switchRoom = useCallback(async () => {
+    console.log('[RoomSwitch] 開始:', {
+      currentUser: currentUser?.uid,
+      hasUserProfile: !!userProfile,
+      roomToJoin
+    });
+    
     if (!currentUser || !userProfile || !roomToJoin) {
+      console.warn('[RoomSwitch] 中断: 必要なデータが不足しています');
       setConfirmRoomSwitch(false);
       return false;
     }
@@ -309,36 +344,72 @@ export function useQuizRoom() {
       
       // 現在のルームから退出
       if (currentWaitingRoomId) {
-        await leaveRoom(
-          currentWaitingRoomId,
-          currentUser.uid,
-          false // 強制的に非リーダー扱いで退出
-        );
+        console.log(`[RoomSwitch] 現在のルーム(${currentWaitingRoomId})から退出します`);
+        try {
+          await leaveRoom(
+            currentWaitingRoomId,
+            currentUser.uid,
+            false // 強制的に非リーダー扱いで退出
+          );
+          console.log('[RoomSwitch] 退出成功');
+        } catch (leaveErr) {
+          console.error('[RoomSwitch] 退出エラー:', leaveErr);
+          // エラーがあっても続行（新しいルーム参加を優先）
+        }
       }
       
-      // 新しいルームに参加
-      const success = await joinRoom(
-        roomToJoin.roomId,
-        currentUser.uid,
-        userProfile.username,
-        userProfile.iconId
-      );
-      
-      if (success) {
-        // コンテキストを更新
-        setCurrentWaitingRoomId(roomToJoin.roomId);
+      // 新しいルーム作成か既存ルーム参加かを判断
+      if (roomToJoin.roomId === 'pending-creation') {
+        // これは新規作成の場合のコールバック
+        // ルームから退出は成功しているため、未処理のフラグをクリアして
+        // 退出状態をクリーンにする
         
-        // ルーム情報を取得
-        const roomData = await getRoomById(roomToJoin.roomId);
-        setWaitingRoom(roomData);
-        
-        // ルームページへ移動
-        router.push(`/quiz/room?id=${roomToJoin.roomId}`);
+        setCurrentWaitingRoomId(null); // 退出は成功しているので現在のルームIDをクリア
+        setWaitingRoom(null);
         
         // 状態をクリア
         setRoomToJoin(null);
         setConfirmRoomSwitch(false);
+        
+        console.log('[RoomSwitch] 新規ルーム作成モードで完了');
         return true;
+      } else {
+        // 既存の特定ルームへの参加
+        console.log(`[RoomSwitch] 既存ルーム(${roomToJoin.roomId})に参加します`);
+        
+        const success = await joinRoom(
+          roomToJoin.roomId,
+          currentUser.uid,
+          userProfile.username,
+          userProfile.iconId
+        );
+        
+        if (success) {
+          // コンテキストを更新
+          setCurrentWaitingRoomId(roomToJoin.roomId);
+          
+          // ルーム情報を取得
+          try {
+            const roomData = await getRoomById(roomToJoin.roomId);
+            setWaitingRoom(roomData);
+            
+            // ルームページへ移動
+            router.push(`/quiz/room?id=${roomToJoin.roomId}`);
+            
+            // 状態をクリア
+            setRoomToJoin(null);
+            setConfirmRoomSwitch(false);
+            console.log('[RoomSwitch] 既存ルームへの参加が完了しました');
+            return true;
+          } catch (roomErr) {
+            console.error('[RoomSwitch] ルーム情報の取得に失敗:', roomErr);
+            setError('ルーム情報の取得に失敗しました');
+            return false;
+          }
+        } else {
+          console.error('[RoomSwitch] ルームへの参加に失敗しました');
+          setError('ルームへの参加に失敗しました');
+        }
       }
       
       return false;
@@ -350,7 +421,7 @@ export function useQuizRoom() {
       setLoading(false);
       setConfirmRoomSwitch(false);
     }
-  }, [currentUser, userProfile, currentWaitingRoomId, roomToJoin, router, setWaitingRoom]);
+  }, [currentUser, userProfile, currentWaitingRoomId, roomToJoin, router, setWaitingRoom, leaveRoom, joinRoom, getRoomById, setWaitingRoom]);
 
   /**
    * ルーム切り替えをキャンセル
@@ -374,7 +445,40 @@ export function useQuizRoom() {
       return null;
     }
 
+    // 既に待機中ルームに参加している場合は、切り替え確認を表示
+    if (currentWaitingRoomId) {
+      try {
+        // 現在参加中のルーム情報を取得
+        const currentRoomData = await getRoomById(currentWaitingRoomId);
+        console.log('現在参加中のルーム情報:', currentRoomData);
+
+        // 確認ダイアログを表示するための情報を設定
+        // roomToJoin.roomIdは実際の作成・参加ルームIDではなくダミー値を一時的に設定
+        const roomNameToShow = `${genre}の${unitId ? '単元' : ''}クイズルーム`;
+        console.log(`ルーム切り替え確認ダイアログを表示します: ${roomNameToShow}`);
+        
+        setRoomToJoin({
+          roomId: 'pending-creation',  // 新規作成用の一時的なID
+          roomName: roomNameToShow
+        });
+        setConfirmRoomSwitch(true);
+        
+        // 確認ダイアログを表示するため、この時点でnullを返す
+        setLoading(false);
+        return null;
+      } catch (err) {
+        console.error('待機中ルーム情報の確認中にエラーが発生しました:', err);
+        // エラーが発生してもnullを返す前にさらに詳細を記録
+        console.log('currentWaitingRoomId:', currentWaitingRoomId);
+        console.log('状態リセット中...');
+        
+        // エラーが発生した場合は、参加中ルーム情報をクリアして続行
+        setCurrentWaitingRoomId(null);
+      }
+    }
+
     try {
+      console.log(`新規ルーム作成または検索を開始: ${roomName}, ${genre}`);
       setLoading(true);
       
       let roomId: string;
@@ -400,6 +504,7 @@ export function useQuizRoom() {
         );
       }
       
+      console.log(`ルームが見つかりました/作成されました: ${roomId}`);
       await joinCreatedRoom(roomId);
       return roomId;
     } catch (err) {
@@ -409,7 +514,7 @@ export function useQuizRoom() {
     } finally {
       setLoading(false);
     }
-  }, [currentUser, userProfile, joinCreatedRoom]);
+  }, [currentUser, userProfile, currentWaitingRoomId, joinCreatedRoom, getRoomById]);
 
   /**
    * 準備状態を切り替える

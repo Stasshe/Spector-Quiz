@@ -166,11 +166,15 @@ export async function leaveRoomService(
  */
 export async function getRoomById(roomId: string): Promise<QuizRoom> {
   try {
+    if (!roomId) {
+      throw new Error('ルームIDが指定されていません');
+    }
+    
     const roomRef = doc(db, 'quiz_rooms', roomId);
     const roomSnap = await getDoc(roomRef);
     
     if (!roomSnap.exists()) {
-      throw new Error('ルームが見つかりません');
+      throw new Error(`ルームが見つかりません (ID: ${roomId})`);
     }
     
     return {
@@ -179,6 +183,12 @@ export async function getRoomById(roomId: string): Promise<QuizRoom> {
     } as QuizRoom;
   } catch (err) {
     console.error('Error getting room:', err);
-    throw new Error('ルームの取得中にエラーが発生しました');
+    
+    // エラーの詳細を含める
+    if (err instanceof Error) {
+      throw new Error(`ルームの取得中にエラーが発生しました: ${err.message}`);
+    } else {
+      throw new Error('ルームの取得中に不明なエラーが発生しました');
+    }
   }
 }
