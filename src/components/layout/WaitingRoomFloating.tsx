@@ -2,12 +2,14 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { FaUserFriends, FaTimes, FaSignOutAlt, FaPlay, FaClock } from 'react-icons/fa';
+import { FaUserFriends, FaTimes, FaSignOutAlt, FaPlay, FaClock, FaExchangeAlt } from 'react-icons/fa';
 import { useQuiz } from '@/context/QuizContext';
 import { useRouter } from 'next/navigation';
 import { db } from '@/config/firebase';
-import { doc, deleteDoc, updateDoc, onSnapshot, getDoc, collection, query, where, getDocs, Timestamp,serverTimestamp } from 'firebase/firestore';
+import { doc, deleteDoc, updateDoc, onSnapshot, getDoc, collection, query, where, getDocs, Timestamp, serverTimestamp } from 'firebase/firestore';
 import { useAuth } from '@/context/AuthContext';
+import { getRoomById } from '@/services/quizRoom';
+import { useQuizRoom } from '@/hooks/useQuizRoom';
 
 const AUTO_DISBAND_TIME_MS = 8 * 60 * 1000; // 8分（ミリ秒）
 
@@ -25,6 +27,58 @@ export default function WaitingRoomFloating() {
   const [waitTimeMs, setWaitTimeMs] = useState(0);
   const [roomCreationTime, setRoomCreationTime] = useState<Date | null>(null);
   const autoCheckTimerRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // useQuizRoomからルーム切り替え関連の機能を取得
+  const { 
+    confirmRoomSwitch: isRoomSwitchConfirmOpen,
+    roomToJoin: newRoomToJoin,
+    switchRoom: handleGlobalSwitchRoom,
+    cancelRoomSwitch: handleGlobalCancelRoomSwitch
+  } = useQuizRoom();
+
+  // 画面ロード時にユーザーの現在参加中のルームを確認
+  useEffect(() => {
+    const checkUserCurrentRoom = async () => {
+      if (!currentUser) return;
+      
+      try {
+        // ユーザーのドキュメントから現在のルームIDを取得
+        const userRef = doc(db, 'users', currentUser.uid);
+        const userDoc = await getDoc(userRef);
+        
+        if (userDoc.exists() && userDoc.data().currentRoomId) {
+          const currentRoomId = userDoc.data().currentRoomId;
+          
+          // 既に設定されているwaitingRoomと同じ場合は何もしない
+          if (waitingRoom && waitingRoom.roomId === currentRoomId) return;
+          
+          // currentRoomIdが存在する場合、そのルーム情報を取得
+          try {
+            const roomData = await getRoomById(currentRoomId);
+            
+            // ルームの状態が'waiting'の場合のみ設定
+            if (roomData && roomData.status === 'waiting') {
+              console.log('ユーザーの参加中ルームを復元:', currentRoomId);
+              setWaitingRoom(roomData);
+            } else if (roomData && roomData.status === 'in_progress') {
+              // 進行中のルームの場合はルームページに移動
+              console.log('進行中のルームが見つかりました:', currentRoomId);
+              // 自動的な移動はしない（ユーザーが意図的に別のページを開いた可能性がある）
+            }
+          } catch (roomErr) {
+            console.error('ルーム情報の取得中にエラーが発生しました:', roomErr);
+            // エラーの場合、不整合を修正するためにcurrentRoomIdをクリア
+            await updateDoc(userRef, { currentRoomId: null });
+          }
+        }
+      } catch (err) {
+        console.error('ユーザーの現在のルーム確認中にエラーが発生しました:', err);
+      }
+    };
+    
+    // ユーザーのログイン状態が変わった時、または画面読み込み時に実行
+    checkUserCurrentRoom();
+  }, [currentUser, setWaitingRoom, waitingRoom]);
 
   // 自動解散処理を行う関数
   const checkAndDisbandRoom = async (roomId: string) => {
@@ -245,6 +299,44 @@ export default function WaitingRoomFloating() {
     setIsWaitingRoomModalOpen(false);
   };
 
+  // ルーム切り替え確認ダイアログを表示
+  const [isSwitchDialogOpen, setIsSwitchDialogOpen] = useState(false);
+  const [nextRoomId, setNextRoomId] = useState<string | null>(null);
+
+  const handleRoomSwitch = async (newRoomId: string) => {
+    if (!currentUser) return;
+    
+    setNextRoomId(newRoomId);
+    setIsSwitchDialogOpen(true);
+  };
+
+  const handleLocalConfirmSwitch = async () => {
+    if (!nextRoomId || !currentUser) return;
+    
+    setIsSwitchDialogOpen(false);
+    
+    try {
+      // 現在のルームから退出
+      await leaveRoom();
+      
+      // 新しいルームに参加
+      const newRoomData = await getRoomById(nextRoomId);
+      if (newRoomData && newRoomData.status === 'waiting') {
+        setWaitingRoom(newRoomData);
+        setIsWaitingRoomModalOpen(true);
+      } else {
+        console.error('無効なルームデータ:', newRoomData);
+      }
+    } catch (err) {
+      console.error('ルーム切り替え中にエラーが発生しました:', err);
+    }
+  };
+
+  const handleLocalCancelSwitch = () => {
+    setIsSwitchDialogOpen(false);
+    setNextRoomId(null);
+  };
+
   // 待機ルームがない場合は表示しない
   if (!waitingRoom) return null;
 
@@ -337,6 +429,52 @@ export default function WaitingRoomFloating() {
                   {isLeader ? 'ルームを削除' : '退出する'}
                 </button>
               </div>
+
+              {/* ルーム切り替え確認ダイアログ */}
+              <AnimatePresence>
+                {isSwitchDialogOpen && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+                    onClick={handleLocalCancelSwitch}
+                  >
+                    <motion.div
+                      initial={{ scale: 0.9, y: 20 }}
+                      animate={{ scale: 1, y: 0 }}
+                      exit={{ scale: 0.9, y: 20 }}
+                      onClick={(e) => e.stopPropagation()}
+                      className="bg-white rounded-lg p-6 w-full max-w-md shadow-xl"
+                    >
+                      <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                        ルームの切り替え確認
+                      </h3>
+                      <p className="text-gray-700 mb-6">
+                        このルームを退出して、新しいルームに参加しますか？
+                      </p>
+                      
+                      <div className="flex space-x-3">
+                        <button
+                          onClick={handleLocalConfirmSwitch}
+                          className="flex-1 bg-indigo-600 text-white py-2 px-4 rounded-lg flex items-center justify-center hover:bg-indigo-700 transition"
+                        >
+                          <FaExchangeAlt size={14} className="mr-2" />
+                          はい、ルームを切り替える
+                        </button>
+                        
+                        <button
+                          onClick={handleLocalCancelSwitch}
+                          className="flex-1 bg-gray-300 text-gray-800 py-2 px-4 rounded-lg flex items-center justify-center hover:bg-gray-400 transition"
+                        >
+                          <FaTimes size={14} className="mr-2" />
+                          いいえ、キャンセル
+                        </button>
+                      </div>
+                    </motion.div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </motion.div>
           </motion.div>
         )}

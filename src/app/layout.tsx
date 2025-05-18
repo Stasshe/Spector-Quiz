@@ -5,6 +5,7 @@ import "./globals.css";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import WaitingRoomFloating from "@/components/layout/WaitingRoomFloating";
+import RoomSwitchConfirmModal from "@/components/layout/RoomSwitchConfirmModal";
 import { AuthProvider } from "@/context/AuthContext";
 import { QuizProvider } from "@/context/QuizContext";
 
@@ -45,6 +46,7 @@ export default function RootLayout({
             <main className="flex-grow">{children}</main>
             <Footer />
             <WaitingRoomFloating />
+            <RoomSwitchConfirmModal />
           </QuizProvider>
         </AuthProvider>
       </body>
