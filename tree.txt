@@ -16,20 +16,17 @@
 │   ├── next.svg
 │   ├── vercel.svg
 │   └── window.svg
-├── re.txt
 ├── src
 │   ├── app
 │   │   ├── admin
-│   │   │   ├── dashboard
 │   │   │   ├── initialize
 │   │   │   │   └── page.tsx
 │   │   │   ├── layout.tsx
-│   │   │   ├── login
+│   │   │   ├── page.tsx
 │   │   │   ├── quiz-management
-│   │   │   │   ├── create
-│   │   │   │   └── edit
-│   │   │   ├── statistics
+│   │   │   │   └── page.tsx
 │   │   │   └── user-management
+│   │   │       └── page.tsx
 │   │   ├── auth
 │   │   │   ├── login
 │   │   │   │   └── page.tsx
@@ -44,14 +41,10 @@
 │   │   │   └── user
 │   │   │       └── page.tsx
 │   │   ├── quiz
-│   │   │   ├── create
-│   │   │   │   └── page.tsx
 │   │   │   ├── create-quiz
 │   │   │   │   └── page.tsx
 │   │   │   ├── page.tsx
-│   │   │   ├── room
-│   │   │   │   └── page.tsx
-│   │   │   └── rooms
+│   │   │   └── room
 │   │   │       └── page.tsx
 │   │   └── ranking
 │   │       └── page.tsx
@@ -59,7 +52,9 @@
 │   │   ├── layout
 │   │   │   ├── Footer.tsx
 │   │   │   ├── Header.tsx
+│   │   │   ├── RoomSwitchConfirmModal.tsx
 │   │   │   └── WaitingRoomFloating.tsx
+│   │   ├── modal
 │   │   └── quiz
 │   │       ├── AnswerInput
 │   │       │   └── index.tsx
@@ -72,7 +67,8 @@
 │   │       └── ScoreBoard
 │   │           └── index.tsx
 │   ├── config
-│   │   └── firebase.ts
+│   │   ├── firebase.ts
+│   │   └── quizConfig.ts
 │   ├── constants
 │   │   └── genres.ts
 │   ├── context
@@ -84,6 +80,13 @@
 │   │   ├── useQuiz.ts
 │   │   ├── useQuizRoom.ts
 │   │   └── useQuizUnit.ts
+│   ├── patches
+│   ├── services
+│   │   └── quizRoom
+│   │       ├── creationService.ts
+│   │       ├── index.ts
+│   │       ├── participationService.ts
+│   │       └── roomService.ts
 │   └── types
 │       ├── quiz.ts
 │       ├── room.ts
@@ -91,6 +94,7 @@
 ├── tailwind.config.ts
 ├── test-output.txt
 ├── tree.txt
-└── tsconfig.json
+├── tsconfig.json
+└── version
 
-36 directories, 57 files
+33 directories, 64 files

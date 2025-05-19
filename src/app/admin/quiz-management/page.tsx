@@ -2,60 +2,198 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { db } from '@/config/firebase';
-import { collection, getDocs, query, where, orderBy, limit, doc, updateDoc, deleteDoc, getDoc } from 'firebase/firestore';
-import { QuizUnit } from '@/types/quiz';
+import { collection, getDocs, query, where, doc, updateDoc, addDoc, serverTimestamp } from 'firebase/firestore';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
-import { useQuizUnit } from '@/hooks/useQuizUnit';
+import { genreClasses, GenreInfo } from '@/constants/genres';
+
+// 公式クイズ単元のインターフェース
+interface OfficialQuizUnit {
+  unitId: string;
+  title: string;
+  category: string;
+  genre: string;
+  description?: string;
+  quizCount: number;
+  useCount: number;
+  isPublic: boolean;
+  createdAt: any;
+  averageDifficulty?: number;
+}
+
+// カテゴリとそれに属する単元情報
+interface CategoryWithUnits {
+  category: string;
+  units: OfficialQuizUnit[];
+}
 
 export default function QuizManagement() {
   const { currentUser } = useAuth();
-  const { fetchUnitsByGenre } = useQuizUnit();
-  const [units, setUnits] = useState<QuizUnit[]>([]);
+  const [officialUnitsByCategory, setOfficialUnitsByCategory] = useState<CategoryWithUnits[]>([]);
   const [selectedGenre, setSelectedGenre] = useState<string>('日本史');
   const [loading, setLoading] = useState(true);
-  const [genres, setGenres] = useState<{id: string, name: string}[]>([]);
+  const [genres, setGenres] = useState<GenreInfo[]>([]);
   const [error, setError] = useState<string | null>(null);
   
-  // ジャンルデータを取得
-  const fetchGenres = useCallback(async () => {
+  // ジャンルデータを定数から取得
+  const fetchGenresFromConstants = useCallback(() => {
     try {
-      const genresSnapshot = await getDocs(collection(db, 'genres'));
-      const genresData = genresSnapshot.docs.map(doc => ({
-        id: doc.id,
-        name: doc.data().name || doc.id
-      }));
+      // genreClassesから「すべて」グループ内のジャンルを取得
+      const allGenres = genreClasses.find(gc => gc.name === 'すべて')?.genres || [];
+      setGenres(allGenres);
       
-      setGenres(genresData);
-      return genresData;
+      // 最初のジャンルをデフォルトで選択
+      if (allGenres.length > 0 && !selectedGenre) {
+        setSelectedGenre(allGenres[0].name);
+      }
+      
+      return allGenres;
     } catch (err) {
-      console.error('Error fetching genres:', err);
-      setError('ジャンルの取得中にエラーが発生しました');
+      console.error('Error fetching genres from constants:', err);
+      setError('ジャンル情報の取得中にエラーが発生しました');
       return [];
     }
-  }, []);
+  }, [selectedGenre]);
+
+  // 公式クイズ単元を取得
+  const fetchOfficialUnitsByCategory = useCallback(async (genreName: string) => {
+    if (!genreName) {
+      return [];
+    }
+
+    try {
+      setLoading(true);
+      
+      // official_quiz_unitsコレクションからクエリを実行
+      const unitsQuery = query(
+        collection(db, 'official_quiz_units'),
+        where('genre', '==', genreName)
+      );
+      
+      const unitsSnapshot = await getDocs(unitsQuery);
+      
+      // 既存のデータをマッピング
+      const existingUnitsMap = new Map<string, OfficialQuizUnit>();
+      unitsSnapshot.forEach(doc => {
+        const data = doc.data() as Omit<OfficialQuizUnit, 'unitId'>;
+        const unit = {
+          ...data,
+          unitId: doc.id,
+        } as OfficialQuizUnit;
+        existingUnitsMap.set(`${unit.category}-${unit.title}`, unit);
+      });
+      
+      // ジャンルから対応するカテゴリと単元情報を取得
+      const genreInfo = genres.find(g => g.name === genreName);
+      if (!genreInfo) {
+        setOfficialUnitsByCategory([]);
+        setLoading(false);
+        return [];
+      }
+      
+      // カテゴリごとにunitsByCategory配列を構築
+      const categoriesWithUnits: CategoryWithUnits[] = [];
+      
+      for (const [category, unitNames] of Object.entries(genreInfo.units)) {
+        const units: OfficialQuizUnit[] = [];
+        
+        // constants/genresから定義されている単元をベースにデータを構築
+        for (const unitName of unitNames) {
+          const mapKey = `${category}-${unitName}`;
+          if (existingUnitsMap.has(mapKey)) {
+            // Firestoreに既に存在する単元を追加
+            units.push(existingUnitsMap.get(mapKey)!);
+          } else {
+            // Firestoreにまだない単元はデフォルト値で表示
+            units.push({
+              unitId: '',  // IDはまだ割り当てられていない
+              title: unitName,
+              category: category,
+              genre: genreName,
+              description: `${genreName}の${category}における${unitName}に関する単元です`,
+              quizCount: 0,
+              useCount: 0,
+              isPublic: false,  // 未作成なのでデフォルトでは非公開
+              createdAt: null,
+              averageDifficulty: 3
+            });
+          }
+        }
+        
+        categoriesWithUnits.push({
+          category,
+          units
+        });
+      }
+      
+      setOfficialUnitsByCategory(categoriesWithUnits);
+      setLoading(false);
+      return categoriesWithUnits;
+    } catch (err) {
+      console.error('Error fetching official units:', err);
+      setError('公式単元の取得中にエラーが発生しました');
+      setLoading(false);
+      return [];
+    }
+  }, [genres]);
 
   // 単元を公開/非公開に切り替える
-  const toggleUnitVisibility = async (unit: QuizUnit) => {
+  const toggleUnitVisibility = async (unit: OfficialQuizUnit) => {
     if (!currentUser) {
       setError('操作するには管理者権限が必要です');
       return;
     }
     
     try {
-      const unitRef = doc(db, 'genres', unit.genre || '', 'quiz_units', unit.unitId);
-      await updateDoc(unitRef, {
-        isPublic: !unit.isPublic
-      });
-      
-      // ローカル状態を更新
-      setUnits(prevUnits => 
-        prevUnits.map(u => 
-          u.unitId === unit.unitId 
-          ? { ...u, isPublic: !u.isPublic } 
-          : u
-        )
-      );
+      // 単元がまだFirestoreに存在しない場合は作成
+      if (!unit.unitId) {
+        // 新規単元を作成
+        const newUnitRef = await addDoc(collection(db, 'official_quiz_units'), {
+          title: unit.title,
+          category: unit.category,
+          genre: unit.genre,
+          description: unit.description || `${unit.genre}の${unit.category}における${unit.title}に関する単元です`,
+          quizCount: 0,
+          useCount: 0,
+          isPublic: true, // 新規作成して公開
+          createdAt: serverTimestamp(),
+          averageDifficulty: 3
+        });
+        
+        // ローカル状態を更新
+        setOfficialUnitsByCategory(prevCategories => 
+          prevCategories.map(category => ({
+            ...category,
+            units: category.units.map(u =>
+              u.title === unit.title && u.category === unit.category && u.genre === unit.genre
+                ? { 
+                    ...u, 
+                    unitId: newUnitRef.id, 
+                    isPublic: true 
+                  } 
+                : u
+            )
+          }))
+        );
+      } else {
+        // 既存の単元を更新
+        const unitRef = doc(db, 'official_quiz_units', unit.unitId);
+        await updateDoc(unitRef, {
+          isPublic: !unit.isPublic
+        });
+        
+        // ローカル状態を更新
+        setOfficialUnitsByCategory(prevCategories => 
+          prevCategories.map(category => ({
+            ...category,
+            units: category.units.map(u =>
+              u.unitId === unit.unitId 
+                ? { ...u, isPublic: !u.isPublic } 
+                : u
+            )
+          }))
+        );
+      }
     } catch (err) {
       console.error('Error toggling unit visibility:', err);
       setError('単元の公開状態の更新中にエラーが発生しました');
@@ -63,24 +201,14 @@ export default function QuizManagement() {
   };
   
   useEffect(() => {
-    // 初期データロード
+    // 初期データロード - constants/genresからジャンルとカテゴリを取得
     const loadData = async () => {
       try {
         setLoading(true);
         setError(null);
         
-        // ジャンル一覧を取得
-        const genresData = await fetchGenres();
-        
-        if (genresData.length > 0) {
-          // 最初のジャンルを選択状態にする
-          const firstGenre = genresData[0].id;
-          setSelectedGenre(firstGenre);
-          
-          // 選択したジャンルの単元を取得
-          const units = await fetchUnitsByGenre(firstGenre);
-          setUnits(units);
-        }
+        // ジャンル一覧を定数から取得
+        fetchGenresFromConstants();
       } catch (err) {
         console.error('Error loading data:', err);
         setError('データの読み込み中にエラーが発生しました');
@@ -90,22 +218,18 @@ export default function QuizManagement() {
     };
     
     loadData();
-  }, [fetchGenres, fetchUnitsByGenre]);
-  
-  // ジャンル変更時に単元を再取得
-  const handleGenreChange = async (genreId: string) => {
-    try {
-      setLoading(true);
-      setSelectedGenre(genreId);
-      
-      const units = await fetchUnitsByGenre(genreId);
-      setUnits(units);
-      setLoading(false);
-    } catch (err) {
-      console.error('Error fetching units for genre:', err);
-      setError('単元の取得中にエラーが発生しました');
-      setLoading(false);
+  }, [fetchGenresFromConstants]);
+
+  // 選択されたジャンルが変更されたら単元を取得
+  useEffect(() => {
+    if (selectedGenre) {
+      fetchOfficialUnitsByCategory(selectedGenre);
     }
+  }, [selectedGenre, fetchOfficialUnitsByCategory]);
+  
+  // ジャンル変更時の処理
+  const handleGenreChange = (genreName: string) => {
+    setSelectedGenre(genreName);
   };
 
   return (
@@ -128,7 +252,7 @@ export default function QuizManagement() {
           className="border border-gray-300 rounded-md p-2 w-full md:w-1/3"
         >
           {genres.map((genre) => (
-            <option key={genre.id} value={genre.id}>
+            <option key={genre.name} value={genre.name}>
               {genre.name}
             </option>
           ))}
@@ -142,71 +266,88 @@ export default function QuizManagement() {
       ) : (
         <>
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">単元一覧</h2>
-            <Link
-              href="/quiz/create-quiz"
-              className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded"
-            >
-              新規単元作成
-            </Link>
+            <h2 className="text-xl font-semibold">公式単元一覧</h2>
+            <div className="text-sm text-gray-500">
+              ※ 公式クイズの単元情報は constants/genres.ts で定義されています
+            </div>
           </div>
           
-          <div className="overflow-x-auto">
-            <table className="min-w-full bg-white border">
-              <thead>
-                <tr className="bg-gray-100 text-gray-600 uppercase text-sm leading-normal">
-                  <th className="py-3 px-6 text-left">単元名</th>
-                  <th className="py-3 px-6 text-left">説明</th>
-                  <th className="py-3 px-6 text-center">クイズ数</th>
-                  <th className="py-3 px-6 text-center">使用回数</th>
-                  <th className="py-3 px-6 text-center">公開状態</th>
-                  <th className="py-3 px-6 text-center">操作</th>
-                </tr>
-              </thead>
-              <tbody className="text-gray-600">
-                {units.map((unit) => (
-                  <tr key={unit.unitId} className="border-b hover:bg-gray-50">
-                    <td className="py-3 px-6">{unit.title}</td>
-                    <td className="py-3 px-6">{unit.description || '説明なし'}</td>
-                    <td className="py-3 px-6 text-center">{unit.quizCount || 0}</td>
-                    <td className="py-3 px-6 text-center">{unit.useCount || 0}</td>
-                    <td className="py-3 px-6 text-center">
-                      <span className={`px-2 py-1 rounded text-white text-xs ${
-                        unit.isPublic ? 'bg-green-500' : 'bg-gray-500'
-                      }`}>
-                        {unit.isPublic ? '公開' : '非公開'}
-                      </span>
-                    </td>
-                    <td className="py-3 px-6 text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        <Link 
-                          href={`/quiz/create-quiz?genreId=${unit.genre}&unitId=${unit.unitId}&edit=true`}
-                          className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-1 px-2 rounded text-xs"
-                        >
-                          編集
-                        </Link>
-                        <button
-                          onClick={() => toggleUnitVisibility(unit)}
-                          className={`text-white font-medium py-1 px-2 rounded text-xs ${
-                            unit.isPublic 
-                            ? 'bg-yellow-600 hover:bg-yellow-700' 
-                            : 'bg-green-600 hover:bg-green-700'
-                          }`}
-                        >
-                          {unit.isPublic ? '非公開に' : '公開に'}
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {units.length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="py-4 px-6 text-center">単元がありません</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+          {officialUnitsByCategory.length === 0 ? (
+            <div className="p-8 text-center text-gray-600">
+              このジャンルには単元が定義されていません
+            </div>
+          ) : (
+            officialUnitsByCategory.map((categoryData) => (
+              <div key={categoryData.category} className="mb-8">
+                <h3 className="text-lg font-semibold bg-gray-100 p-3 mb-3 rounded-t border-l-4 border-indigo-500">
+                  {categoryData.category}
+                </h3>
+                
+                <div className="overflow-x-auto">
+                  <table className="min-w-full bg-white border">
+                    <thead>
+                      <tr className="bg-gray-50 text-gray-600 uppercase text-sm leading-normal">
+                        <th className="py-3 px-6 text-left">単元名</th>
+                        <th className="py-3 px-6 text-center">クイズ数</th>
+                        <th className="py-3 px-6 text-center">使用回数</th>
+                        <th className="py-3 px-6 text-center">公開状態</th>
+                        <th className="py-3 px-6 text-center">操作</th>
+                      </tr>
+                    </thead>
+                    <tbody className="text-gray-600">
+                      {categoryData.units.map((unit, index) => (
+                        <tr key={unit.unitId || `temp-${index}`} className="border-b hover:bg-gray-50">
+                          <td className="py-3 px-6">{unit.title}</td>
+                          <td className="py-3 px-6 text-center">{unit.quizCount || 0}</td>
+                          <td className="py-3 px-6 text-center">{unit.useCount || 0}</td>
+                          <td className="py-3 px-6 text-center">
+                            <span className={`px-2 py-1 rounded text-white text-xs ${
+                              unit.unitId && unit.isPublic ? 'bg-green-500' : 'bg-gray-500'
+                            }`}>
+                              {unit.unitId 
+                                ? (unit.isPublic ? '公開' : '非公開') 
+                                : '未作成'}
+                            </span>
+                          </td>
+                          <td className="py-3 px-6 text-center">
+                            <div className="flex items-center justify-center gap-2">
+                              {unit.unitId ? (
+                                <>
+                                  <Link 
+                                    href={`/quiz/create-quiz?officialGenre=${unit.genre}&officialCategory=${unit.category}&officialUnit=${unit.title}&unitId=${unit.unitId}&edit=true`}
+                                    className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-1 px-2 rounded text-xs"
+                                  >
+                                    編集
+                                  </Link>
+                                  <button
+                                    onClick={() => toggleUnitVisibility(unit)}
+                                    className={`text-white font-medium py-1 px-2 rounded text-xs ${
+                                      unit.isPublic 
+                                      ? 'bg-yellow-600 hover:bg-yellow-700' 
+                                      : 'bg-green-600 hover:bg-green-700'
+                                    }`}
+                                  >
+                                    {unit.isPublic ? '非公開に' : '公開に'}
+                                  </button>
+                                </>
+                              ) : (
+                                <button
+                                  onClick={() => toggleUnitVisibility(unit)}
+                                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-1 px-2 rounded text-xs"
+                                >
+                                  作成・公開
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ))
+          )}
         </>
       )}
     </div>

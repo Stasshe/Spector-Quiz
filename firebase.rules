@@ -1,24 +1,30 @@
 service cloud.firestore {
   match /databases/{database}/documents {
+    // 管理者チェック関数
+    function isAdmin() {
+      return request.auth != null && request.auth.uid == "100000";
+    }
+    
     // ユーザードキュメント
     match /users/{userId} {
       allow read;
       allow create: if request.auth != null;
-      allow update: if request.auth.uid == userId;
+      allow update: if request.auth.uid == userId || isAdmin();
+      allow delete: if isAdmin();
     }
     
     // ユーザー統計情報 - トップレベルコレクション
     match /user_stats/{userId} {
       allow read;
-      // どのログインユーザーでも統計情報を更新できるように変更
-      allow write: if request.auth != null;
+      // どのログインユーザーでも統計情報を更新できるように変更、管理者は全ての操作可能
+      allow write: if request.auth != null || isAdmin();
     }
     
     // ジャンル統計情報
     match /genre_stats/{genreId} {
       allow read;
-      // ログインしているユーザーなら更新可能
-      allow write: if request.auth != null;
+      // ログインしているユーザーなら更新可能、管理者は全ての操作可能
+      allow write: if request.auth != null || isAdmin();
     }
     
     // ジャンル情報
@@ -27,6 +33,7 @@ service cloud.firestore {
       // 初期化段階では誰でも作成できるように
       allow create: if request.auth != null;
       allow update, delete: if request.auth != null && (
+                     isAdmin() ||
                      request.auth.token.admin == true || 
                      resource.data.isUserCreated == true && request.auth.uid == resource.data.createdBy
                    );
@@ -37,6 +44,7 @@ service cloud.firestore {
         // 初期化段階では誰でも作成できるように
         allow create: if request.auth != null;
         allow update, delete: if request.auth != null && (
+                       isAdmin() ||
                        request.auth.uid == resource.data.createdBy || 
                        get(/databases/$(database)/documents/genres/$(genreId)).data.createdBy == request.auth.uid
                      );
@@ -45,9 +53,23 @@ service cloud.firestore {
         match /quizzes/{quizId} {
           allow read;
           allow write: if request.auth != null && (
+                        isAdmin() ||
                         request.auth.uid == get(/databases/$(database)/documents/genres/$(genreId)/quiz_units/$(unitId)).data.createdBy ||
                         get(/databases/$(database)/documents/genres/$(genreId)).data.createdBy == request.auth.uid
                       );
+        }
+      }
+      
+      // 公式クイズ単元（ジャンル配下に配置）
+      match /official_quiz_units/{unitId} {
+        allow read;
+        // 管理者のみが作成・更新・削除可能
+        allow create, update, delete: if isAdmin();
+        
+        // 公式クイズ単元内のクイズ
+        match /quizzes/{quizId} {
+          allow read;
+          allow write: if isAdmin();
         }
       }
     }
@@ -60,6 +82,19 @@ service cloud.firestore {
                      request.auth.uid == resource.data.createdBy ||
                      request.auth.token.admin == true
                    );
+    }
+    
+    // トップレベルの公式クイズ単元（非推奨、以前の構造）
+    match /official_quiz_units/{unitId} {
+      allow read;
+      // 管理者のみが作成・更新・削除可能
+      allow create, update, delete: if isAdmin();
+      
+      // 公式クイズ単元内のクイズ
+      match /quizzes/{quizId} {
+        allow read;
+        allow write: if isAdmin();
+      }
     }
     
     // クイズルーム
