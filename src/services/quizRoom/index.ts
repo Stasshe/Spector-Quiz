@@ -87,8 +87,22 @@ export const joinRoom = async (
   username: string,
   iconId: number
 ): Promise<boolean> => {
-  await joinRoomService(roomId, userId, username, iconId);
-  return true;
+  try {
+    console.log(`[joinRoom] ルーム(${roomId})への参加を開始します: ユーザー ${userId}`);
+    await joinRoomService(roomId, userId, username, iconId);
+    console.log(`[joinRoom] ルーム(${roomId})への参加が成功しました`);
+    return true;
+  } catch (err) {
+    console.error(`[joinRoom] ルーム(${roomId})への参加中にエラー:`, err);
+    
+    // Firebaseの権限エラーの場合は特別に処理
+    if (err instanceof Error && err.message.includes('permission-denied')) {
+      console.log('権限エラーが発生しましたが、処理は続行します');
+      return false; // 失敗として扱うが、エラーはスローしない
+    }
+    
+    throw err; // その他のエラーは上位に伝播させる
+  }
 };
 
 export const leaveRoom = async (

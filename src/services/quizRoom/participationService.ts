@@ -30,34 +30,60 @@ export async function joinRoomService(
   force: boolean = false
 ): Promise<QuizRoom> {
   try {
-    // ユーザーが既に別のルームに参加しているか確認
-    const userRef = doc(db, 'users', userId);
-    const userDoc = await getDoc(userRef);
+    console.log(`[joinRoomService] ルーム(${roomId})への参加を開始します: ユーザー ${userId}`);
     
-    // まず、ユーザーのルーム情報をクリア（権限エラーを防止するため）
-    try {
-      await updateDoc(userRef, { currentRoomId: null });
-    } catch (userErr) {
-      console.error('Error clearing user room ID:', userErr);
-      // エラーが発生してもプロセスを続行
-    }
-    
-    // 参加先のルームの情報を確認
+    // 参加先のルームが有効かどうか最初に確認
     const roomRef = doc(db, 'quiz_rooms', roomId);
+    let roomData: any = null;
     
-    // トライキャッチブロックを使って、各操作を個別に保護
     try {
       const roomSnap = await getDoc(roomRef);
       if (!roomSnap.exists()) {
+        console.error(`[joinRoomService] ルーム(${roomId})が存在しません`);
         throw new Error('ルームが存在しません');
       }
       
-      const roomData = roomSnap.data() as QuizRoom;
+      roomData = roomSnap.data();
+      console.log(`[joinRoomService] ルーム(${roomId})の状態: ${roomData.status}`);
       
       // in_progressのルームには参加できない
       if (roomData.status === 'in_progress' && !force) {
+        console.error(`[joinRoomService] ルーム(${roomId})は進行中のため参加できません`);
         throw new Error('進行中のルームには参加できません');
       }
+    } catch (roomCheckErr) {
+      console.error('[joinRoomService] ルーム確認エラー:', roomCheckErr);
+      throw roomCheckErr; // 上位に伝播させる
+    }
+    
+    // ユーザーの現在の状態を確認
+    const userRef = doc(db, 'users', userId);
+    let currentRoomId: string | null = null;
+    
+    try {
+      const userDoc = await getDoc(userRef);
+      if (userDoc.exists() && userDoc.data().currentRoomId) {
+        currentRoomId = userDoc.data().currentRoomId;
+        console.log(`[joinRoomService] ユーザー(${userId})は現在ルーム(${currentRoomId})に参加中`);
+        
+        // 同じルームに参加しようとしている場合はスキップ
+        if (currentRoomId === roomId) {
+          console.log(`[joinRoomService] 既に参加中のルーム(${roomId})です。参加処理をスキップ`);
+          // 既に参加中のルーム情報を返す
+          return {
+            ...roomData,
+            roomId: roomId
+          };
+        }
+      }
+    } catch (userCheckErr) {
+      console.error('[joinRoomService] ユーザー情報確認エラー:', userCheckErr);
+      // エラーがあっても続行（ルーム参加処理を優先）
+    }
+    
+    // 参加処理を実行
+    try {
+      console.log(`[joinRoomService] ルーム(${roomId})に参加者情報を追加します`);
       
       // 参加者情報を作成
       const participantInfo: ParticipantInfo = {
@@ -76,20 +102,42 @@ export async function joinRoomService(
         updatedAt: serverTimestamp()
       });
       
-      // ユーザーに現在のルームIDを設定
-      await updateDoc(userRef, { currentRoomId: roomId });
+      console.log(`[joinRoomService] ルーム(${roomId})への参加に成功しました`);
+
+      // ルームの参加が成功した後で、ユーザーに現在のルームIDを設定
+      try {
+        await updateDoc(userRef, { currentRoomId: roomId });
+        console.log(`[joinRoomService] ユーザー(${userId})のcurrentRoomIdを${roomId}に更新しました`);
+      } catch (updateErr) {
+        console.error(`[joinRoomService] ユーザー(${userId})のcurrentRoomId更新エラー:`, updateErr);
+        // エラーがあっても続行（ルームへの参加自体は成功しているため）
+      }
       
-      // 参加したルームの情報を取得して返す
-      const updatedRoomSnap = await getDoc(roomRef);
-      const updatedRoom = {
-        ...updatedRoomSnap.data(),
-        roomId: updatedRoomSnap.id
-      } as QuizRoom;
-      
-      return updatedRoom;
-    } catch (roomErr: any) {
-      console.error('Error in room operations:', roomErr);
-      throw roomErr;
+      // 参加したルームの情報を再取得して返す
+      try {
+        const updatedRoomSnap = await getDoc(roomRef);
+        if (!updatedRoomSnap.exists()) {
+          throw new Error('参加したルームが見つかりませんでした');
+        }
+        
+        const updatedRoom = {
+          ...updatedRoomSnap.data(),
+          roomId: updatedRoomSnap.id
+        } as QuizRoom;
+        
+        console.log(`[joinRoomService] 更新されたルーム情報を返します: ${updatedRoom.name}`);
+        return updatedRoom;
+      } catch (roomGetErr) {
+        console.error('[joinRoomService] 更新されたルーム情報の取得に失敗:', roomGetErr);
+        // エラーが発生しても、最低限の情報は返す
+        return {
+          ...roomData,
+          roomId: roomId
+        } as QuizRoom;
+      }
+    } catch (joinErr) {
+      console.error('[joinRoomService] ルーム参加処理中にエラー:', joinErr);
+      throw joinErr; // 上位に伝播
     }
   } catch (err: any) {
     console.error('Error joining room:', err);
@@ -112,6 +160,8 @@ export async function leaveRoomService(
   isLeader: boolean
 ): Promise<void> {
   try {
+    console.log(`[leaveRoomService] ルーム(${roomId})からユーザー(${userId})が退出します。リーダー=${isLeader}`);
+    
     // まず、ユーザー自身のルーム情報をクリア（エラーが発生しても最低限これは行う）
     try {
       await updateDoc(doc(db, 'users', userId), {

@@ -20,7 +20,12 @@ export default function RoomSwitchConfirmModal() {
   
   // documentから直接情報を取得する機能を追加
   const [forcedVisible, setForcedVisible] = React.useState(false);
-  const [forcedRoomInfo, setForcedRoomInfo] = React.useState<{roomId: string; roomName: string} | null>(null);
+  // 型定義を拡張して_requestDataプロパティを含める
+  const [forcedRoomInfo, setForcedRoomInfo] = React.useState<{
+    roomId: string; 
+    roomName: string; 
+    _requestData?: any;
+  } | null>(null);
   
   // ドキュメント属性からモーダル表示状態を監視
   React.useEffect(() => {
@@ -166,61 +171,103 @@ export default function RoomSwitchConfirmModal() {
               const roomInfoToUse = roomToJoin || forcedRoomInfo;
               console.log('[RoomSwitchConfirmModal] ルーム切り替えボタンがクリックされました', roomInfoToUse);
               
+              if (!roomInfoToUse) {
+                console.error('[RoomSwitchConfirmModal] 切り替え先ルーム情報が存在しません');
+                alert('ルームの切り替え処理に必要な情報がありません。ページを再読み込みして再試行してください。');
+                return;
+              }
+              
+              // ボタン連打防止のため無効化（スタイルは変更なし）
+              const button = document.activeElement as HTMLButtonElement;
+              if (button) {
+                button.disabled = true;
+              }
+              
               // UI状態をクリアして、二重クリックを防止
               setForcedVisible(false);
               setForcedRoomInfo(null);
               document.documentElement.removeAttribute('data-room-switch-pending');
               document.documentElement.removeAttribute('data-room-info');
               
+              // 必ず使用するルーム情報をローカル変数に保存して処理の一貫性を保つ
+              const targetRoomInfo: {
+                roomId: string;
+                roomName: string;
+                _requestData?: any;
+              } = { ...roomInfoToUse };
+              console.log('[RoomSwitchConfirmModal] 処理するルーム情報:', targetRoomInfo);
+              
+              // 状態を早めにクリアして、ユーザーの操作性向上
+              setConfirmRoomSwitch(false);
+              
+              // 状態を先にクリアして確実にモーダルを閉じる
+              setConfirmRoomSwitch(false);
+              
               // エラーハンドリング用にtry-catchで囲む
               try {
+                // 強制モードの場合は、まずReact状態にセット（ただし非表示にはしない）
                 if (!roomToJoin && forcedRoomInfo) {
-                  // React状態に強制的にセット
-                  setRoomToJoin(forcedRoomInfo);
-                  setConfirmRoomSwitch(true);
-                  
-                  // 少し遅延して処理することで、状態が反映されるのを待つ
-                  setTimeout(async () => {
-                    try {
-                      await switchRoom();
-                      console.log('[RoomSwitchConfirmModal] ルーム切り替え成功!');
-                    } catch (switchErr) {
-                      console.error('[RoomSwitchConfirmModal] 遅延ルーム切り替え中にエラー:', switchErr);
-                      alert('ルームの切り替え中にエラーが発生しました。もう一度お試しください。');
+                  console.log('[RoomSwitchConfirmModal] 強制モードでルーム情報をセットします');
+                  setRoomToJoin(targetRoomInfo);
+                }
+                
+                // 作成オペレーション情報を保持して確認
+                const isPendingCreation = targetRoomInfo.roomId === 'pending-creation';
+                console.log(`[RoomSwitchConfirmModal] 処理タイプ: ${isPendingCreation ? '新規ルーム作成' : '既存ルーム参加'}`);
+                
+                // 新規作成モードなら、クイズ選択画面に戻った時のために情報を保存
+                if (isPendingCreation) {
+                  console.log('[RoomSwitchConfirmModal] 新規ルーム作成モードのルーム切り替え処理を開始');
+                  // セッションストレージに情報を保存（ページ遷移後にも利用可能）
+                  try {
+                    sessionStorage.setItem('pendingRoomCreation', 'true');
+                    // _requestDataプロパティがあれば保存する（型チェック付き）
+                    const requestData = targetRoomInfo._requestData;
+                    if (requestData && typeof requestData === 'object') {
+                      sessionStorage.setItem('pendingRoomData', JSON.stringify(requestData));
+                      console.log('[RoomSwitchConfirmModal] 新規作成情報を保存しました:', requestData);
+                    } else {
+                      console.log('[RoomSwitchConfirmModal] リクエストデータがないため、基本情報のみ保存します');
                     }
-                  }, 100);
-                } else if (roomToJoin) {
-                  // roomToJoinの値を明示的にログ出力
-                  console.log('[RoomSwitchConfirmModal] 切り替え先ルーム情報', {
-                    roomId: roomToJoin.roomId,
-                    roomName: roomToJoin.roomName
-                  });
+                  } catch (storageErr) {
+                    console.error('[RoomSwitchConfirmModal] セッションストレージへの保存エラー:', storageErr);
+                  }
+                }
+                
+                // 安全のため遅延処理
+                setTimeout(() => {
+                  console.log('[RoomSwitchConfirmModal] switchRoom()を呼び出します');
                   
-                  // 明示的に切り替え処理を呼び出し
+                  // 非同期処理を開始
                   switchRoom()
                     .then(() => {
                       console.log('[RoomSwitchConfirmModal] ルーム切り替え成功!');
+                      // 成功時の処理はswitchRoom内で自動的にページ遷移
                     })
-                    .catch(err => {
-                      console.error('[RoomSwitchConfirmModal] ルーム切り替え中にエラー:', err);
+                    .catch(switchErr => {
+                      console.error('[RoomSwitchConfirmModal] ルーム切り替え中にエラー:', switchErr);
                       alert('ルームの切り替え中にエラーが発生しました。もう一度お試しください。');
+                      
+                      // エラー時はボタンを再度有効化
+                      if (button) {
+                        button.disabled = false;
+                      }
+                    })
+                    .finally(() => {
+                      // 処理完了後に状態を確実にクリア
+                      setRoomToJoin(null);
+                      console.log('[RoomSwitchConfirmModal] 状態をクリアしました');
                     });
-                }
+                }, 200);
               } catch (err) {
                 console.error('[RoomSwitchConfirmModal] ルーム切り替え処理でエラー:', err);
                 alert('ルームの切り替え処理中にエラーが発生しました。もう一度お試しください。');
+                
+                // エラー時はボタンを再度有効化
+                if (button) {
+                  button.disabled = false;
+                }
               }
-              
-              // 状態クリア（処理が成功しても失敗してもUIをリセット）
-              setTimeout(() => {
-                if (confirmRoomSwitch) {
-                  setConfirmRoomSwitch(false);
-                }
-                if (roomToJoin) {
-                  setRoomToJoin(null);
-                }
-                console.log('[RoomSwitchConfirmModal] 切り替え処理後の状態確認');
-              }, 500);
             }}
             className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors flex items-center"
           >
