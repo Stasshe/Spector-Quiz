@@ -13,7 +13,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/config/firebase';
 import { QuizRoom } from '@/types/room';
-import { ParticipantInfo } from '@/types/user';
+//import { ParticipantInfo } from '@/types/user';
 
 // 参加機能をインポート
 import { joinRoomService } from './participationService';

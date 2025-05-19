@@ -18,7 +18,7 @@ import {
   writeBatch,
   serverTimestamp,
   increment,
-  deleteField,
+  //deleteField,
   limit
 } from 'firebase/firestore';
 import { QuizRoom } from '@/types/room';

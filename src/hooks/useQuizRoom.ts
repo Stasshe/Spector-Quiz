@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { onSnapshot, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import { TIMING } from '../config/quizConfig';
+//import { TIMING } from '../config/quizConfig';
 import { useAuth } from '../context/AuthContext';
 import { QuizRoom, RoomListing, RoomStatus, QuizRoomState, AnswerStatus } from '../types/room';
 import { useQuiz } from '../context/QuizContext';
@@ -13,11 +13,11 @@ import { Quiz } from '../types/quiz';
 // サービス関数をインポート
 import {
   fetchAvailableRooms,
-  checkAndDisbandOldRooms,
-  getUnitIdByName,
-  createUnitIfNotExists,
+  //checkAndDisbandOldRooms,
+  //getUnitIdByName,
+  //createUnitIfNotExists,
   updateUserStatsOnRoomComplete,
-  calculateRank,
+  //calculateRank,
   getRoomById,
   createRoom,
   createRoomWithUnit,
@@ -27,10 +27,10 @@ import {
   findOrCreateRoomWithUnit,
   updateParticipantReadyStatus,
   startQuiz,
-  updateQuizState,
+  //updateQuizState,
   finishQuiz,
   revealAnswer,
-  processAnswer,
+  //processAnswer,
   registerClickTime,
   submitAnswer,
   moveToNextQuiz,
