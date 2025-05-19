@@ -166,36 +166,59 @@ export default function RoomSwitchConfirmModal() {
               const roomInfoToUse = roomToJoin || forcedRoomInfo;
               console.log('[RoomSwitchConfirmModal] ルーム切り替えボタンがクリックされました', roomInfoToUse);
               
-              if (!roomToJoin && forcedRoomInfo) {
-                // React状態に強制的にセット
-                setRoomToJoin(forcedRoomInfo);
-                setConfirmRoomSwitch(true);
-                
-                // 少し遅延して処理することで、状態が反映されるのを待つ
-                setTimeout(() => {
-                  switchRoom();
-                }, 100);
-              } else if (roomToJoin) {
-                // roomToJoinの値を明示的にログ出力
-                console.log('[RoomSwitchConfirmModal] 切り替え先ルーム情報', {
-                  roomId: roomToJoin.roomId,
-                  roomName: roomToJoin.roomName
-                });
-                
-                // 明示的に切り替え処理を呼び出し
-                switchRoom();
-              }
-              
-              // 強制表示フラグをクリア
+              // UI状態をクリアして、二重クリックを防止
               setForcedVisible(false);
               setForcedRoomInfo(null);
-              
-              // documentの属性もクリア
               document.documentElement.removeAttribute('data-room-switch-pending');
               document.documentElement.removeAttribute('data-room-info');
               
-              // 処理完了後に確認
+              // エラーハンドリング用にtry-catchで囲む
+              try {
+                if (!roomToJoin && forcedRoomInfo) {
+                  // React状態に強制的にセット
+                  setRoomToJoin(forcedRoomInfo);
+                  setConfirmRoomSwitch(true);
+                  
+                  // 少し遅延して処理することで、状態が反映されるのを待つ
+                  setTimeout(async () => {
+                    try {
+                      await switchRoom();
+                      console.log('[RoomSwitchConfirmModal] ルーム切り替え成功!');
+                    } catch (switchErr) {
+                      console.error('[RoomSwitchConfirmModal] 遅延ルーム切り替え中にエラー:', switchErr);
+                      alert('ルームの切り替え中にエラーが発生しました。もう一度お試しください。');
+                    }
+                  }, 100);
+                } else if (roomToJoin) {
+                  // roomToJoinの値を明示的にログ出力
+                  console.log('[RoomSwitchConfirmModal] 切り替え先ルーム情報', {
+                    roomId: roomToJoin.roomId,
+                    roomName: roomToJoin.roomName
+                  });
+                  
+                  // 明示的に切り替え処理を呼び出し
+                  switchRoom()
+                    .then(() => {
+                      console.log('[RoomSwitchConfirmModal] ルーム切り替え成功!');
+                    })
+                    .catch(err => {
+                      console.error('[RoomSwitchConfirmModal] ルーム切り替え中にエラー:', err);
+                      alert('ルームの切り替え中にエラーが発生しました。もう一度お試しください。');
+                    });
+                }
+              } catch (err) {
+                console.error('[RoomSwitchConfirmModal] ルーム切り替え処理でエラー:', err);
+                alert('ルームの切り替え処理中にエラーが発生しました。もう一度お試しください。');
+              }
+              
+              // 状態クリア（処理が成功しても失敗してもUIをリセット）
               setTimeout(() => {
+                if (confirmRoomSwitch) {
+                  setConfirmRoomSwitch(false);
+                }
+                if (roomToJoin) {
+                  setRoomToJoin(null);
+                }
                 console.log('[RoomSwitchConfirmModal] 切り替え処理後の状態確認');
               }, 500);
             }}

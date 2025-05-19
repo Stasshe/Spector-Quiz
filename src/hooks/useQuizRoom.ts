@@ -534,24 +534,49 @@ export function useQuizRoom() {
         console.log(`[RoomSwitch] リーダー確認: ${isLeaderOfCurrentRoom ? '自分がリーダー' : '一般参加者'}`);
         
         try {
-          await leaveRoom(
+          console.log(`[RoomSwitch] leaveRoom(${actualCurrentRoomId}, ${currentUser.uid}, ${isLeaderOfCurrentRoom})を呼び出します`);
+          const leaveResult = await leaveRoom(
             actualCurrentRoomId,
             currentUser.uid,
             isLeaderOfCurrentRoom // 正確なリーダー情報を渡す
           );
-          console.log('[RoomSwitch] 退出成功');
           
-          // ユーザードキュメントからも現在のルームID情報を削除
+          if (leaveResult) {
+            console.log('[RoomSwitch] 退出成功');
+          } else {
+            console.warn('[RoomSwitch] 退出処理は完了しましたが、成功フラグがfalseです');
+          }
+          
+          // ユーザードキュメントを確実に更新
           try {
             const userRef = doc(db, 'users', currentUser.uid);
             await updateDoc(userRef, { currentRoomId: null });
             console.log('[RoomSwitch] ユーザードキュメントからルームID情報を削除しました');
+            
+            // ローカル状態も更新（念のため）
+            setCurrentWaitingRoomId(null);
           } catch (userErr) {
             console.error('[RoomSwitch] ユーザードキュメント更新エラー:', userErr);
-            // エラーがあっても続行
+            // エラーがあっても続行（ローカル状態は更新）
+            setCurrentWaitingRoomId(null);
           }
         } catch (leaveErr) {
           console.error('[RoomSwitch] 退出エラー:', leaveErr);
+          
+          // エラーがあっても強制的にユーザードキュメントを更新
+          try {
+            const userRef = doc(db, 'users', currentUser.uid);
+            await updateDoc(userRef, { currentRoomId: null });
+            console.log('[RoomSwitch] エラー発生後、ユーザードキュメントから強制的にルームID情報を削除しました');
+            
+            // ローカル状態も更新
+            setCurrentWaitingRoomId(null);
+          } catch (forceUpdateErr) {
+            console.error('[RoomSwitch] 強制更新中にエラー:', forceUpdateErr);
+            // それでもローカル状態は更新
+            setCurrentWaitingRoomId(null);
+          }
+          
           // エラーがあっても続行（新しいルーム参加を優先）
         }
       }

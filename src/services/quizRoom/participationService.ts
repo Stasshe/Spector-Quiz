@@ -112,51 +112,91 @@ export async function leaveRoomService(
   isLeader: boolean
 ): Promise<void> {
   try {
+    // まず、ユーザー自身のルーム情報をクリア（エラーが発生しても最低限これは行う）
+    try {
+      await updateDoc(doc(db, 'users', userId), {
+        currentRoomId: null
+      });
+      console.log(`[leaveRoomService] ユーザー(${userId})のルーム情報をクリアしました`);
+    } catch (userErr) {
+      console.error(`[leaveRoomService] ユーザー(${userId})のルーム情報クリア中にエラー:`, userErr);
+      // エラーが発生しても続行
+    }
+    
     const roomRef = doc(db, 'quiz_rooms', roomId);
     
+    // ルームが存在するか確認
+    const roomSnap = await getDoc(roomRef);
+    if (!roomSnap.exists()) {
+      console.log(`[leaveRoomService] ルーム(${roomId})は既に存在しません`);
+      return; // ルームが存在しなければ何もしない
+    }
+    
+    // ルームが存在する場合の処理
     if (isLeader) {
+      console.log(`[leaveRoomService] リーダーとしてルーム(${roomId})から退出します`);
       // リーダーの場合、ルームを削除
       // まず参加者全員のcurrentRoomIdを更新
-      const roomSnap = await getDoc(roomRef);
+      const roomData = roomSnap.data();
+      const participants = roomData.participants || {};
+      const participantIds = Object.keys(participants);
       
-      if (roomSnap.exists()) {
-        const roomData = roomSnap.data();
-        const participants = roomData.participants || {};
-        const participantIds = Object.keys(participants);
-        
-        // すべての参加者のルーム情報をクリア
-        const updatePromises = participantIds.map(async (pid) => {
-          if (pid !== userId) { // 自分自身は後で更新
-            try {
-              await updateDoc(doc(db, 'users', pid), {
-                currentRoomId: null
-              });
-            } catch (err) {
-              console.error(`Failed to update participant ${pid}:`, err);
-              // エラーが発生しても他の参加者の処理を続行
-            }
+      // すべての参加者のルーム情報をクリア
+      const updatePromises = participantIds.map(async (pid) => {
+        if (pid !== userId) { // 自分自身は既にクリア済み
+          try {
+            await updateDoc(doc(db, 'users', pid), {
+              currentRoomId: null
+            });
+          } catch (err) {
+            console.error(`[leaveRoomService] 参加者(${pid})の更新中にエラー:`, err);
+            // エラーが発生しても他の参加者の処理を続行
           }
-        });
-        
+        }
+      });
+      
+      try {
         await Promise.all(updatePromises);
+        console.log(`[leaveRoomService] 全参加者(${participantIds.length}人)のルーム情報を更新しました`);
+      } catch (participantErr) {
+        console.error('[leaveRoomService] 参加者の更新中にエラー:', participantErr);
+        // エラーが発生しても続行
       }
       
       // ルームを削除
-      await deleteDoc(roomRef);
+      try {
+        await deleteDoc(roomRef);
+        console.log(`[leaveRoomService] ルーム(${roomId})を削除しました`);
+      } catch (deleteErr) {
+        console.error(`[leaveRoomService] ルーム(${roomId})の削除中にエラー:`, deleteErr);
+        // 権限エラーなど、予想されるエラーはログのみで続行
+        if (deleteErr instanceof Error && deleteErr.message.includes('permission-denied')) {
+          console.log(`[leaveRoomService] 権限エラーのため、ルーム(${roomId})は削除されませんでした`);
+        } else {
+          throw deleteErr; // その他のエラーは上位に伝播
+        }
+      }
     } else {
+      console.log(`[leaveRoomService] 一般参加者としてルーム(${roomId})から退出します`);
       // リーダー以外の場合、参加者リストから自分を削除
-      await updateDoc(roomRef, {
-        [`participants.${userId}`]: deleteField(),
-        updatedAt: serverTimestamp()
-      });
+      try {
+        await updateDoc(roomRef, {
+          [`participants.${userId}`]: deleteField(),
+          updatedAt: serverTimestamp()
+        });
+        console.log(`[leaveRoomService] ルーム(${roomId})の参加者リストからユーザー(${userId})を削除しました`);
+      } catch (updateErr) {
+        console.error(`[leaveRoomService] 参加者情報の削除中にエラー:`, updateErr);
+        // 権限エラーなど、予想されるエラーはログのみで続行
+        if (updateErr instanceof Error && updateErr.message.includes('permission-denied')) {
+          console.log(`[leaveRoomService] 権限エラーのため、参加者情報は更新されませんでした`);
+        } else {
+          throw updateErr; // その他のエラーは上位に伝播
+        }
+      }
     }
-    
-    // ユーザーのルーム情報をクリア
-    await updateDoc(doc(db, 'users', userId), {
-      currentRoomId: null
-    });
   } catch (err) {
-    console.error('Error leaving room:', err);
+    console.error('[leaveRoomService] ルームからの退出中にエラー:', err);
     throw new Error('ルームからの退出中にエラーが発生しました');
   }
 }
