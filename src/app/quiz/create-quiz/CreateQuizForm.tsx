@@ -266,7 +266,7 @@ export default function CreateQuizForm() {
       const unitData = unitSnapshot.data() as QuizUnit;
       
       // 公式クイズまたは他のユーザーが作成したクイズの場合、編集権限チェック
-      if (isOfficial && !userProfile?.isAdmin) {
+      if (isOfficial && !(userProfile?.isAdmin === true)) {
         setErrorMessage('公式クイズを編集する権限がありません');
         setLoading(false);
         return;

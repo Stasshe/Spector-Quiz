@@ -58,7 +58,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               iconId: userData.iconId,
               exp: userData.exp,
               rank: userData.rank,
-              stats: userData.stats
+              stats: userData.stats,
+              isAdmin: userData.userId === "100000" // ユーザーIDが100000なら管理者権限を付与
             });
             
             // ユーザーがオンライン状態であることを更新
