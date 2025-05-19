@@ -60,7 +60,44 @@ export function useQuizRoom() {
   // Room switching state
   const [roomToJoin, setRoomToJoin] = useState<{ roomId: string; roomName: string } | null>(null);
   const [confirmRoomSwitch, setConfirmRoomSwitch] = useState(false);
+  
+  // 現在の待機中ルームID - ローカルステートからユーザードキュメントを参照するように変更
   const [currentWaitingRoomId, setCurrentWaitingRoomId] = useState<string | null>(null);
+  
+  // 初期化時にFirebaseからユーザーの現在のルームをチェック
+  useEffect(() => {
+    if (!currentUser) return;
+    
+    const checkCurrentRoomFromFirebase = async () => {
+      try {
+        const userRef = doc(db, 'users', currentUser.uid);
+        const userDoc = await getDoc(userRef);
+        
+        if (userDoc.exists() && userDoc.data().currentRoomId) {
+          const roomId = userDoc.data().currentRoomId;
+          console.log(`[useQuizRoom] ユーザードキュメントから現在のルームを検出: ${roomId}`);
+          setCurrentWaitingRoomId(roomId);
+          
+          // 実際にルームが存在するか確認
+          try {
+            const roomData = await getRoomById(roomId);
+            if (roomData && roomData.status === 'waiting') {
+              console.log(`[useQuizRoom] 有効な待機中ルームを検出: ${roomId}`);
+              setWaitingRoom(roomData);
+            }
+          } catch (err) {
+            console.error('[useQuizRoom] ルーム情報取得エラー:', err);
+          }
+        } else {
+          console.log('[useQuizRoom] ユーザーは現在どのルームにも参加していません');
+        }
+      } catch (err) {
+        console.error('[useQuizRoom] ユーザードキュメント取得エラー:', err);
+      }
+    };
+    
+    checkCurrentRoomFromFirebase();
+  }, [currentUser, setWaitingRoom]);
   
   // Quiz state
   const [currentQuizData, setCurrentQuizData] = useState<Quiz | null>(null);
@@ -175,36 +212,96 @@ export function useQuizRoom() {
       return false;
     }
 
-    console.log(`ルーム参加リクエスト: ${roomId}, 現在のルーム: ${currentWaitingRoomId}`);
+    console.log(`[joinExistingRoom] リクエスト: ${roomId}, 現在のルーム: ${currentWaitingRoomId}`);
 
-    // 既に別の待機中ルームにいる場合は確認
-    if (currentWaitingRoomId && currentWaitingRoomId !== roomId) {
-      console.log('別のルームに既に参加中のため、切り替え確認ダイアログを表示します');
-      // 確認用にルーム情報を取得しておく
+    // 同じルームに再度参加しようとした場合は早期リターン
+    if (currentWaitingRoomId === roomId) {
+      console.log(`[joinExistingRoom] 既に参加中のルーム(${roomId})です。処理をスキップします`);
+      router.push(`/quiz/room?id=${roomId}`);
+      return true;
+    }
+
+    // ルームの現在の状態を確認
+    try {
+      const roomData = await getRoomById(roomId);
+      if (!roomData) {
+        console.error(`[joinExistingRoom] ルーム ${roomId} が存在しません`);
+        setError('指定されたルームが見つかりません');
+        return false;
+      }
+      
+      if (roomData.status !== 'waiting') {
+        console.error(`[joinExistingRoom] ルーム ${roomId} は待機中ではありません (状態: ${roomData.status})`);
+        setError('このルームは参加できない状態です');
+        return false;
+      }
+    } catch (err) {
+      console.error('[joinExistingRoom] ルーム状態確認エラー:', err);
+      setError('ルームの状態を確認できませんでした');
+      return false;
+    }
+
+    // 現在のルームIDがない場合でも、Firebaseを直接チェック
+    if (currentWaitingRoomId || true) {
       try {
-        const currentRoomData = await getRoomById(currentWaitingRoomId);
-        console.log('現在参加中のルーム情報:', currentRoomData);
+        // ユーザーの現在のルームを直接Firebaseから確認 (常に確認する)
+        const userRef = doc(db, 'users', currentUser.uid);
+        const userDoc = await getDoc(userRef);
         
-        const roomToJoinData = await getRoomById(roomId);
-        console.log('参加先のルーム情報:', roomToJoinData);
-        
-        // ルーム情報を保存して確認ダイアログを表示
-        setRoomToJoin({
-          roomId,
-          roomName: roomToJoinData.name
-        });
-        setConfirmRoomSwitch(true);
-        console.log('ルーム切り替え確認ダイアログを表示しました');
-        return false;
-      } catch (err) {
-        console.error('ルーム情報の取得中にエラーが発生しました:', err);
-        // エラーの詳細を表示
-        if (err instanceof Error) {
-          setError(`ルーム情報の取得に失敗しました: ${err.message}`);
-        } else {
-          setError('ルーム情報の取得に失敗しました');
+        if (userDoc.exists() && userDoc.data().currentRoomId) {
+          const currentRoomIdFromFirebase = userDoc.data().currentRoomId;
+          
+          // 現在のルームが確認対象のルームと異なる場合
+          if (currentRoomIdFromFirebase && currentRoomIdFromFirebase !== roomId) {
+            console.log(`[joinExistingRoom] Firebaseで検出された既存の参加ルーム: ${currentRoomIdFromFirebase}`);
+            
+            try {
+              // 現在参加中のルームの情報を取得
+              const currentRoomData = await getRoomById(currentRoomIdFromFirebase);
+              
+              // 新しい参加先のルームの情報を取得
+              const roomToJoinData = await getRoomById(roomId);
+              
+              console.log('[joinExistingRoom] 現在参加中:', currentRoomData?.name);
+              console.log('[joinExistingRoom] 参加先:', roomToJoinData?.name);
+              
+              // 状態の明示的な更新順序のためタイムアウトを使用
+              // ルーム切り替え確認モーダル表示用のデータを設定
+              const roomInfo = {
+                roomId: roomId,
+                roomName: roomToJoinData?.name || '別のルーム'
+              };
+              
+              // ステート更新
+              setCurrentWaitingRoomId(currentRoomIdFromFirebase);  // Firebaseから取得した値で更新
+              setRoomToJoin(roomInfo);
+              
+              // 明示的に順序付けて確認モーダル表示を設定
+              setTimeout(() => {
+                setConfirmRoomSwitch(true);
+                console.log('[joinExistingRoom] ルーム切り替え確認モーダルを表示します');
+                
+                // 確実に状態更新を確認
+                setTimeout(() => {
+                  console.log('[joinExistingRoom] モーダル表示状態:', {
+                    currentWaitingRoomId: currentRoomIdFromFirebase,
+                    roomToJoin: roomInfo,
+                    confirmRoomSwitchEnabled: true
+                  });
+                }, 50);
+              }, 50);
+              
+              return false;
+            } catch (err) {
+              console.error('[joinExistingRoom] ルーム情報取得エラー:', err);
+              // エラーが発生した場合でも、ユーザーはFirebaseに記録されたルームに参加中と判断
+              // モーダル表示のためfalseを返す
+              return false;
+            }
+          }
         }
-        return false;
+      } catch (err) {
+        console.error('[joinExistingRoom] ユーザードキュメント確認エラー:', err);
       }
     }
 
@@ -221,6 +318,17 @@ export function useQuizRoom() {
       
       if (success) {
         console.log('ルーム参加が成功しました');
+        
+        // ユーザードキュメントを更新して現在のルームを保存
+        try {
+          const userRef = doc(db, 'users', currentUser.uid);
+          await updateDoc(userRef, { currentRoomId: roomId });
+          console.log(`[joinExistingRoom] ユーザードキュメントにルームID(${roomId})を保存しました`);
+        } catch (userErr) {
+          console.error('[joinExistingRoom] ユーザードキュメント更新エラー:', userErr);
+          // エラーでもルーム参加処理は続行する
+        }
+        
         // コンテキストに待機中ルーム情報を設定
         setCurrentWaitingRoomId(roomId);
         
@@ -294,18 +402,75 @@ export function useQuizRoom() {
       return false;
     }
 
+    console.log(`[exitRoom] ルーム(${roomId})からの退出を開始`);
+    
+    // 渡されたroomIdが実際に存在するかチェック
+    let actualRoomId: string | null = roomId;
+    
+    if (!actualRoomId) {
+      // roomIdが指定されていない場合、現在のルームIDを使用
+      actualRoomId = currentWaitingRoomId;
+      
+      // それでもない場合はFirebaseから取得
+      if (!actualRoomId) {
+        try {
+          const userRef = doc(db, 'users', currentUser.uid);
+          const userDoc = await getDoc(userRef);
+          if (userDoc.exists() && userDoc.data().currentRoomId) {
+            actualRoomId = userDoc.data().currentRoomId;
+            console.log(`[exitRoom] Firebaseから現在のルームID(${actualRoomId})を取得しました`);
+          }
+        } catch (err) {
+          console.error('[exitRoom] ユーザードキュメント確認エラー:', err);
+        }
+      }
+    }
+    
+    if (!actualRoomId) {
+      console.error('[exitRoom] 退出するルームIDが見つかりません');
+      setError('退出するルームが見つかりません');
+      return false;
+    }
+
     try {
       setLoading(true);
       
+      // まずルーム情報を取得して、リーダー情報を正確に判断
+      let isLeaderOfRoom = isRoomLeader; // デフォルト値
+      
+      try {
+        const roomData = await getRoomById(actualRoomId);
+        if (roomData) {
+          isLeaderOfRoom = roomData.roomLeaderId === currentUser.uid;
+          console.log(`[exitRoom] リーダー確認: ${isLeaderOfRoom ? '自分がリーダー' : '一般参加者'}`);
+        }
+      } catch (roomErr) {
+        console.error('[exitRoom] ルーム情報取得エラー:', roomErr);
+        // エラー時はデフォルトのリーダー情報を使用
+      }
+      
       const success = await leaveRoom(
-        roomId, 
+        actualRoomId as string, // 型アサーション (ここでnullの場合は上の条件でリターンするため安全)
         currentUser.uid, 
-        isRoomLeader
+        isLeaderOfRoom // 正確なリーダー情報
       );
       
       if (success) {
+        console.log(`[exitRoom] ルーム(${actualRoomId})からの退出成功`);
+        
+        // ユーザードキュメントからも現在のルームID情報を削除
+        try {
+          const userRef = doc(db, 'users', currentUser.uid);
+          await updateDoc(userRef, { currentRoomId: null });
+          console.log('[exitRoom] ユーザードキュメントからルームID情報を削除しました');
+        } catch (userErr) {
+          console.error('[exitRoom] ユーザードキュメント更新エラー:', userErr);
+          // エラーがあっても続行
+        }
+        
+        // 状態をクリア
         setCurrentWaitingRoomId(null);
-        setWaitingRoom(null); // null は許容される型なのでこのままで良い
+        setWaitingRoom(null);
         setCurrentRoom(null);
         
         // ホームに戻る
@@ -321,7 +486,7 @@ export function useQuizRoom() {
     } finally {
       setLoading(false);
     }
-  }, [currentUser, isRoomLeader, router, setWaitingRoom]);
+  }, [currentUser, isRoomLeader, currentWaitingRoomId, router, setWaitingRoom]);
 
   /**
    * 参加中のルームを抜けて新しいルームに参加
@@ -330,7 +495,8 @@ export function useQuizRoom() {
     console.log('[RoomSwitch] 開始:', {
       currentUser: currentUser?.uid,
       hasUserProfile: !!userProfile,
-      roomToJoin
+      roomToJoin,
+      currentWaitingRoomId
     });
     
     if (!currentUser || !userProfile || !roomToJoin) {
@@ -338,20 +504,52 @@ export function useQuizRoom() {
       setConfirmRoomSwitch(false);
       return false;
     }
+    
+    // 現在のルームIDがない場合は、Firebaseから直接チェック
+    let actualCurrentRoomId = currentWaitingRoomId;
+    if (!actualCurrentRoomId) {
+      try {
+        const userRef = doc(db, 'users', currentUser.uid);
+        const userDoc = await getDoc(userRef);
+        if (userDoc.exists() && userDoc.data().currentRoomId) {
+          actualCurrentRoomId = userDoc.data().currentRoomId;
+          console.log(`[RoomSwitch] Firebaseから現在のルームID(${actualCurrentRoomId})を取得しました`);
+        }
+      } catch (err) {
+        console.error('[RoomSwitch] ユーザードキュメント確認エラー:', err);
+      }
+    }
 
     try {
       setLoading(true);
       
       // 現在のルームから退出
-      if (currentWaitingRoomId) {
-        console.log(`[RoomSwitch] 現在のルーム(${currentWaitingRoomId})から退出します`);
+      if (actualCurrentRoomId) {
+        console.log(`[RoomSwitch] 現在のルーム(${actualCurrentRoomId})から退出します`);
+        
+        // まずルームの情報を取得して、自分がリーダーかどうかを確認
+        const currentRoomData = await getRoomById(actualCurrentRoomId);
+        const isLeaderOfCurrentRoom = currentRoomData?.roomLeaderId === currentUser.uid;
+        
+        console.log(`[RoomSwitch] リーダー確認: ${isLeaderOfCurrentRoom ? '自分がリーダー' : '一般参加者'}`);
+        
         try {
           await leaveRoom(
-            currentWaitingRoomId,
+            actualCurrentRoomId,
             currentUser.uid,
-            false // 強制的に非リーダー扱いで退出
+            isLeaderOfCurrentRoom // 正確なリーダー情報を渡す
           );
           console.log('[RoomSwitch] 退出成功');
+          
+          // ユーザードキュメントからも現在のルームID情報を削除
+          try {
+            const userRef = doc(db, 'users', currentUser.uid);
+            await updateDoc(userRef, { currentRoomId: null });
+            console.log('[RoomSwitch] ユーザードキュメントからルームID情報を削除しました');
+          } catch (userErr) {
+            console.error('[RoomSwitch] ユーザードキュメント更新エラー:', userErr);
+            // エラーがあっても続行
+          }
         } catch (leaveErr) {
           console.error('[RoomSwitch] 退出エラー:', leaveErr);
           // エラーがあっても続行（新しいルーム参加を優先）
@@ -427,6 +625,7 @@ export function useQuizRoom() {
    * ルーム切り替えをキャンセル
    */
   const cancelRoomSwitch = useCallback(() => {
+    console.log('[RoomSwitch] 切り替えキャンセル: 確認ダイアログを閉じます');
     setRoomToJoin(null);
     setConfirmRoomSwitch(false);
   }, []);
@@ -445,32 +644,104 @@ export function useQuizRoom() {
       return null;
     }
 
+    console.log(`[findOrCreateNewRoom] 開始: 現在のルーム=${currentWaitingRoomId}, 作成=${roomName}`);
+
     // 既に待機中ルームに参加している場合は、切り替え確認を表示
     if (currentWaitingRoomId) {
+      console.log(`[findOrCreateNewRoom] 既存ルーム検出: ${currentWaitingRoomId}`);
+      
+      // ルーム作成処理をスキップして、確認ダイアログを表示する
       try {
         // 現在参加中のルーム情報を取得
         const currentRoomData = await getRoomById(currentWaitingRoomId);
-        console.log('現在参加中のルーム情報:', currentRoomData);
+        console.log('[findOrCreateNewRoom] 現在参加中のルーム情報:', currentRoomData?.name || 'unknown');
 
         // 確認ダイアログを表示するための情報を設定
-        // roomToJoin.roomIdは実際の作成・参加ルームIDではなくダミー値を一時的に設定
         const roomNameToShow = `${genre}の${unitId ? '単元' : ''}クイズルーム`;
-        console.log(`ルーム切り替え確認ダイアログを表示します: ${roomNameToShow}`);
+        console.log(`[findOrCreateNewRoom] ルーム切り替え確認ダイアログを表示: ${roomNameToShow}`);
         
-        setRoomToJoin({
-          roomId: 'pending-creation',  // 新規作成用の一時的なID
+        // モーダル表示のための情報
+        console.log('[findOrCreateNewRoom] モーダル表示準備中...');
+        
+        // 重要: モーダルに表示するデータを設定
+        const newRoomInfo = {
+          roomId: 'pending-creation',
           roomName: roomNameToShow
-        });
-        setConfirmRoomSwitch(true);
+        };
+        
+        // 通常の状態更新ではなく、documentのカスタム属性を使って状態を永続化
+        // これによりReact状態の非同期更新問題を回避
+        document.documentElement.setAttribute('data-room-switch-pending', 'true');
+        document.documentElement.setAttribute('data-room-info', JSON.stringify(newRoomInfo));
+        
+        console.log('[findOrCreateNewRoom] ドキュメント属性を設定しました');
+        
+        // 確実にモーダルを表示するため、setTimeout後に状態更新
+        setTimeout(() => {
+          // roomToJoinを先に設定
+          setRoomToJoin(newRoomInfo);
+          console.log('[findOrCreateNewRoom] roomToJoinを設定しました');
+          
+          // 少し遅延させて確認フラグを設定（順序を保証）
+          setTimeout(() => {
+            setConfirmRoomSwitch(true);
+            console.log('[findOrCreateNewRoom] 確認モーダル表示を有効化しました');
+            
+            // 状態更新が確実に行われるようもう少し遅延してチェック
+            setTimeout(() => {
+              const modalShouldShow = document.documentElement.getAttribute('data-room-switch-pending') === 'true';
+              console.log('[findOrCreateNewRoom] 確認：モーダル表示状態=', modalShouldShow);
+              
+              // まだモーダルが表示されていない場合は強制的に表示
+              if (modalShouldShow) {
+                console.log('[findOrCreateNewRoom] モーダルを強制的に再表示します');
+                setConfirmRoomSwitch(false); // 一度OFFにして
+                setTimeout(() => {
+                  setConfirmRoomSwitch(true); // 再度ONにする
+                  console.log('[findOrCreateNewRoom] モーダル再表示を試行しました');
+                }, 100);
+              }
+            }, 300);
+          }, 100);
+        }, 100);
+        
+        // モーダルが確実に表示されるまで監視する関数
+        let checkCount = 0;
+        const maxChecks = 10;
+        const checkModalVisibility = () => {
+          const isPending = document.documentElement.getAttribute('data-room-switch-pending') === 'true';
+          checkCount++;
+          
+          if (isPending && checkCount < maxChecks) {
+            console.log(`[findOrCreateNewRoom] モーダル表示待機中... (${checkCount}/${maxChecks})`);
+            setTimeout(checkModalVisibility, 100);
+          } else if (!isPending) {
+            console.log('[findOrCreateNewRoom] モーダル表示確認完了');
+          } else {
+            console.log('[findOrCreateNewRoom] モーダル表示タイムアウト');
+            // タイムアウトした場合、フラグをリセット
+            document.documentElement.removeAttribute('data-room-switch-pending');
+            
+            // もう一度モーダル表示を試みる
+            const roomInfo = {
+              roomId: 'pending-creation',
+              roomName: roomNameToShow
+            };
+            setRoomToJoin(roomInfo);
+            setConfirmRoomSwitch(true);
+          }
+        };
+        
+        // 表示チェック開始
+        setTimeout(checkModalVisibility, 200);
         
         // 確認ダイアログを表示するため、この時点でnullを返す
         setLoading(false);
         return null;
       } catch (err) {
-        console.error('待機中ルーム情報の確認中にエラーが発生しました:', err);
-        // エラーが発生してもnullを返す前にさらに詳細を記録
-        console.log('currentWaitingRoomId:', currentWaitingRoomId);
-        console.log('状態リセット中...');
+        console.error('[findOrCreateNewRoom] 待機中ルーム情報の確認中にエラー:', err);
+        console.log('[findOrCreateNewRoom] currentWaitingRoomId:', currentWaitingRoomId);
+        console.log('[findOrCreateNewRoom] 状態リセット中...');
         
         // エラーが発生した場合は、参加中ルーム情報をクリアして続行
         setCurrentWaitingRoomId(null);
@@ -514,7 +785,7 @@ export function useQuizRoom() {
     } finally {
       setLoading(false);
     }
-  }, [currentUser, userProfile, currentWaitingRoomId, joinCreatedRoom, getRoomById]);
+  }, [currentUser, userProfile, currentWaitingRoomId, joinCreatedRoom, getRoomById, confirmRoomSwitch, roomToJoin]);
 
   /**
    * 準備状態を切り替える

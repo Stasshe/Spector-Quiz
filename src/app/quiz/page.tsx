@@ -9,6 +9,7 @@ import { useQuizHook } from '@/hooks/useQuiz';
 import { useQuizRoom } from '@/hooks/useQuizRoom';
 import { getUnitIdByName } from '@/services/quizRoom';
 import { genreClasses } from '@/constants/genres';
+import RoomSwitchConfirmModal from '@/components/layout/RoomSwitchConfirmModal';
 import { 
   FaBookOpen,
   FaGlobe, 
@@ -144,22 +145,35 @@ export default function QuizPage() {
   const joinExistingRoom = async (roomId: string) => {
     try {
       setLoading(true);
+      
+      console.log(`[page.joinExistingRoom] ルーム参加開始: ${roomId}`);
+      
+      // useQuizRoomのjoinExistingRoomに委譲する
       const joined = await joinRoom(roomId);
       
-      // joined がfalseで確認ダイアログが表示されている場合は、ここで処理を終了
-      if (!joined && confirmRoomSwitch) {
-        // 確認ダイアログが表示されたので、ロード状態を解除して処理終了
-        setLoading(false);
+      // joinRoomがfalseを返した場合、確認ダイアログが表示されているか、エラーが発生した可能性がある
+      if (!joined) {
+        console.log('[page.joinExistingRoom] ルーム参加が完了していません（確認待ちまたはエラー）');
+        
+        // 確認ダイアログが表示されているかチェック
+        if (confirmRoomSwitch) {
+          console.log('[page.joinExistingRoom] 確認ダイアログが表示されています。処理を続行します');
+          // 確認ダイアログが表示されている場合はローディング状態を維持
+        } else {
+          // 確認ダイアログが表示されていない場合はローディング状態を解除
+          setLoading(false);
+        }
         return;
       }
       
       if (joined) {
+        console.log(`[page.joinExistingRoom] ルーム参加成功、ルームページへ移動: ${roomId}`);
         router.push(`/quiz/room?id=${roomId}`);
       } else {
         throw new Error('ルームへの参加に失敗しました');
       }
     } catch (err) {
-      console.error('Error joining room:', err);
+      console.error('[page.joinExistingRoom] エラー:', err);
       alert(`エラーが発生しました: ${err instanceof Error ? err.message : '不明なエラー'}`);
     } finally {
       if (!confirmRoomSwitch) {
@@ -181,12 +195,14 @@ export default function QuizPage() {
           throw new Error(`単元「${unit}」のIDの取得に失敗しました。管理者に連絡してください。`);
         }
         
-        // 待機中のルームを探すか、なければ作成
+        // 現在待機中のルームがある場合はfindOrCreateNewRoomに任せて、
+        // そちらでルーム切り替え確認を表示する
+        // 直接findOrCreateNewRoomを呼び出して処理を統一する
         const result = await findOrCreateNewRoom(`${genre} Study Room`, genre, selectedClassType, unitId);
         
-        // confirmRoomSwitchがtrueなら確認ダイアログが表示されているので処理を終了
-        if (confirmRoomSwitch) {
-          console.log('ルーム切り替え確認ダイアログが表示されています');
+        // resultがnullの場合、確認ダイアログが表示されている可能性がある
+        if (result === null) {
+          console.log('[playWithUnit] ルーム切り替え確認が必要な可能性があります');
           setLoading(false);
           return;
         }
@@ -292,48 +308,7 @@ export default function QuizPage() {
 
   return (
     <div className="app-container py-8">
-      {/* ルーム切り替え確認モーダル */}
-      {confirmRoomSwitch && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-xl">
-            <h2 className="text-xl font-bold text-gray-800 mb-4">待機中のルームから退出しますか？</h2>
-            <p className="text-gray-600 mb-4">
-              あなたは既に別の待機中ルームに参加しています。新しいルームに参加すると、現在の待機中ルームからは退出します。
-            </p>
-            
-            {currentWaitingRoomId && (
-              <div className="p-3 mb-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <p className="text-sm font-medium">現在参加中のルーム:</p>
-                <p className="text-gray-700">
-                  {waitingRooms.find(r => r.roomId === currentWaitingRoomId)?.name || 'ルーム情報を取得中...'}
-                </p>
-              </div>
-            )}
-            
-            <div className="flex space-x-4">
-              <button
-                onClick={() => setConfirmRoomSwitch(false)}
-                className="flex-1 bg-gray-200 text-gray-800 py-2 px-4 rounded hover:bg-gray-300 transition"
-              >
-                キャンセル
-              </button>
-              <button
-                onClick={() => {
-                  // ダイアログを閉じる
-                  setConfirmRoomSwitch(false);
-                  
-                  // ここに実際のルーム参加処理のコードを書く
-                  // 必要なコンテキストが足りないため、仮のハンドラとしてログ出力のみ
-                  console.log('ユーザーが新しいルームへの参加を確認しました');
-                }}
-                className="flex-1 bg-indigo-600 text-white py-2 px-4 rounded hover:bg-indigo-700 transition"
-              >
-                退出して参加
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* RoomSwitchConfirmModalはlayout.tsxに配置されているため、ここでは不要 */}
       
       {/* ユーザープロフィールカード */}
       {userProfile && (
