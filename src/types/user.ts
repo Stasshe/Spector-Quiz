@@ -32,6 +32,7 @@ export interface UserProfile {
   exp: number;
   rank: string;
   stats: UserStats;
+  isAdmin?: boolean; // 管理者フラグ（オプション）
 }
 
 export interface ParticipantInfo {

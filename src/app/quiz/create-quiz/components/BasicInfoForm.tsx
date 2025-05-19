@@ -12,6 +12,7 @@ interface BasicInfoFormProps {
   setGenre: (genre: string) => void;
   isPublic: boolean;
   setIsPublic: (isPublic: boolean) => void;
+  disableTitleGenre?: boolean;
 }
 
 const BasicInfoForm: FC<BasicInfoFormProps> = ({
@@ -22,7 +23,8 @@ const BasicInfoForm: FC<BasicInfoFormProps> = ({
   genre,
   setGenre,
   isPublic,
-  setIsPublic
+  setIsPublic,
+  disableTitleGenre = false
 }) => {
   return (
     <div>
@@ -36,6 +38,7 @@ const BasicInfoForm: FC<BasicInfoFormProps> = ({
             className="form-select"
             value={genre}
             onChange={(e) => setGenre(e.target.value)}
+            disabled={disableTitleGenre}
             required
           >
             <option value="">ジャンルを選択</option>
@@ -72,6 +75,7 @@ const BasicInfoForm: FC<BasicInfoFormProps> = ({
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="単元のタイトルを入力（例：定期テスト対策6月）"
+          disabled={disableTitleGenre}
           required
         />
       </div>

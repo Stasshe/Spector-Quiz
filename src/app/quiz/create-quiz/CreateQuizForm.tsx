@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { db } from '@/config/firebase'; 
-import { collection, addDoc, serverTimestamp, getDocs, query, where } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, getDocs, query, where, doc, getDoc, setDoc, writeBatch } from 'firebase/firestore';
 import { FaArrowLeft, FaUpload, FaSpinner } from 'react-icons/fa';
 import { Quiz, QuizType, QuizUnit } from '@/types/quiz';
 
@@ -19,7 +19,7 @@ import YamlBulkImport from './components/YamlBulkImport';
 // 型定義をエクスポート
 export type { QuizDifficulty } from './create-types';
 export default function CreateQuizForm() {
-  const { currentUser } = useAuth();
+  const { currentUser, userProfile } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -44,11 +44,34 @@ export default function CreateQuizForm() {
 
   // タイマー参照
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // 編集モードかどうか
+  const [isEditMode, setIsEditMode] = useState(false);
+  // 編集対象の単元ID
+  const [editUnitId, setEditUnitId] = useState<string | null>(null);
+  // 編集対象のジャンルID
+  const [editGenreId, setEditGenreId] = useState<string | null>(null);
+  // フォーム項目を無効化するかどうか（編集モード時）
+  const [disableTitleGenre, setDisableTitleGenre] = useState(false);
 
   useEffect(() => {
     if (!currentUser) {
       router.push('/auth/login');
       return;
+    }
+    
+    // URLパラメータから編集モード情報を取得
+    const edit = searchParams.get('edit');
+    const unitId = searchParams.get('unitId');
+    const genreId = searchParams.get('genreId');
+    const officialGenre = searchParams.get('officialGenre');
+    
+    // 編集モードの場合、単元データを取得
+    if (edit === 'true' && unitId && genreId) {
+      setIsEditMode(true);
+      setEditUnitId(unitId);
+      setEditGenreId(genreId);
+      loadUnitData(genreId, unitId, !!officialGenre);
     }
     
     // 自動保存タイマーの設定
@@ -106,6 +129,12 @@ export default function CreateQuizForm() {
     setLoading(true);
     
     try {
+      // 編集モードの場合は既存の単元を更新
+      if (isEditMode && editUnitId && editGenreId) {
+        await updateUnit();
+        return;
+      }
+      
       // 単元をFirestoreの新しい階層構造に追加
       const unitData: Omit<QuizUnit, 'unitId'> = {
         title,
@@ -219,6 +248,63 @@ export default function CreateQuizForm() {
     setIsPublic(draft.isPublic);
   };
 
+  // 単元データをロード
+  const loadUnitData = async (genreId: string, unitId: string, isOfficial: boolean) => {
+    try {
+      setLoading(true);
+      // 単元データを取得（公式クイズとユーザークイズで参照先が異なる）
+      const collectionName = isOfficial ? 'official_quiz_units' : 'quiz_units';
+      const unitDocRef = doc(db, `genres/${genreId}/${collectionName}`, unitId);
+      const unitSnapshot = await getDoc(unitDocRef);
+      
+      if (!unitSnapshot.exists()) {
+        setErrorMessage('指定された単元が見つかりませんでした');
+        setLoading(false);
+        return;
+      }
+      
+      const unitData = unitSnapshot.data() as QuizUnit;
+      
+      // 公式クイズまたは他のユーザーが作成したクイズの場合、編集権限チェック
+      if (isOfficial && !userProfile?.isAdmin) {
+        setErrorMessage('公式クイズを編集する権限がありません');
+        setLoading(false);
+        return;
+      } else if (!isOfficial && unitData.createdBy !== currentUser?.uid) {
+        setErrorMessage('このクイズを編集する権限がありません');
+        setLoading(false);
+        return;
+      }
+      
+      // フォームに単元データをセット
+      setTitle(unitData.title || '');
+      setDescription(unitData.description || '');
+      setGenre(genreId);
+      setIsPublic(unitData.isPublic);
+      setDisableTitleGenre(true); // 単元名とジャンルを編集不可に
+      
+      // クイズデータを取得
+      const quizzesSnapshot = await getDocs(collection(unitDocRef, 'quizzes'));
+      const loadedQuizzes: Quiz[] = [];
+      
+      quizzesSnapshot.forEach(quizDoc => {
+        const quizData = quizDoc.data() as Omit<Quiz, 'quizId'>;
+        loadedQuizzes.push({
+          ...quizData,
+          quizId: quizDoc.id
+        } as Quiz);
+      });
+      
+      setQuizzes(loadedQuizzes);
+      setSuccessMessage('単元データを読み込みました');
+    } catch (error) {
+      console.error('単元データ読み込み中にエラーが発生しました:', error);
+      setErrorMessage('単元データの読み込みに失敗しました');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // フォームをクリア
   const clearForm = () => {
     setDraftId(null);
@@ -229,6 +315,7 @@ export default function CreateQuizForm() {
     setIsPublic(true);
     setShowQuizForm(false);
     setEditingQuizIndex(null);
+    setDisableTitleGenre(false);
   };
 
   // クイズの保存（追加・更新）
@@ -266,6 +353,83 @@ export default function CreateQuizForm() {
     setTimeout(() => setSuccessMessage(''), 3000);
   };
 
+  // 既存の単元を更新する関数
+  const updateUnit = async () => {
+    if (!editUnitId || !editGenreId || !currentUser) return;
+    
+    try {
+      // 公式クイズかどうかを確認
+      const isOfficial = searchParams.get('officialGenre') === 'true';
+      
+      // 適切なコレクションパスを設定
+      // 公式クイズの場合は official_quiz_units コレクション、それ以外は quiz_units コレクション
+      const collectionName = isOfficial ? 'official_quiz_units' : 'quiz_units';
+      const unitRef = doc(db, 'genres', editGenreId, collectionName, editUnitId);
+      
+      // 更新する単元データを準備
+      const updatedUnitData = {
+        description: description || '',
+        isPublic,
+        quizCount: quizzes.length,
+        averageDifficulty: quizzes.length > 0 
+          ? quizzes.reduce((sum, q) => sum + q.difficulty, 0) / quizzes.length 
+          : 0
+      };
+      
+      // 単元データを更新
+      await setDoc(unitRef, updatedUnitData, { merge: true });
+      
+      // クイズコレクションを一度クリアして再作成
+      // まずは既存のクイズをすべて取得して削除
+      const quizzesSnapshot = await getDocs(collection(unitRef, 'quizzes'));
+      const batch = writeBatch(db);
+      
+      quizzesSnapshot.forEach((quizDoc) => {
+        batch.delete(doc(unitRef, 'quizzes', quizDoc.id));
+      });
+      
+      await batch.commit();
+      
+      // 新しいクイズを追加
+      for (const quiz of quizzes) {
+        const quizData = {
+          title: quiz.title,
+          question: quiz.question,
+          type: quiz.type,
+          choices: quiz.choices || [],
+          correctAnswer: quiz.correctAnswer || '',
+          acceptableAnswers: quiz.acceptableAnswers || [],
+          explanation: quiz.explanation || '',
+          difficulty: quiz.difficulty || 3,
+          createdBy: currentUser.uid,
+          createdAt: serverTimestamp() as any,
+          useCount: 0,
+          correctCount: 0
+        };
+        
+        await addDoc(collection(unitRef, 'quizzes'), quizData);
+      }
+      
+      setSuccessMessage('単元を更新しました！');
+      
+      // 3秒後にリダイレクト
+      // 公式クイズの場合は管理画面に、それ以外はクイズ一覧に
+      const redirectPath = isOfficial ? '/admin/quiz-management' : '/quiz';
+      setTimeout(() => {
+        router.push(redirectPath);
+      }, 3000);
+    } catch (error) {
+      console.error('Error updating unit:', error);
+      if (error instanceof Error) {
+        setErrorMessage(`単元の更新に失敗しました: ${error.message}`);
+      } else {
+        setErrorMessage('単元の更新に失敗しました。');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // ユーザーが未ログインの場合は、ログインページへリダイレクト
   if (!currentUser) {
     return null; // useEffectでリダイレクト
@@ -292,8 +456,17 @@ export default function CreateQuizForm() {
               <FaUpload className="text-2xl" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 text-transparent bg-clip-text">新しいクイズを作成</h1>
-              <p className="text-gray-600">あなたのオリジナルクイズを作成して公開しましょう</p>
+              {isEditMode ? (
+                <>
+                  <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 text-transparent bg-clip-text">クイズを編集</h1>
+                  <p className="text-gray-600">既存のクイズ単元を編集しましょう</p>
+                </>
+              ) : (
+                <>
+                  <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 text-transparent bg-clip-text">新しいクイズを作成</h1>
+                  <p className="text-gray-600">あなたのオリジナルクイズを作成して公開しましょう</p>
+                </>
+              )}
             </div>
           </div>
 
@@ -346,6 +519,7 @@ export default function CreateQuizForm() {
                 setGenre={setGenre}
                 isPublic={isPublic}
                 setIsPublic={setIsPublic}
+                disableTitleGenre={disableTitleGenre}
               />
               
               {/* YAML一括インポート */}
@@ -389,11 +563,11 @@ export default function CreateQuizForm() {
                 >
                   {loading ? (
                     <>
-                      <FaSpinner className="animate-spin mr-2" /> 公開中...
+                      <FaSpinner className="animate-spin mr-2" /> {isEditMode ? '更新中...' : '公開中...'}
                     </>
                   ) : (
                     <>
-                      <FaUpload className="mr-2" /> 単元を公開する
+                      <FaUpload className="mr-2" /> {isEditMode ? '単元を更新する' : '単元を公開する'}
                     </>
                   )}
                 </button>
