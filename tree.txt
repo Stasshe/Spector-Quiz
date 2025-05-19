@@ -49,8 +49,8 @@
 │   │   │   │   │   ├── QuizFormEditor.tsx
 │   │   │   │   │   ├── QuizList.tsx
 │   │   │   │   │   └── YamlBulkImport.tsx
-│   │   │   │   ├── page.tsx
-│   │   │   │   └── types.ts
+│   │   │   │   ├── create-types.ts
+│   │   │   │   └── page.tsx
 │   │   │   ├── my-units
 │   │   │   │   └── page.tsx
 │   │   │   ├── page.tsx
