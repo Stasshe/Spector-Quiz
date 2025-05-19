@@ -63,11 +63,15 @@ export default function QuizManagement() {
 
     try {
       setLoading(true);
+      console.log(`Fetching official quiz units for genre: ${genreName}`);
       
-      // official_quiz_unitsコレクションからクエリを実行
+      // 現在のジャンル配下のofficial_quiz_unitsコレクションからクエリを実行
+      // ドキュメントIDはそのままジャンル名を使用
+      const genreDocId = genreName;
+      console.log(`Using genre document ID: ${genreDocId}`);
+      
       const unitsQuery = query(
-        collection(db, 'official_quiz_units'),
-        where('genre', '==', genreName)
+        collection(db, `genres/${genreDocId}/official_quiz_units`)
       );
       
       const unitsSnapshot = await getDocs(unitsQuery);
@@ -129,6 +133,7 @@ export default function QuizManagement() {
       setOfficialUnitsByCategory(categoriesWithUnits);
       setLoading(false);
       return categoriesWithUnits;
+      
     } catch (err) {
       console.error('Error fetching official units:', err);
       setError('公式単元の取得中にエラーが発生しました');
@@ -144,11 +149,20 @@ export default function QuizManagement() {
       return;
     }
     
+    // 管理者権限の確認とログ出力
+    console.log(`現在のユーザーID: ${currentUser.uid}`);
+    console.log(`管理者かどうか: ${currentUser.uid === '100000' ? '管理者です' : '管理者ではありません'}`);
+    
     try {
       // 単元がまだFirestoreに存在しない場合は作成
       if (!unit.unitId) {
-        // 新規単元を作成
-        const newUnitRef = await addDoc(collection(db, 'official_quiz_units'), {
+        // ジャンル名をそのままドキュメントIDとして使用
+        const genreDocId = unit.genre;
+        console.log(`使用するジャンルID: ${genreDocId}`);
+        
+        try {
+          // 新規単元を作成 - ジャンル配下のコレクションに追加
+          const newUnitRef = await addDoc(collection(db, `genres/${genreDocId}/official_quiz_units`), {
           title: unit.title,
           category: unit.category,
           genre: unit.genre,
@@ -175,9 +189,14 @@ export default function QuizManagement() {
             )
           }))
         );
+        } catch (err) {
+          console.error('Error creating official unit:', err);
+          setError(`単元の作成中にエラーが発生しました: ${err}`);
+        }
       } else {
-        // 既存の単元を更新
-        const unitRef = doc(db, 'official_quiz_units', unit.unitId);
+        // 既存の単元を更新 - ジャンル配下のコレクションのドキュメントを参照
+        const genreDocId = unit.genre;
+        const unitRef = doc(db, `genres/${genreDocId}/official_quiz_units`, unit.unitId);
         await updateDoc(unitRef, {
           isPublic: !unit.isPublic
         });

@@ -25,6 +25,11 @@ export default function Header() {
     { name: 'ランキング', href: '/ranking' },
   ];
 
+  // ログイン時のみ表示するナビゲーション
+  const authNavigation = currentUser ? [
+    { name: 'マイ単元', href: '/quiz/my-units' },
+  ] : [];
+
   return (
     <header className="sticky top-0 z-50">
       <div className="app-container">
@@ -39,6 +44,17 @@ export default function Header() {
           {/* デスクトップナビゲーション */}
           <nav className="hidden md:flex space-x-8">
             {navigation.map((item) => (
+              <Link
+                key={item.name}
+                href={item.href}
+                className={`nav-link ${
+                  pathname === item.href ? 'nav-link-active' : ''
+                }`}
+              >
+                {item.name}
+              </Link>
+            ))}
+            {currentUser && authNavigation.map((item) => (
               <Link
                 key={item.name}
                 href={item.href}
@@ -70,6 +86,11 @@ export default function Header() {
                     <Link href={`/profile/user?id=${currentUser.uid}`} className="hover:text-indigo-600 p-1">
                       <FaUser />
                     </Link>
+                    {userProfile?.userId === '100000' && (
+                      <Link href="/admin" className="hover:text-green-600 p-1">
+                        <span className="text-xs font-bold">管理</span>
+                      </Link>
+                    )}
                     <button onClick={handleLogout} className="hover:text-red-600 p-1">
                       <FaSignOutAlt />
                     </button>
@@ -124,6 +145,20 @@ export default function Header() {
                   {item.name}
                 </Link>
               ))}
+              {currentUser && authNavigation.map((item) => (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={`text-xl ${
+                    pathname === item.href 
+                      ? 'text-indigo-600 font-bold' 
+                      : 'text-gray-700 hover:text-indigo-600'
+                  }`}
+                  onClick={closeMenu}
+                >
+                  {item.name}
+                </Link>
+              ))}
               
               {currentUser ? (
                 <div className="space-y-6 pt-4 border-t border-gray-100">
@@ -148,6 +183,15 @@ export default function Header() {
                     <FaUser />
                     <span>プロフィール</span>
                   </Link>
+                  {userProfile?.userId === '100000' && (
+                    <Link
+                      href="/admin"
+                      className="flex items-center space-x-3 text-gray-700 hover:text-green-600"
+                      onClick={closeMenu}
+                    >
+                      <span className="font-bold">管理者メニュー</span>
+                    </Link>
+                  )}
                   <button
                     onClick={() => {
                       handleLogout();

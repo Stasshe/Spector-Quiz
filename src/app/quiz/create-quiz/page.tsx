@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { db } from '@/config/firebase'; 
@@ -33,6 +33,7 @@ interface DraftUnit {
 export default function CreateQuizUnitPage() {
   const { currentUser } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   // 単元の状態
   const [title, setTitle] = useState('');
@@ -586,9 +587,15 @@ export default function CreateQuizUnitPage() {
     <div className="app-container py-8">
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center justify-between mb-6">
-          <Link href="/quiz" className="flex items-center text-indigo-600 hover:text-indigo-800 transition-colors">
-            <FaArrowLeft className="mr-2" /> クイズ一覧に戻る
-          </Link>
+          {searchParams.get('edit') === 'true' && searchParams.get('officialGenre') ? (
+            <Link href="/admin/quiz-management" className="flex items-center text-indigo-600 hover:text-indigo-800 transition-colors">
+              <FaArrowLeft className="mr-2" /> 公式クイズ一覧に戻る
+            </Link>
+          ) : (
+            <Link href="/quiz" className="flex items-center text-indigo-600 hover:text-indigo-800 transition-colors">
+              <FaArrowLeft className="mr-2" /> クイズ一覧に戻る
+            </Link>
+          )}
           
           <div className="flex items-center space-x-2">
             {saving && (

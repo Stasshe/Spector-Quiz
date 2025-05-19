@@ -346,12 +346,20 @@ export default function QuizPage() {
             >
               プロフィール <FaChevronRight className="ml-2" />
             </Link>
-            <button
-              onClick={navigateToCreateQuiz}
-              className="btn-primary flex items-center"
-            >
-              <FaPlus className="mr-2" /> クイズ作成
-            </button>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Link
+                href="/quiz/my-units"
+                className="btn-outline flex items-center justify-center"
+              >
+                マイ単元一覧
+              </Link>
+              <button
+                onClick={navigateToCreateQuiz}
+                className="btn-primary flex items-center"
+              >
+                <FaPlus className="mr-2" /> クイズ作成
+              </button>
+            </div>
           </div>
         </div>
       )}

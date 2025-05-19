@@ -84,19 +84,6 @@ service cloud.firestore {
                    );
     }
     
-    // トップレベルの公式クイズ単元（非推奨、以前の構造）
-    match /official_quiz_units/{unitId} {
-      allow read;
-      // 管理者のみが作成・更新・削除可能
-      allow create, update, delete: if isAdmin();
-      
-      // 公式クイズ単元内のクイズ
-      match /quizzes/{quizId} {
-        allow read;
-        allow write: if isAdmin();
-      }
-    }
-    
     // クイズルーム
     match /quiz_rooms/{roomId} {
       allow read;

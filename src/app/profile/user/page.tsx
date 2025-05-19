@@ -6,7 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { doc, getDoc, collection, query, where, limit, getDocs } from 'firebase/firestore';
 import { db } from '@/config/firebase';
 import { User, UserProfile } from '@/types/user';
-import { FaUser, FaTrophy, FaGamepad, FaCheck, FaArrowLeft } from 'react-icons/fa';
+import { FaUser, FaTrophy, FaGamepad, FaCheck, FaArrowLeft, FaFileAlt } from 'react-icons/fa';
 import Link from 'next/link';
 
 // ローディングフォールバックコンポーネント
@@ -263,12 +263,18 @@ function UserProfileContent() {
         {/* 自分のプロフィールの場合のみ表示する操作 */}
         {isOwnProfile && (
           <div className="p-6 border-t border-gray-200 bg-gray-50">
-            <div className="flex justify-center">
+            <div className="flex flex-col sm:flex-row justify-center gap-4">
               <Link
                 href="/quiz"
-                className="bg-indigo-600 text-white px-6 py-2 rounded-md inline-flex items-center"
+                className="bg-indigo-600 text-white px-6 py-2 rounded-md inline-flex items-center justify-center"
               >
                 <FaGamepad className="mr-2" /> クイズをプレイする
+              </Link>
+              <Link 
+                href="/quiz/my-units" 
+                className="bg-green-600 text-white px-6 py-2 rounded-md inline-flex items-center justify-center"
+              >
+                <FaFileAlt className="mr-2" /> マイ単元一覧
               </Link>
             </div>
           </div>
