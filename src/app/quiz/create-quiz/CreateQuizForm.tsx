@@ -71,7 +71,9 @@ export default function CreateQuizForm() {
       setIsEditMode(true);
       setEditUnitId(unitId);
       setEditGenreId(genreId);
-      loadUnitData(genreId, unitId, !!officialGenre);
+      // officialGenre パラメータが "true" の場合に公式クイズと判断
+      const isOfficialQuiz = officialGenre === 'true';
+      loadUnitData(genreId, unitId, isOfficialQuiz);
     }
     
     // 自動保存タイマーの設定
@@ -86,7 +88,7 @@ export default function CreateQuizForm() {
         clearInterval(autoSaveTimerRef.current);
       }
     };
-  }, [currentUser, router, title, quizzes]);
+  }, [currentUser, router]);
 
   // ジャンルが変更されたときに、そのジャンルのクイズを取得
   useEffect(() => {
@@ -252,25 +254,33 @@ export default function CreateQuizForm() {
   const loadUnitData = async (genreId: string, unitId: string, isOfficial: boolean) => {
     try {
       setLoading(true);
+      console.log(`単元データ読み込み開始: genreId=${genreId}, unitId=${unitId}, isOfficial=${isOfficial}`);
+      
       // 単元データを取得（公式クイズとユーザークイズで参照先が異なる）
       const collectionName = isOfficial ? 'official_quiz_units' : 'quiz_units';
+      console.log(`使用コレクション: ${collectionName}`);
+      
       const unitDocRef = doc(db, `genres/${genreId}/${collectionName}`, unitId);
       const unitSnapshot = await getDoc(unitDocRef);
       
       if (!unitSnapshot.exists()) {
+        console.error(`単元が存在しません: ${genreId}/${collectionName}/${unitId}`);
         setErrorMessage('指定された単元が見つかりませんでした');
         setLoading(false);
         return;
       }
       
       const unitData = unitSnapshot.data() as QuizUnit;
+      console.log('単元データ取得成功:', unitData.title);
       
       // 公式クイズまたは他のユーザーが作成したクイズの場合、編集権限チェック
       if (isOfficial && !(userProfile?.isAdmin === true)) {
+        console.error('公式クイズ編集権限がありません');
         setErrorMessage('公式クイズを編集する権限がありません');
         setLoading(false);
         return;
       } else if (!isOfficial && unitData.createdBy !== currentUser?.uid) {
+        console.error('他ユーザーのクイズ編集権限がありません');
         setErrorMessage('このクイズを編集する権限がありません');
         setLoading(false);
         return;
@@ -283,8 +293,13 @@ export default function CreateQuizForm() {
       setIsPublic(unitData.isPublic);
       setDisableTitleGenre(true); // 単元名とジャンルを編集不可に
       
+      console.log('フォームデータ設定完了');
+      
       // クイズデータを取得
-      const quizzesSnapshot = await getDocs(collection(unitDocRef, 'quizzes'));
+      const quizzesCollection = collection(unitDocRef, 'quizzes');
+      console.log(`クイズコレクションパス: ${quizzesCollection.path}`);
+      
+      const quizzesSnapshot = await getDocs(quizzesCollection);
       const loadedQuizzes: Quiz[] = [];
       
       quizzesSnapshot.forEach(quizDoc => {
@@ -295,12 +310,17 @@ export default function CreateQuizForm() {
         } as Quiz);
       });
       
+      console.log(`読み込んだクイズ数: ${loadedQuizzes.length}`);
       setQuizzes(loadedQuizzes);
       setSuccessMessage('単元データを読み込みました');
+      
+      // 明示的にロード状態を解除（タイミング問題を防ぐため）
+      setTimeout(() => {
+        setLoading(false);
+      }, 500);
     } catch (error) {
       console.error('単元データ読み込み中にエラーが発生しました:', error);
       setErrorMessage('単元データの読み込みに失敗しました');
-    } finally {
       setLoading(false);
     }
   };
@@ -355,15 +375,22 @@ export default function CreateQuizForm() {
 
   // 既存の単元を更新する関数
   const updateUnit = async () => {
-    if (!editUnitId || !editGenreId || !currentUser) return;
+    if (!editUnitId || !editGenreId || !currentUser) {
+      console.error('更新に必要な情報が不足しています:', { editUnitId, editGenreId, userId: currentUser?.uid });
+      setErrorMessage('更新に必要な情報が不足しています');
+      setLoading(false);
+      return;
+    }
     
     try {
       // 公式クイズかどうかを確認
       const isOfficial = searchParams.get('officialGenre') === 'true';
+      console.log(`単元更新開始: isOfficial=${isOfficial}`);
       
       // 適切なコレクションパスを設定
       // 公式クイズの場合は official_quiz_units コレクション、それ以外は quiz_units コレクション
       const collectionName = isOfficial ? 'official_quiz_units' : 'quiz_units';
+      console.log(`更新コレクション: ${collectionName}`);
       const unitRef = doc(db, 'genres', editGenreId, collectionName, editUnitId);
       
       // 更新する単元データを準備
@@ -563,11 +590,13 @@ export default function CreateQuizForm() {
                 >
                   {loading ? (
                     <>
-                      <FaSpinner className="animate-spin mr-2" /> {isEditMode ? '更新中...' : '公開中...'}
+                      <FaSpinner className="animate-spin mr-2" /> 
+                      {isEditMode ? '更新中...' : '公開中...'}
                     </>
                   ) : (
                     <>
-                      <FaUpload className="mr-2" /> {isEditMode ? '単元を更新する' : '単元を公開する'}
+                      <FaUpload className="mr-2" /> 
+                      {isEditMode ? '単元を更新する' : '単元を公開する'}
                     </>
                   )}
                 </button>
