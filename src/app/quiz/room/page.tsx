@@ -48,10 +48,19 @@ function QuizRoomContent() {
   // リダイレクトループ防止
   useEffect(() => {
     // このページにいることを明示的に記録
-    const inRoomPage = true;
+    console.log('[QuizRoomPage] ページロード - クイズルームフラグを設定');
+    
     // グローバルフラグとして設定（window経由で他のコンポーネントからもアクセス可能）
     if (typeof window !== 'undefined') {
       window.inQuizRoomPage = true;
+      
+      // 確実に設定されるようにタイマーも使用（非同期処理対策）
+      const confirmTimer = setTimeout(() => {
+        if (typeof window !== 'undefined' && !window.inQuizRoomPage) {
+          console.log('[QuizRoomPage] フラグ設定の確認 - 再設定');
+          window.inQuizRoomPage = true;
+        }
+      }, 500);
     }
     
     console.log('[QuizRoomPage] クイズルームページにロード/マウント完了');
@@ -59,6 +68,7 @@ function QuizRoomContent() {
     return () => {
       // クリーンアップ時にフラグをリセット
       if (typeof window !== 'undefined') {
+        console.log('[QuizRoomPage] ページアンマウント - クイズルームフラグをクリア');
         window.inQuizRoomPage = false;
       }
       console.log('[QuizRoomPage] クイズルームページからアンマウント');

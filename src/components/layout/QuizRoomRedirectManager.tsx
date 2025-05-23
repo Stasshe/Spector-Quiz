@@ -25,6 +25,7 @@ export default function QuizRoomRedirectManager() {
       return;
     }
     
+    // クイズルームページにいる場合の処理
     if (pathname && pathname.includes('/quiz/room')) {
       console.log('[QuizRoomRedirectManager] クイズルームページに滞在中 - リダイレクト処理は無効化');
       
@@ -37,6 +38,20 @@ export default function QuizRoomRedirectManager() {
       }, 5000);
       
       return () => clearTimeout(timer);
+    } else if (typeof window !== 'undefined') {
+      // パスからでは検出できない場合のフォールバック：window.inQuizRoomPageをチェック
+      if (window.inQuizRoomPage) {
+        console.log('[QuizRoomRedirectManager] window.inQuizRoomPage = true - リダイレクト処理は無効化');
+        // 明示的にフラグをリセット（冗長性のため）
+        redirectInProgressRef.current = true;
+        
+        // 5秒後にフラグをリセット
+        const timer = setTimeout(() => {
+          redirectInProgressRef.current = false;
+        }, 5000);
+        
+        return () => clearTimeout(timer);
+      }
     }
   }, [pathname, currentUser]);
 
@@ -99,8 +114,15 @@ export default function QuizRoomRedirectManager() {
       });
       
       // すでにルームページにいる場合は何もしない
-      if (pathname?.includes('/quiz/room') || (typeof window !== 'undefined' && window.inQuizRoomPage)) {
-        console.log('[QuizRoomRedirectManager] すでにルームページにいるため、リダイレクト処理をスキップ');
+      const inRoomPage = 
+        (pathname?.includes('/quiz/room')) || 
+        (typeof window !== 'undefined' && window.inQuizRoomPage);
+      
+      if (inRoomPage) {
+        console.log('[QuizRoomRedirectManager] すでにルームページにいるため、リダイレクト処理をスキップ', {
+          pathname,
+          windowFlag: typeof window !== 'undefined' ? window.inQuizRoomPage : undefined
+        });
         return;
       }
       
@@ -111,9 +133,16 @@ export default function QuizRoomRedirectManager() {
       }
 
       // パス変更を検知したときのみリダイレクト（同じページで再レンダリングされた場合はスキップ）
-      if (pathname !== lastPathRef.current) {
-        console.log(`[QuizRoomRedirectManager] パス変更を検知: ${lastPathRef.current} -> ${pathname}`);
-        lastPathRef.current = pathname;
+      const pathChanged = pathname !== lastPathRef.current;
+      const isQuizPath = pathname?.includes('/quiz');
+      
+      if (pathChanged || (isQuizPath && !redirectInProgressRef.current)) {
+        if (pathChanged) {
+          console.log(`[QuizRoomRedirectManager] パス変更を検知: ${lastPathRef.current} -> ${pathname}`);
+          lastPathRef.current = pathname;
+        } else {
+          console.log('[QuizRoomRedirectManager] クイズ関連ページにいるためリダイレクトチェックを実行');
+        }
         
         // リダイレクトが既に進行中でなければ実行
         if (!redirectInProgressRef.current) {
@@ -122,20 +151,41 @@ export default function QuizRoomRedirectManager() {
           // リダイレクト進行中フラグをセット
           redirectInProgressRef.current = true;
           
-          // 直接リダイレクト（より確実なため先に実行）
+          // 直接リダイレクト
           try {
             // パス構築して安全に遷移
             const redirectUrl = `/quiz/room?id=${encodeURIComponent(activeRoomId)}`;
             console.log(`[QuizRoomRedirectManager] リダイレクト実行: ${redirectUrl}`);
             
-            // App Routerを使用（Next.jsの推奨方法）
-            router.push(redirectUrl);
+            // App Routerを使用（Next.jsの推奨方法）- より強制的なreplace方式を使用
+            router.replace(redirectUrl);
+            
+            // バックアップとして1秒後に再チェック
+            const backupTimer = setTimeout(() => {
+              // 既にクイズルームページにいる場合はスキップ
+              if (typeof window !== 'undefined' && 
+                 (window.location.pathname.includes('/quiz/room') || window.inQuizRoomPage)) {
+                console.log('[QuizRoomRedirectManager] すでにルームページに移動済みです');
+                return;
+              }
+              
+              console.log('[QuizRoomRedirectManager] バックアップリダイレクト実行');
+              // 本当に緊急時のバックアップとしてwindow.location.hrefを使用
+              if (typeof window !== 'undefined') {
+                window.location.href = `/quiz/room?id=${activeRoomId}`;
+              }
+            }, 1000);
+            
+            cleanupTimers.push(backupTimer);
           } catch (error) {
             console.error('[QuizRoomRedirectManager] リダイレクトエラー:', error);
             // エラー時のみwindow.location.replaceを使用
             try {
-              // バックアップとして直接リダイレクト
-              window.location.replace(`/quiz/room?id=${activeRoomId}`);
+              if (typeof window !== 'undefined') {
+                // バックアップとして直接リダイレクト
+                console.log('[QuizRoomRedirectManager] router.replaceに失敗。バックアップリダイレクト試行...');
+                window.location.replace(`/quiz/room?id=${activeRoomId}`);
+              }
             } catch (locationError) {
               console.error('[QuizRoomRedirectManager] バックアップリダイレクトでもエラー:', locationError);
             }

@@ -17,6 +17,51 @@ export default function ActiveQuizAlertModal() {
   const [manualRoomId, setManualRoomId] = React.useState<string | null>(null);
   
   // クイズルームが進行中の場合、アラートを表示する
+  // タイムアウト用のrefを作成
+  const autoRedirectTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+  
+  // ルームへのリダイレクト処理を共通化
+  const redirectToRoom = React.useCallback(() => {
+    // quizRoom.roomId または manualRoomId を使用
+    const roomId = quizRoom?.roomId || manualRoomId;
+    
+    if (roomId) {
+      try {
+        console.log('[ActiveQuizAlertModal] ルームにリダイレクト:', roomId);
+        setShowAlert(false); // 先に非表示にする
+        
+        // Next.jsのrouterを使用（App Routerの推奨方法）
+        router.push(`/quiz/room?id=${roomId}`);
+        
+        // バックアップタイマー（router.pushが失敗した場合のみ実行）
+        const backupTimer = setTimeout(() => {
+          // 既にリダイレクトが完了していないか確認
+          if (typeof window !== 'undefined' && window.location.pathname.includes('/quiz/room')) {
+            console.log('[ActiveQuizAlertModal] すでにルームページに移動済みです');
+            return;
+          }
+          
+          console.log('[ActiveQuizAlertModal] バックアップリダイレクト実行');
+          router.replace(`/quiz/room?id=${roomId}`);
+        }, 500);
+        
+        // タイマーをクリアする関数を返す
+        return () => clearTimeout(backupTimer);
+      } catch (error) {
+        console.error('[ActiveQuizAlertModal] リダイレクトエラー:', error);
+        // エラー時はreplace（より強制的なリダイレクト）
+        router.replace(`/quiz/room?id=${roomId}`);
+      }
+    } else {
+      console.error('[ActiveQuizAlertModal] ルームIDが存在しません:', {
+        quizRoom,
+        manualRoomId
+      });
+      alert('ルームIDが取得できませんでした。ホームページに戻ります。');
+      router.push('/');
+    }
+  }, [quizRoom, manualRoomId, router]);
+
   React.useEffect(() => {
     // 認証チェック - ユーザーが未ログインの場合は表示しない
     if (!currentUser) {
@@ -25,7 +70,7 @@ export default function ActiveQuizAlertModal() {
     }
     
     // quizRoomがnullの場合や、既にquizRoomページにいる場合は何もしない
-    if (!quizRoom || location.pathname.includes('/quiz/room')) {
+    if (!quizRoom || (typeof window !== 'undefined' && (window.location.pathname.includes('/quiz/room') || window.inQuizRoomPage))) {
       setShowAlert(false);
       return;
     }
@@ -67,7 +112,8 @@ export default function ActiveQuizAlertModal() {
     console.log('[ActiveQuizAlertModal] クイズルーム情報:', {
       roomId: quizRoom.roomId || manualRoomId,
       status: quizRoom.status,
-      name: quizRoom.name
+      name: quizRoom.name,
+      pathname: typeof window !== 'undefined' ? window.location.pathname : 'undefined'
     });
     
     // roomIdがない場合はFirebaseから取得を試みる
@@ -79,14 +125,27 @@ export default function ActiveQuizAlertModal() {
     if (quizRoom.status === 'in_progress') {
       setShowAlert(true);
       
-      // 3秒後に自動的にルームページにリダイレクトする処理は削除
-      // QuizRoomRedirectManagerがリダイレクトを担当するため
-      // アラートの表示のみを行う
+      // 3秒後に自動的にルームページにリダイレクトするタイマーを設定
+      if (autoRedirectTimerRef.current) {
+        clearTimeout(autoRedirectTimerRef.current);
+      }
+      
+      autoRedirectTimerRef.current = setTimeout(() => {
+        console.log('[ActiveQuizAlertModal] 自動リダイレクトタイマー実行');
+        redirectToRoom();
+      }, 3000); // 3秒後に自動リダイレクト
     } else {
       // 進行中でない場合はアラートを非表示
       setShowAlert(false);
     }
-  }, [quizRoom, currentUser, manualRoomId]);
+    
+    // クリーンアップ関数でタイマーをクリア
+    return () => {
+      if (autoRedirectTimerRef.current) {
+        clearTimeout(autoRedirectTimerRef.current);
+      }
+    };
+  }, [quizRoom, currentUser, manualRoomId, redirectToRoom]);
 
   if (!showAlert) {
     return null;
@@ -136,46 +195,7 @@ export default function ActiveQuizAlertModal() {
           
           <div className="flex justify-end space-x-2">
             <button
-              onClick={() => {
-                // quizRoom.roomId または manualRoomId を使用
-                const roomId = quizRoom?.roomId || manualRoomId;
-                
-                if (roomId) {
-                  try {
-                    console.log('[ActiveQuizAlertModal] ルームにリダイレクト:', roomId);
-                    setShowAlert(false); // 先に非表示にする
-                    
-                    // Next.jsのrouterを使用（App Routerの推奨方法）
-                    router.push(`/quiz/room?id=${roomId}`);
-                    
-                    // バックアップタイマー（router.pushが失敗した場合のみ実行）
-                    const backupTimer = setTimeout(() => {
-                      // 既にリダイレクトが完了していないか確認
-                      if (location.pathname.includes('/quiz/room')) {
-                        console.log('[ActiveQuizAlertModal] すでにルームページに移動済みです');
-                        return;
-                      }
-                      
-                      console.log('[ActiveQuizAlertModal] バックアップリダイレクト実行');
-                      router.replace(`/quiz/room?id=${roomId}`);
-                    }, 500);
-                    
-                    // コンポーネントがアンマウントされたらタイマーをクリア
-                    return () => clearTimeout(backupTimer);
-                  } catch (error) {
-                    console.error('[ActiveQuizAlertModal] リダイレクトエラー:', error);
-                    // エラー時はreplace（より強制的なリダイレクト）
-                    router.replace(`/quiz/room?id=${roomId}`);
-                  }
-                } else {
-                  console.error('[ActiveQuizAlertModal] ルームIDが存在しません:', {
-                    quizRoom,
-                    manualRoomId
-                  });
-                  alert('ルームIDが取得できませんでした。ホームページに戻ります。');
-                  router.push('/');
-                }
-              }}
+              onClick={redirectToRoom}
               className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors"
             >
               ルームに戻る
