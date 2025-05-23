@@ -66,13 +66,20 @@ export default function CreateQuizForm() {
     const genreId = searchParams.get('genreId');
     const officialGenre = searchParams.get('officialGenre');
     
+    console.log('URL パラメータ:', { edit, unitId, genreId, officialGenre });
+    
     // 編集モードの場合、単元データを取得
     if (edit === 'true' && unitId && genreId) {
       setIsEditMode(true);
       setEditUnitId(unitId);
       setEditGenreId(genreId);
+      
       // officialGenre パラメータが "true" の場合に公式クイズと判断
+      // 文字列比較を厳密に行う
       const isOfficialQuiz = officialGenre === 'true';
+      console.log('編集モード設定:', { isOfficialQuiz });
+      
+      // 単元データを読み込む
       loadUnitData(genreId, unitId, isOfficialQuiz);
     }
     
@@ -260,11 +267,19 @@ export default function CreateQuizForm() {
       const collectionName = isOfficial ? 'official_quiz_units' : 'quiz_units';
       console.log(`使用コレクション: ${collectionName}`);
       
+      // 完全なコレクションパスをログ出力
+      const fullPath = `genres/${genreId}/${collectionName}/${unitId}`;
+      console.log(`ドキュメントパス: ${fullPath}`);
+      
       const unitDocRef = doc(db, `genres/${genreId}/${collectionName}`, unitId);
+      console.log('ドキュメント参照生成完了');
+      
+      // ドキュメント取得を試行
       const unitSnapshot = await getDoc(unitDocRef);
+      console.log('ドキュメント取得完了:', unitSnapshot.exists() ? 'ドキュメント存在' : 'ドキュメント不存在');
       
       if (!unitSnapshot.exists()) {
-        console.error(`単元が存在しません: ${genreId}/${collectionName}/${unitId}`);
+        console.error(`単元が存在しません: ${fullPath}`);
         setErrorMessage('指定された単元が見つかりませんでした');
         setLoading(false);
         return;
@@ -272,9 +287,14 @@ export default function CreateQuizForm() {
       
       const unitData = unitSnapshot.data() as QuizUnit;
       console.log('単元データ取得成功:', unitData.title);
+      console.log('ユーザープロファイル:', userProfile);
+      
+      // 管理者権限の確認
+      const isAdmin = userProfile?.isAdmin === true || userProfile?.userId === '100000';
+      console.log('管理者権限チェック:', { isAdmin, userId: userProfile?.userId });
       
       // 公式クイズまたは他のユーザーが作成したクイズの場合、編集権限チェック
-      if (isOfficial && !(userProfile?.isAdmin === true)) {
+      if (isOfficial && !isAdmin) {
         console.error('公式クイズ編集権限がありません');
         setErrorMessage('公式クイズを編集する権限がありません');
         setLoading(false);
@@ -387,10 +407,27 @@ export default function CreateQuizForm() {
       const isOfficial = searchParams.get('officialGenre') === 'true';
       console.log(`単元更新開始: isOfficial=${isOfficial}`);
       
+      // 管理者権限の確認
+      const isAdmin = userProfile?.isAdmin === true || userProfile?.userId === '100000';
+      console.log('管理者権限チェック:', { isAdmin, userId: userProfile?.userId });
+      
+      // 公式クイズの場合は管理者のみ更新可能
+      if (isOfficial && !isAdmin) {
+        console.error('公式クイズの更新権限がありません');
+        setErrorMessage('公式クイズを更新する権限がありません');
+        setLoading(false);
+        return;
+      }
+      
       // 適切なコレクションパスを設定
       // 公式クイズの場合は official_quiz_units コレクション、それ以外は quiz_units コレクション
       const collectionName = isOfficial ? 'official_quiz_units' : 'quiz_units';
       console.log(`更新コレクション: ${collectionName}`);
+      
+      // 完全なコレクションパスをログ出力
+      const fullPath = `genres/${editGenreId}/${collectionName}/${editUnitId}`;
+      console.log(`更新ドキュメントパス: ${fullPath}`);
+      
       const unitRef = doc(db, 'genres', editGenreId, collectionName, editUnitId);
       
       // 更新する単元データを準備
