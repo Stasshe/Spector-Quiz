@@ -19,6 +19,13 @@ export default function ActiveQuizAlertModal() {
       return;
     }
     
+    // デバッグ情報をコンソールに出力
+    console.log('[ActiveQuizAlertModal] クイズルーム情報:', {
+      roomId: quizRoom.roomId,
+      status: quizRoom.status,
+      name: quizRoom.name
+    });
+    
     // クイズが進行中の場合のみアラートを表示
     if (quizRoom.status === 'in_progress') {
       setShowAlert(true);
@@ -83,6 +90,8 @@ export default function ActiveQuizAlertModal() {
               onClick={() => {
                 if (quizRoom && quizRoom.roomId) {
                   try {
+                    console.log('[ActiveQuizAlertModal] ルームにリダイレクト:', quizRoom.roomId);
+                    
                     // まずNext.jsのrouterを使用
                     router.push(`/quiz/room?id=${quizRoom.roomId}`);
                     
@@ -96,6 +105,10 @@ export default function ActiveQuizAlertModal() {
                     window.location.href = `/quiz/room?id=${quizRoom.roomId}`;
                   }
                   setShowAlert(false);
+                } else {
+                  console.error('[ActiveQuizAlertModal] ルームIDが存在しません:', quizRoom);
+                  alert('ルームIDが取得できませんでした。ホームページに戻ります。');
+                  router.push('/');
                 }
               }}
               className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors"

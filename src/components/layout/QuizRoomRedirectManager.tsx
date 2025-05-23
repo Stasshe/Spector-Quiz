@@ -17,6 +17,9 @@ export default function QuizRoomRedirectManager() {
     // quizRoomが変更されたらroomIdを更新
     if (quizRoom && quizRoom.roomId) {
       roomIdRef.current = quizRoom.roomId;
+      console.log('[QuizRoomRedirectManager] roomId更新:', quizRoom.roomId);
+    } else if (quizRoom) {
+      console.error('[QuizRoomRedirectManager] quizRoomにroomIdがありません:', quizRoom);
     }
   }, [quizRoom]);
 
@@ -26,6 +29,13 @@ export default function QuizRoomRedirectManager() {
     
     // クイズが進行中かつ有効なroomIdがある場合のみ処理
     if (quizRoom && quizRoom.status === 'in_progress' && quizRoom.roomId) {
+      // デバッグ情報を出力
+      console.log('[QuizRoomRedirectManager] 進行中クイズルーム検出:', {
+        roomId: quizRoom.roomId,
+        currentPath: pathname,
+        inRoom: pathname?.includes('/quiz/room')
+      });
+      
       // すでにルームページにいる場合は何もしない
       if (pathname?.includes('/quiz/room')) {
         return;
@@ -33,7 +43,7 @@ export default function QuizRoomRedirectManager() {
 
       // リダイレクトが既に進行中でなければ実行
       if (!redirectInProgressRef.current) {
-        console.log('[QuizRoomRedirectManager] クイズ進行中にページ移動を検出。ルームページに強制リダイレクト');
+        console.log('[QuizRoomRedirectManager] クイズ進行中にページ移動を検出。ルームページに強制リダイレクト：', quizRoom.roomId);
         
         // リダイレクト進行中フラグをセット
         redirectInProgressRef.current = true;
@@ -43,9 +53,11 @@ export default function QuizRoomRedirectManager() {
           try {
             // まずrouter.pushを試す
             router.push(`/quiz/room?id=${quizRoom.roomId}`);
+            console.log('[QuizRoomRedirectManager] router.pushでリダイレクト完了');
             
             // バックアップとして直接リダイレクト
             const backupTimer = setTimeout(() => {
+              console.log('[QuizRoomRedirectManager] バックアップリダイレクト実行');
               window.location.href = `/quiz/room?id=${quizRoom.roomId}`;
             }, 500);
             
@@ -59,6 +71,7 @@ export default function QuizRoomRedirectManager() {
           // リダイレクト後、フラグをリセット
           const resetTimer = setTimeout(() => {
             redirectInProgressRef.current = false;
+            console.log('[QuizRoomRedirectManager] リダイレクトフラグリセット');
           }, 2000);
           
           cleanupTimers.push(resetTimer);
@@ -66,6 +79,9 @@ export default function QuizRoomRedirectManager() {
         
         cleanupTimers.push(redirectTimer);
       }
+    } else if (quizRoom && quizRoom.status === 'in_progress') {
+      // roomIdがない場合
+      console.error('[QuizRoomRedirectManager] クイズルームにroomIdがありません:', quizRoom);
     }
     
     // クリーンアップ関数
