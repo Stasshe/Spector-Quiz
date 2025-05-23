@@ -109,8 +109,19 @@ export default function RoomSwitchConfirmModal() {
       document.documentElement.removeAttribute('data-room-switch-pending');
       document.documentElement.removeAttribute('data-room-info');
       
-      // ルームページに移動
-      router.push(`/quiz/room?id=${quizRoom.roomId}`);
+      try {
+        // ルームページに移動（Next.jsのrouter）
+        router.push(`/quiz/room?id=${quizRoom.roomId}`);
+        
+        // バックアップとして直接リダイレクト
+        setTimeout(() => {
+          window.location.href = `/quiz/room?id=${quizRoom.roomId}`;
+        }, 300);
+      } catch (error) {
+        console.error('[RoomSwitchConfirmModal] リダイレクトエラー:', error);
+        // エラー時は直接リダイレクト
+        window.location.href = `/quiz/room?id=${quizRoom.roomId}`;
+      }
     }
   }, [quizRoom, router, setConfirmRoomSwitch]);
 

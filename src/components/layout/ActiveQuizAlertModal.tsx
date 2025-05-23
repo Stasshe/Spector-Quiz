@@ -66,7 +66,7 @@ export default function ActiveQuizAlertModal() {
           <div className="mb-6">
             <p className="text-gray-700 mb-4">
               「{quizRoom?.name || 'クイズルーム'}」のクイズが進行中です。
-              クイズを続けるためにルームページに自動的に戻ります。
+              下のボタンをクリックしてクイズルームに戻ってください。
             </p>
             <div className="w-full bg-gray-200 h-2 rounded-full mt-4">
               <motion.div
@@ -81,8 +81,20 @@ export default function ActiveQuizAlertModal() {
           <div className="flex justify-end space-x-2">
             <button
               onClick={() => {
-                if (quizRoom) {
-                  router.push(`/quiz/room?id=${quizRoom.roomId}`);
+                if (quizRoom && quizRoom.roomId) {
+                  try {
+                    // まずNext.jsのrouterを使用
+                    router.push(`/quiz/room?id=${quizRoom.roomId}`);
+                    
+                    // バックアップとして直接リダイレクト
+                    setTimeout(() => {
+                      window.location.href = `/quiz/room?id=${quizRoom.roomId}`;
+                    }, 300);
+                  } catch (error) {
+                    console.error('[ActiveQuizAlertModal] リダイレクトエラー:', error);
+                    // エラー時は直接リダイレクト
+                    window.location.href = `/quiz/room?id=${quizRoom.roomId}`;
+                  }
                   setShowAlert(false);
                 }
               }}
