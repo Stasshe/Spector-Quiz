@@ -15,6 +15,7 @@ export default function ActiveQuizAlertModal() {
   React.useEffect(() => {
     // quizRoomがnullの場合や、既にquizRoomページにいる場合は何もしない
     if (!quizRoom || location.pathname.includes('/quiz/room')) {
+      setShowAlert(false);
       return;
     }
     
@@ -22,17 +23,14 @@ export default function ActiveQuizAlertModal() {
     if (quizRoom.status === 'in_progress') {
       setShowAlert(true);
       
-      // 3秒後に自動的にルームページにリダイレクト
-      const timer = setTimeout(() => {
-        router.push(`/quiz/room?id=${quizRoom.roomId}`);
-        setShowAlert(false);
-      }, 3000);
-      
-      return () => {
-        clearTimeout(timer);
-      };
+      // 3秒後に自動的にルームページにリダイレクトする処理は削除
+      // QuizRoomRedirectManagerがリダイレクトを担当するため
+      // アラートの表示のみを行う
+    } else {
+      // 進行中でない場合はアラートを非表示
+      setShowAlert(false);
     }
-  }, [quizRoom, router]);
+  }, [quizRoom]);
 
   if (!showAlert) {
     return null;
