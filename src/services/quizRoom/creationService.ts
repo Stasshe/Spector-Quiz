@@ -145,20 +145,26 @@ export async function createRoomWithUnitService(
       }
     }
     
+    // クラスタイプに応じてコレクション名を決定
+    const collectionName = classType === '公式' ? 'official_quiz_units' : 'quiz_units';
+    console.log(`[createRoomWithUnitService] 使用するコレクション: ${collectionName}, ジャンル: ${genreId}, 単元ID: ${unitId}`);
+    
     // 単元データを取得
-    const unitRef = doc(db, 'genres', genreId, 'quiz_units', unitId);
+    const unitRef = doc(db, 'genres', genreId, collectionName, unitId);
     const unitSnap = await getDoc(unitRef);
     
     if (!unitSnap.exists()) {
-      throw new Error('指定された単元が見つかりません');
+      console.error(`[createRoomWithUnitService] 単元が見つかりません: ジャンル=${genreId}, 単元ID=${unitId}, コレクション=${collectionName}`);
+      throw new Error(`指定された単元「${unitId}」が見つかりません`);
     }
     
     const unitData = unitSnap.data();
+    console.log(`[createRoomWithUnitService] 単元データ取得成功: ${unitData.title}`);
     // 単元の難易度を取得（デフォルトは3）
     const unitDifficulty = unitData.difficulty || 3;
     
     // 単元内のクイズを取得
-    const quizzesQuery = collection(db, 'genres', genreId, 'quiz_units', unitId, 'quizzes');
+    const quizzesQuery = collection(db, 'genres', genreId, collectionName, unitId, 'quizzes');
     const quizzesSnapshot = await getDocs(quizzesQuery);
     
     const quizIds: string[] = [];
@@ -167,8 +173,11 @@ export async function createRoomWithUnitService(
     });
     
     if (quizIds.length === 0) {
-      throw new Error('この単元にはクイズがありません');
+      console.error(`[createRoomWithUnitService] クイズが見つかりません: ジャンル=${genreId}, 単元ID=${unitId}, クラスタイプ=${classType}`);
+      throw new Error(`この単元にはクイズがありません (${unitData.title})`);
     }
+    
+    console.log(`[createRoomWithUnitService] 取得したクイズ数: ${quizIds.length}`);
     
     // ジャンル名（表示用）
     const genreRef = doc(db, 'genres', genreId);

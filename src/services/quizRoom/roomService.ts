@@ -239,8 +239,14 @@ export async function checkAndDisbandOldRooms(
  */
 export async function getUnitIdByName(genre: string, unitName: string, classType: string = '公式'): Promise<string | null> {
   try {
+    // クラスタイプに応じてコレクション名を決定
+    // '公式' の場合は official_quiz_units コレクション
+    // それ以外の場合は quiz_units コレクション
+    const collectionName = classType === '公式' ? 'official_quiz_units' : 'quiz_units';
+    console.log(`[getUnitIdByName] ジャンル: ${genre}, 単元名: ${unitName}, クラスタイプ: ${classType}, コレクション: ${collectionName}`);
+    
     const unitsQuery = query(
-      collection(db, 'genres', genre, 'quiz_units'),
+      collection(db, 'genres', genre, collectionName),
       where('title', '==', unitName),
       limit(1)
     );
@@ -248,9 +254,12 @@ export async function getUnitIdByName(genre: string, unitName: string, classType
     const unitsSnapshot = await getDocs(unitsQuery);
     
     if (!unitsSnapshot.empty) {
-      return unitsSnapshot.docs[0].id;
+      const unitId = unitsSnapshot.docs[0].id;
+      console.log(`[getUnitIdByName] 単元ID取得成功: ${unitId}`);
+      return unitId;
     }
     
+    console.error(`[getUnitIdByName] 単元が見つかりません。ジャンル: ${genre}, 単元名: ${unitName}, クラスタイプ: ${classType}`);
     return null;
   } catch (err) {
     console.error(`Error getting unit ID for ${unitName}:`, err);
