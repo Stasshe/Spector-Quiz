@@ -2,9 +2,10 @@
 
 import * as React from 'react';
 import { motion } from 'framer-motion';
-import { FaTimes, FaExchangeAlt } from 'react-icons/fa';
+import { FaTimes, FaExchangeAlt, FaExclamationTriangle } from 'react-icons/fa';
 import { useQuizRoom } from '@/hooks/useQuizRoom';
 import { useQuiz } from '@/context/QuizContext';
+import { useRouter } from 'next/navigation';
 
 export default function RoomSwitchConfirmModal() {
   const { 
@@ -16,7 +17,8 @@ export default function RoomSwitchConfirmModal() {
     setConfirmRoomSwitch
   } = useQuizRoom();
   
-  const { waitingRoom } = useQuiz();
+  const { waitingRoom, quizRoom } = useQuiz();
+  const router = useRouter();
   
   // documentから直接情報を取得する機能を追加
   const [forcedVisible, setForcedVisible] = React.useState(false);
@@ -86,6 +88,258 @@ export default function RoomSwitchConfirmModal() {
     });
   }, [confirmRoomSwitch, roomToJoin, forcedVisible, forcedRoomInfo]);
 
+  // クイズが進行中かどうかの判定
+  const isQuizInProgress = React.useMemo(() => {
+    // quizRoomがnullの場合は進行中ではない
+    if (!quizRoom) return false;
+    
+    // ステータスが'in_progress'の場合は進行中
+    return quizRoom.status === 'in_progress';
+  }, [quizRoom]);
+  
+  // 直接ルームページに移動する関数
+  const redirectToQuizRoom = React.useCallback(() => {
+    if (quizRoom && quizRoom.roomId) {
+      // モーダルを閉じる
+      setForcedVisible(false);
+      setForcedRoomInfo(null);
+      setConfirmRoomSwitch(false);
+      
+      // ドキュメント属性をクリア
+      document.documentElement.removeAttribute('data-room-switch-pending');
+      document.documentElement.removeAttribute('data-room-info');
+      
+      // ルームページに移動
+      router.push(`/quiz/room?id=${quizRoom.roomId}`);
+    }
+  }, [quizRoom, router, setConfirmRoomSwitch]);
+
+  // 進行中クイズ用のアラートモーダルコンテンツ
+  const inProgressAlertContent = () => (
+    <>
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-bold text-red-600 flex items-center">
+          <FaExclamationTriangle className="mr-2" />
+          進行中のクイズがあります
+        </h2>
+        <button
+          onClick={() => {
+            // 強制表示フラグもクリア
+            setForcedVisible(false);
+            setForcedRoomInfo(null);
+            // documentの属性もクリア
+            document.documentElement.removeAttribute('data-room-switch-pending');
+            document.documentElement.removeAttribute('data-room-info');
+            // 通常のキャンセル処理も実行
+            cancelRoomSwitch();
+          }}
+          className="text-gray-500 hover:text-gray-800"
+        >
+          <FaTimes size={20} />
+        </button>
+      </div>
+      
+      <div className="mb-6">
+        <p className="text-gray-700 mb-4">
+          「{quizRoom?.name}」のクイズが進行中です。
+          別のルームに参加する前に、現在のクイズを終了するか完了する必要があります。
+        </p>
+      </div>
+      
+      <div className="flex justify-end space-x-2">
+        <button
+          onClick={() => {
+            // 強制表示フラグもクリア
+            setForcedVisible(false);
+            setForcedRoomInfo(null);
+            // documentの属性もクリア
+            document.documentElement.removeAttribute('data-room-switch-pending');
+            document.documentElement.removeAttribute('data-room-info');
+            // 通常のキャンセル処理も実行
+            cancelRoomSwitch();
+          }}
+          className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition-colors"
+        >
+          キャンセル
+        </button>
+        <button
+          onClick={redirectToQuizRoom}
+          className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors"
+        >
+          クイズに戻る
+        </button>
+      </div>
+    </>
+  );
+
+  // 待機中ルーム用の切り替え確認モーダルコンテンツ
+  const waitingRoomSwitchContent = () => (
+    <>
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-bold text-gray-800">
+          別のルームに参加しますか？
+        </h2>
+        <button
+          onClick={() => {
+            // 強制表示フラグもクリア
+            setForcedVisible(false);
+            setForcedRoomInfo(null);
+            // documentの属性もクリア
+            document.documentElement.removeAttribute('data-room-switch-pending');
+            document.documentElement.removeAttribute('data-room-info');
+            // 通常のキャンセル処理も実行
+            cancelRoomSwitch();
+          }}
+          className="text-gray-500 hover:text-gray-800"
+        >
+          <FaTimes size={20} />
+        </button>
+      </div>
+      
+      <div className="mb-6">
+        <p className="text-gray-600 mb-4">
+          あなたは現在「{waitingRoom?.name || "待機中ルーム"}」に参加中です。
+          {displayRoomInfo?.roomId === 'pending-creation' ? (
+            <>新しいルームを作成するには、現在のルームから退出する必要があります。</>
+          ) : (
+            <>新しいルーム「{displayRoomInfo?.roomName || "別のルーム"}」に参加するには、
+            現在のルームから退出する必要があります。</>
+          )}
+        </p>
+        <p className="text-yellow-600 font-medium">
+          注意: 現在のルームで得た情報やスコアは失われます。
+        </p>
+      </div>
+      
+      <div className="flex justify-end space-x-2">
+        <button
+          onClick={() => {
+            console.log('[RoomSwitchConfirmModal] キャンセルボタンがクリックされました');
+            // 強制表示フラグもクリア
+            setForcedVisible(false);
+            setForcedRoomInfo(null);
+            // documentの属性もクリア
+            document.documentElement.removeAttribute('data-room-switch-pending');
+            document.documentElement.removeAttribute('data-room-info');
+            // 通常のキャンセル処理も実行
+            cancelRoomSwitch();
+          }}
+          className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition-colors"
+        >
+          キャンセル
+        </button>
+        <button
+          onClick={() => {
+            const roomInfoToUse = roomToJoin || forcedRoomInfo;
+            console.log('[RoomSwitchConfirmModal] ルーム切り替えボタンがクリックされました', roomInfoToUse);
+            
+            if (!roomInfoToUse) {
+              console.error('[RoomSwitchConfirmModal] 切り替え先ルーム情報が存在しません');
+              alert('ルームの切り替え処理に必要な情報がありません。ページを再読み込みして再試行してください。');
+              return;
+            }
+            
+            // ボタン連打防止のため無効化（スタイルは変更なし）
+            const button = document.activeElement as HTMLButtonElement;
+            if (button) {
+              button.disabled = true;
+            }
+            
+            // UI状態をクリアして、二重クリックを防止
+            setForcedVisible(false);
+            setForcedRoomInfo(null);
+            document.documentElement.removeAttribute('data-room-switch-pending');
+            document.documentElement.removeAttribute('data-room-info');
+            
+            // 必ず使用するルーム情報をローカル変数に保存して処理の一貫性を保つ
+            const targetRoomInfo: {
+              roomId: string;
+              roomName: string;
+              _requestData?: any;
+            } = { ...roomInfoToUse };
+            console.log('[RoomSwitchConfirmModal] 処理するルーム情報:', targetRoomInfo);
+            
+            // 状態を早めにクリアして、ユーザーの操作性向上
+            setConfirmRoomSwitch(false);
+            
+            // 状態を先にクリアして確実にモーダルを閉じる
+            setConfirmRoomSwitch(false);
+            
+            // エラーハンドリング用にtry-catchで囲む
+            try {
+              // 強制モードの場合は、まずReact状態にセット（ただし非表示にはしない）
+              if (!roomToJoin && forcedRoomInfo) {
+                console.log('[RoomSwitchConfirmModal] 強制モードでルーム情報をセットします');
+                setRoomToJoin(targetRoomInfo);
+              }
+              
+              // 作成オペレーション情報を保持して確認
+              const isPendingCreation = targetRoomInfo.roomId === 'pending-creation';
+              console.log(`[RoomSwitchConfirmModal] 処理タイプ: ${isPendingCreation ? '新規ルーム作成' : '既存ルーム参加'}`);
+              
+              // 新規作成モードなら、クイズ選択画面に戻った時のために情報を保存
+              if (isPendingCreation) {
+                console.log('[RoomSwitchConfirmModal] 新規ルーム作成モードのルーム切り替え処理を開始');
+                // セッションストレージに情報を保存（ページ遷移後にも利用可能）
+                try {
+                  sessionStorage.setItem('pendingRoomCreation', 'true');
+                  // _requestDataプロパティがあれば保存する（型チェック付き）
+                  const requestData = targetRoomInfo._requestData;
+                  if (requestData && typeof requestData === 'object') {
+                    sessionStorage.setItem('pendingRoomData', JSON.stringify(requestData));
+                    console.log('[RoomSwitchConfirmModal] 新規作成情報を保存しました:', requestData);
+                  } else {
+                    console.log('[RoomSwitchConfirmModal] リクエストデータがないため、基本情報のみ保存します');
+                  }
+                } catch (storageErr) {
+                  console.error('[RoomSwitchConfirmModal] セッションストレージへの保存エラー:', storageErr);
+                }
+              }
+              
+              // 安全のため遅延処理
+              setTimeout(() => {
+                console.log('[RoomSwitchConfirmModal] switchRoom()を呼び出します');
+                
+                // 非同期処理を開始
+                switchRoom()
+                  .then(() => {
+                    console.log('[RoomSwitchConfirmModal] ルーム切り替え成功!');
+                    // 成功時の処理はswitchRoom内で自動的にページ遷移
+                  })
+                  .catch(switchErr => {
+                    console.error('[RoomSwitchConfirmModal] ルーム切り替え中にエラー:', switchErr);
+                    alert('ルームの切り替え中にエラーが発生しました。もう一度お試しください。');
+                    
+                    // エラー時はボタンを再度有効化
+                    if (button) {
+                      button.disabled = false;
+                    }
+                  })
+                  .finally(() => {
+                    // 処理完了後に状態を確実にクリア
+                    setRoomToJoin(null);
+                    console.log('[RoomSwitchConfirmModal] 状態をクリアしました');
+                  });
+              }, 200);
+            } catch (err) {
+              console.error('[RoomSwitchConfirmModal] ルーム切り替え処理でエラー:', err);
+              alert('ルームの切り替え処理中にエラーが発生しました。もう一度お試しください。');
+              
+              // エラー時はボタンを再度有効化
+              if (button) {
+                button.disabled = false;
+              }
+            }
+          }}
+          className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors flex items-center"
+        >
+          <FaExchangeAlt className="mr-2" />
+          ルームを切り替え
+        </button>
+      </div>
+    </>
+  );
+
   // 通常の条件かforcedVisibleのどちらかがtrueならモーダルを表示
   if ((!confirmRoomSwitch || !roomToJoin) && (!forcedVisible || !forcedRoomInfo)) {
     return null;
@@ -113,168 +367,7 @@ export default function RoomSwitchConfirmModal() {
         onClick={(e) => e.stopPropagation()}
         className="bg-white rounded-lg p-6 w-full max-w-md shadow-xl"
       >
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold text-gray-800">
-            別のルームに参加しますか？
-          </h2>
-          <button
-            onClick={() => {
-              // 強制表示フラグもクリア
-              setForcedVisible(false);
-              setForcedRoomInfo(null);
-              // documentの属性もクリア
-              document.documentElement.removeAttribute('data-room-switch-pending');
-              document.documentElement.removeAttribute('data-room-info');
-              // 通常のキャンセル処理も実行
-              cancelRoomSwitch();
-            }}
-            className="text-gray-500 hover:text-gray-800"
-          >
-            <FaTimes size={20} />
-          </button>
-        </div>
-        
-        <div className="mb-6">
-          <p className="text-gray-600 mb-4">
-            あなたは現在「{waitingRoom?.name || "待機中ルーム"}」に参加中です。
-            {displayRoomInfo?.roomId === 'pending-creation' ? (
-              <>新しいルームを作成するには、現在のルームから退出する必要があります。</>
-            ) : (
-              <>新しいルーム「{displayRoomInfo?.roomName || "別のルーム"}」に参加するには、
-              現在のルームから退出する必要があります。</>
-            )}
-          </p>
-          <p className="text-yellow-600 font-medium">
-            注意: 現在のルームで得た情報やスコアは失われます。
-          </p>
-        </div>
-        
-        <div className="flex justify-end space-x-2">
-          <button
-            onClick={() => {
-              console.log('[RoomSwitchConfirmModal] キャンセルボタンがクリックされました');
-              // 強制表示フラグもクリア
-              setForcedVisible(false);
-              setForcedRoomInfo(null);
-              // documentの属性もクリア
-              document.documentElement.removeAttribute('data-room-switch-pending');
-              document.documentElement.removeAttribute('data-room-info');
-              // 通常のキャンセル処理も実行
-              cancelRoomSwitch();
-            }}
-            className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition-colors"
-          >
-            キャンセル
-          </button>
-          <button
-            onClick={() => {
-              const roomInfoToUse = roomToJoin || forcedRoomInfo;
-              console.log('[RoomSwitchConfirmModal] ルーム切り替えボタンがクリックされました', roomInfoToUse);
-              
-              if (!roomInfoToUse) {
-                console.error('[RoomSwitchConfirmModal] 切り替え先ルーム情報が存在しません');
-                alert('ルームの切り替え処理に必要な情報がありません。ページを再読み込みして再試行してください。');
-                return;
-              }
-              
-              // ボタン連打防止のため無効化（スタイルは変更なし）
-              const button = document.activeElement as HTMLButtonElement;
-              if (button) {
-                button.disabled = true;
-              }
-              
-              // UI状態をクリアして、二重クリックを防止
-              setForcedVisible(false);
-              setForcedRoomInfo(null);
-              document.documentElement.removeAttribute('data-room-switch-pending');
-              document.documentElement.removeAttribute('data-room-info');
-              
-              // 必ず使用するルーム情報をローカル変数に保存して処理の一貫性を保つ
-              const targetRoomInfo: {
-                roomId: string;
-                roomName: string;
-                _requestData?: any;
-              } = { ...roomInfoToUse };
-              console.log('[RoomSwitchConfirmModal] 処理するルーム情報:', targetRoomInfo);
-              
-              // 状態を早めにクリアして、ユーザーの操作性向上
-              setConfirmRoomSwitch(false);
-              
-              // 状態を先にクリアして確実にモーダルを閉じる
-              setConfirmRoomSwitch(false);
-              
-              // エラーハンドリング用にtry-catchで囲む
-              try {
-                // 強制モードの場合は、まずReact状態にセット（ただし非表示にはしない）
-                if (!roomToJoin && forcedRoomInfo) {
-                  console.log('[RoomSwitchConfirmModal] 強制モードでルーム情報をセットします');
-                  setRoomToJoin(targetRoomInfo);
-                }
-                
-                // 作成オペレーション情報を保持して確認
-                const isPendingCreation = targetRoomInfo.roomId === 'pending-creation';
-                console.log(`[RoomSwitchConfirmModal] 処理タイプ: ${isPendingCreation ? '新規ルーム作成' : '既存ルーム参加'}`);
-                
-                // 新規作成モードなら、クイズ選択画面に戻った時のために情報を保存
-                if (isPendingCreation) {
-                  console.log('[RoomSwitchConfirmModal] 新規ルーム作成モードのルーム切り替え処理を開始');
-                  // セッションストレージに情報を保存（ページ遷移後にも利用可能）
-                  try {
-                    sessionStorage.setItem('pendingRoomCreation', 'true');
-                    // _requestDataプロパティがあれば保存する（型チェック付き）
-                    const requestData = targetRoomInfo._requestData;
-                    if (requestData && typeof requestData === 'object') {
-                      sessionStorage.setItem('pendingRoomData', JSON.stringify(requestData));
-                      console.log('[RoomSwitchConfirmModal] 新規作成情報を保存しました:', requestData);
-                    } else {
-                      console.log('[RoomSwitchConfirmModal] リクエストデータがないため、基本情報のみ保存します');
-                    }
-                  } catch (storageErr) {
-                    console.error('[RoomSwitchConfirmModal] セッションストレージへの保存エラー:', storageErr);
-                  }
-                }
-                
-                // 安全のため遅延処理
-                setTimeout(() => {
-                  console.log('[RoomSwitchConfirmModal] switchRoom()を呼び出します');
-                  
-                  // 非同期処理を開始
-                  switchRoom()
-                    .then(() => {
-                      console.log('[RoomSwitchConfirmModal] ルーム切り替え成功!');
-                      // 成功時の処理はswitchRoom内で自動的にページ遷移
-                    })
-                    .catch(switchErr => {
-                      console.error('[RoomSwitchConfirmModal] ルーム切り替え中にエラー:', switchErr);
-                      alert('ルームの切り替え中にエラーが発生しました。もう一度お試しください。');
-                      
-                      // エラー時はボタンを再度有効化
-                      if (button) {
-                        button.disabled = false;
-                      }
-                    })
-                    .finally(() => {
-                      // 処理完了後に状態を確実にクリア
-                      setRoomToJoin(null);
-                      console.log('[RoomSwitchConfirmModal] 状態をクリアしました');
-                    });
-                }, 200);
-              } catch (err) {
-                console.error('[RoomSwitchConfirmModal] ルーム切り替え処理でエラー:', err);
-                alert('ルームの切り替え処理中にエラーが発生しました。もう一度お試しください。');
-                
-                // エラー時はボタンを再度有効化
-                if (button) {
-                  button.disabled = false;
-                }
-              }
-            }}
-            className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors flex items-center"
-          >
-            <FaExchangeAlt className="mr-2" />
-            ルームを切り替え
-          </button>
-        </div>
+        {isQuizInProgress ? inProgressAlertContent() : waitingRoomSwitchContent()}
       </motion.div>
     </motion.div>
   );

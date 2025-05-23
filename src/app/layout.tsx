@@ -6,6 +6,8 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import WaitingRoomFloating from "@/components/layout/WaitingRoomFloating";
 import RoomSwitchConfirmModal from "@/components/layout/RoomSwitchConfirmModal";
+import QuizRoomRedirectManager from "@/components/layout/QuizRoomRedirectManager";
+import ActiveQuizAlertModal from "@/components/layout/ActiveQuizAlertModal";
 import { AuthProvider } from "@/context/AuthContext";
 import { QuizProvider } from "@/context/QuizContext";
 
@@ -47,6 +49,8 @@ export default function RootLayout({
             <Footer />
             <WaitingRoomFloating />
             <RoomSwitchConfirmModal />
+            <QuizRoomRedirectManager />
+            <ActiveQuizAlertModal />
           </QuizProvider>
         </AuthProvider>
       </body>

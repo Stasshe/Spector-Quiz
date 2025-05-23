@@ -1,0 +1,100 @@
+'use client';
+
+import * as React from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { FaExclamationTriangle, FaTimes } from 'react-icons/fa';
+import { useQuiz } from '@/hooks/useQuiz';
+import { useRouter } from 'next/navigation';
+
+export default function ActiveQuizAlertModal() {
+  const { quizRoom } = useQuiz();
+  const router = useRouter();
+  const [showAlert, setShowAlert] = React.useState(false);
+  
+  // クイズルームが進行中の場合、アラートを表示する
+  React.useEffect(() => {
+    // quizRoomがnullの場合や、既にquizRoomページにいる場合は何もしない
+    if (!quizRoom || location.pathname.includes('/quiz/room')) {
+      return;
+    }
+    
+    // クイズが進行中の場合のみアラートを表示
+    if (quizRoom.status === 'in_progress') {
+      setShowAlert(true);
+      
+      // 3秒後に自動的にルームページにリダイレクト
+      const timer = setTimeout(() => {
+        router.push(`/quiz/room?id=${quizRoom.roomId}`);
+        setShowAlert(false);
+      }, 3000);
+      
+      return () => {
+        clearTimeout(timer);
+      };
+    }
+  }, [quizRoom, router]);
+
+  if (!showAlert) {
+    return null;
+  }
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+      >
+        <motion.div
+          initial={{ scale: 0.9, y: 20 }}
+          animate={{ scale: 1, y: 0 }}
+          exit={{ scale: 0.9, y: 20 }}
+          className="bg-white rounded-lg p-6 w-full max-w-md shadow-xl"
+        >
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold text-red-600 flex items-center">
+              <FaExclamationTriangle className="mr-2" />
+              進行中のクイズがあります
+            </h2>
+            <button
+              onClick={() => setShowAlert(false)}
+              className="text-gray-500 hover:text-gray-800"
+            >
+              <FaTimes size={20} />
+            </button>
+          </div>
+          
+          <div className="mb-6">
+            <p className="text-gray-700 mb-4">
+              「{quizRoom?.name || 'クイズルーム'}」のクイズが進行中です。
+              クイズを続けるためにルームページに自動的に戻ります。
+            </p>
+            <div className="w-full bg-gray-200 h-2 rounded-full mt-4">
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: '100%' }}
+                transition={{ duration: 3 }}
+                className="bg-indigo-600 h-2 rounded-full"
+              />
+            </div>
+          </div>
+          
+          <div className="flex justify-end space-x-2">
+            <button
+              onClick={() => {
+                if (quizRoom) {
+                  router.push(`/quiz/room?id=${quizRoom.roomId}`);
+                  setShowAlert(false);
+                }
+              }}
+              className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors"
+            >
+              ルームに戻る
+            </button>
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
