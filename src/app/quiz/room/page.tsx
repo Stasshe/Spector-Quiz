@@ -45,6 +45,26 @@ function QuizRoomContent() {
   // ルームデータをリアルタイム監視
   const room = useRoomListener(roomId);
 
+  // リダイレクトループ防止
+  useEffect(() => {
+    // このページにいることを明示的に記録
+    const inRoomPage = true;
+    // グローバルフラグとして設定（window経由で他のコンポーネントからもアクセス可能）
+    if (typeof window !== 'undefined') {
+      window.inQuizRoomPage = true;
+    }
+    
+    console.log('[QuizRoomPage] クイズルームページにロード/マウント完了');
+    
+    return () => {
+      // クリーンアップ時にフラグをリセット
+      if (typeof window !== 'undefined') {
+        window.inQuizRoomPage = false;
+      }
+      console.log('[QuizRoomPage] クイズルームページからアンマウント');
+    };
+  }, []);
+
   useEffect(() => {
     // ユーザーがログインしていない場合は、ログインページにリダイレクト
     if (!currentUser) {

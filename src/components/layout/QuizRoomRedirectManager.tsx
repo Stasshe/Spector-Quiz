@@ -18,8 +18,30 @@ export default function QuizRoomRedirectManager() {
   const roomIdRef = useRef<string | null>(null);
   const [manualRoomId, setManualRoomId] = useState<string | null>(null);
 
+  // クイズルームページにいるかどうかを検出
   useEffect(() => {
-    // ユーザーがログインしている場合、Firestoreからルーム情報を取得
+    // 認証チェック - 未ログインの場合は何もしない
+    if (!currentUser) {
+      return;
+    }
+    
+    if (pathname && pathname.includes('/quiz/room')) {
+      console.log('[QuizRoomRedirectManager] クイズルームページに滞在中 - リダイレクト処理は無効化');
+      
+      // クイズルームページにいる場合はリダイレクト処理をスキップするためのフラグを設定
+      redirectInProgressRef.current = true;
+      
+      // 5秒後にフラグをリセット（ページ内移動のための時間）
+      const timer = setTimeout(() => {
+        redirectInProgressRef.current = false;
+      }, 5000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [pathname, currentUser]);
+
+  // ユーザーがログインしている場合、Firestoreからルーム情報を取得
+  useEffect(() => {
     if (currentUser && (!quizRoom || !quizRoom.roomId)) {
       const fetchRoomFromFirestore = async () => {
         try {
@@ -52,12 +74,19 @@ export default function QuizRoomRedirectManager() {
     }
   }, [currentUser, quizRoom]);
 
+  // メインのリダイレクト処理
   useEffect(() => {
+    // 認証チェック - 未ログインの場合は何もしない
+    if (!currentUser) {
+      console.log('[QuizRoomRedirectManager] ユーザーが未ログインのため、リダイレクト処理をスキップ');
+      return;
+    }
+    
     // リダイレクト処理に使うクリーンアップ関数を定義
-    let cleanupTimers: NodeJS.Timeout[] = [];
+    const cleanupTimers: NodeJS.Timeout[] = [];
     
     // ルームIDを決定（quizRoom.roomIdが優先、なければmanualRoomIdを使用）
-    const activeRoomId = quizRoom?.roomId || manualRoomId;
+    const activeRoomId = quizRoom?.roomId || manualRoomId || roomIdRef.current;
     
     // クイズが進行中かつ有効なroomIdがある場合のみ処理
     if (quizRoom && quizRoom.status === 'in_progress' && activeRoomId) {
@@ -65,51 +94,61 @@ export default function QuizRoomRedirectManager() {
       console.log('[QuizRoomRedirectManager] 進行中クイズルーム検出:', {
         roomId: activeRoomId,
         currentPath: pathname,
-        inRoom: pathname?.includes('/quiz/room')
+        inRoom: pathname?.includes('/quiz/room'),
+        redirectInProgress: redirectInProgressRef.current
       });
       
       // すでにルームページにいる場合は何もしない
-      if (pathname?.includes('/quiz/room')) {
+      if (pathname?.includes('/quiz/room') || (typeof window !== 'undefined' && window.inQuizRoomPage)) {
+        console.log('[QuizRoomRedirectManager] すでにルームページにいるため、リダイレクト処理をスキップ');
+        return;
+      }
+      
+      // 認証ページへの遷移は許可
+      if (pathname?.includes('/auth/')) {
+        console.log('[QuizRoomRedirectManager] 認証ページへの遷移は許可します');
         return;
       }
 
-      // リダイレクトが既に進行中でなければ実行
-      if (!redirectInProgressRef.current) {
-        console.log('[QuizRoomRedirectManager] クイズ進行中にページ移動を検出。ルームページに強制リダイレクト：', activeRoomId);
+      // パス変更を検知したときのみリダイレクト（同じページで再レンダリングされた場合はスキップ）
+      if (pathname !== lastPathRef.current) {
+        console.log(`[QuizRoomRedirectManager] パス変更を検知: ${lastPathRef.current} -> ${pathname}`);
+        lastPathRef.current = pathname;
         
-        // リダイレクト進行中フラグをセット
-        redirectInProgressRef.current = true;
-        
-        // window.location を使用した直接リダイレクト
-        const redirectTimer = setTimeout(() => {
+        // リダイレクトが既に進行中でなければ実行
+        if (!redirectInProgressRef.current) {
+          console.log('[QuizRoomRedirectManager] クイズ進行中にページ移動を検出。ルームページに強制リダイレクト：', activeRoomId);
+          
+          // リダイレクト進行中フラグをセット
+          redirectInProgressRef.current = true;
+          
+          // 直接リダイレクト（より確実なため先に実行）
           try {
-            // まずrouter.pushを試す
-            router.push(`/quiz/room?id=${activeRoomId}`);
-            console.log('[QuizRoomRedirectManager] router.pushでリダイレクト完了');
+            // パス構築して安全に遷移
+            const redirectUrl = `/quiz/room?id=${encodeURIComponent(activeRoomId)}`;
+            console.log(`[QuizRoomRedirectManager] リダイレクト実行: ${redirectUrl}`);
             
-            // バックアップとして直接リダイレクト
-            const backupTimer = setTimeout(() => {
-              console.log('[QuizRoomRedirectManager] バックアップリダイレクト実行');
-              window.location.href = `/quiz/room?id=${activeRoomId}`;
-            }, 500);
-            
-            cleanupTimers.push(backupTimer);
+            // App Routerを使用（Next.jsの推奨方法）
+            router.push(redirectUrl);
           } catch (error) {
             console.error('[QuizRoomRedirectManager] リダイレクトエラー:', error);
-            // エラー時は直接リダイレクト
-            window.location.href = `/quiz/room?id=${activeRoomId}`;
+            // エラー時のみwindow.location.replaceを使用
+            try {
+              // バックアップとして直接リダイレクト
+              window.location.replace(`/quiz/room?id=${activeRoomId}`);
+            } catch (locationError) {
+              console.error('[QuizRoomRedirectManager] バックアップリダイレクトでもエラー:', locationError);
+            }
           }
           
-          // リダイレクト後、フラグをリセット
+          // リダイレクト完了後のフラグリセット用タイマー
           const resetTimer = setTimeout(() => {
             redirectInProgressRef.current = false;
             console.log('[QuizRoomRedirectManager] リダイレクトフラグリセット');
-          }, 2000);
+          }, 3000);
           
           cleanupTimers.push(resetTimer);
-        }, 500);
-        
-        cleanupTimers.push(redirectTimer);
+        }
       }
     } else if (quizRoom && quizRoom.status === 'in_progress') {
       // roomIdがない場合
@@ -120,7 +159,7 @@ export default function QuizRoomRedirectManager() {
     return () => {
       cleanupTimers.forEach(timer => clearTimeout(timer));
     };
-  }, [quizRoom, router, pathname, manualRoomId]);
+  }, [quizRoom, router, pathname, manualRoomId, currentUser]);
 
   // 何もレンダリングしない
   return null;

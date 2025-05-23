@@ -18,6 +18,12 @@ export default function ActiveQuizAlertModal() {
   
   // クイズルームが進行中の場合、アラートを表示する
   React.useEffect(() => {
+    // 認証チェック - ユーザーが未ログインの場合は表示しない
+    if (!currentUser) {
+      setShowAlert(false);
+      return;
+    }
+    
     // quizRoomがnullの場合や、既にquizRoomページにいる場合は何もしない
     if (!quizRoom || location.pathname.includes('/quiz/room')) {
       setShowAlert(false);
@@ -137,20 +143,30 @@ export default function ActiveQuizAlertModal() {
                 if (roomId) {
                   try {
                     console.log('[ActiveQuizAlertModal] ルームにリダイレクト:', roomId);
+                    setShowAlert(false); // 先に非表示にする
                     
-                    // まずNext.jsのrouterを使用
+                    // Next.jsのrouterを使用（App Routerの推奨方法）
                     router.push(`/quiz/room?id=${roomId}`);
                     
-                    // バックアップとして直接リダイレクト
-                    setTimeout(() => {
-                      window.location.href = `/quiz/room?id=${roomId}`;
-                    }, 300);
+                    // バックアップタイマー（router.pushが失敗した場合のみ実行）
+                    const backupTimer = setTimeout(() => {
+                      // 既にリダイレクトが完了していないか確認
+                      if (location.pathname.includes('/quiz/room')) {
+                        console.log('[ActiveQuizAlertModal] すでにルームページに移動済みです');
+                        return;
+                      }
+                      
+                      console.log('[ActiveQuizAlertModal] バックアップリダイレクト実行');
+                      router.replace(`/quiz/room?id=${roomId}`);
+                    }, 500);
+                    
+                    // コンポーネントがアンマウントされたらタイマーをクリア
+                    return () => clearTimeout(backupTimer);
                   } catch (error) {
                     console.error('[ActiveQuizAlertModal] リダイレクトエラー:', error);
-                    // エラー時は直接リダイレクト
-                    window.location.href = `/quiz/room?id=${roomId}`;
+                    // エラー時はreplace（より強制的なリダイレクト）
+                    router.replace(`/quiz/room?id=${roomId}`);
                   }
-                  setShowAlert(false);
                 } else {
                   console.error('[ActiveQuizAlertModal] ルームIDが存在しません:', {
                     quizRoom,
