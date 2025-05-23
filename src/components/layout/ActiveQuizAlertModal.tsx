@@ -4,12 +4,17 @@ import * as React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaExclamationTriangle, FaTimes } from 'react-icons/fa';
 import { useQuiz } from '@/hooks/useQuiz';
+import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
+import { db } from '@/config/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
 export default function ActiveQuizAlertModal() {
   const { quizRoom } = useQuiz();
+  const { currentUser } = useAuth();
   const router = useRouter();
   const [showAlert, setShowAlert] = React.useState(false);
+  const [manualRoomId, setManualRoomId] = React.useState<string | null>(null);
   
   // クイズルームが進行中の場合、アラートを表示する
   React.useEffect(() => {
@@ -19,12 +24,50 @@ export default function ActiveQuizAlertModal() {
       return;
     }
     
+    // ユーザードキュメントからルームIDを確認
+    const checkRoomIdFromFirebase = async () => {
+      try {
+        if (!quizRoom.roomId && currentUser) {
+          console.log('[ActiveQuizAlertModal] quizRoomにroomIdがありません。Firebaseから取得を試みます');
+          // ユーザードキュメントから現在のルームIDを取得
+          const userRef = doc(db, 'users', currentUser.uid);
+          const userDoc = await getDoc(userRef);
+          if (userDoc.exists() && userDoc.data().currentRoomId) {
+            const roomId = userDoc.data().currentRoomId;
+            console.log(`[ActiveQuizAlertModal] Firebaseからルームを取得: ${roomId}`);
+            
+            // Firestoreから直接ルーム情報を取得
+            const roomRef = doc(db, 'quiz_rooms', roomId);
+            const roomSnap = await getDoc(roomRef);
+            if (roomSnap.exists()) {
+              const roomData = roomSnap.data();
+              console.log('[ActiveQuizAlertModal] Firebaseから取得したルーム情報:', {
+                roomId: roomId,
+                status: roomData.status,
+                name: roomData.name
+              });
+              
+              // 手動でルームIDを保存
+              setManualRoomId(roomId);
+            }
+          }
+        }
+      } catch (err) {
+        console.error('[ActiveQuizAlertModal] ルームID確認エラー:', err);
+      }
+    };
+    
     // デバッグ情報をコンソールに出力
     console.log('[ActiveQuizAlertModal] クイズルーム情報:', {
-      roomId: quizRoom.roomId,
+      roomId: quizRoom.roomId || manualRoomId,
       status: quizRoom.status,
       name: quizRoom.name
     });
+    
+    // roomIdがない場合はFirebaseから取得を試みる
+    if (!quizRoom.roomId && !manualRoomId) {
+      checkRoomIdFromFirebase();
+    }
     
     // クイズが進行中の場合のみアラートを表示
     if (quizRoom.status === 'in_progress') {
@@ -37,7 +80,7 @@ export default function ActiveQuizAlertModal() {
       // 進行中でない場合はアラートを非表示
       setShowAlert(false);
     }
-  }, [quizRoom]);
+  }, [quizRoom, currentUser, manualRoomId]);
 
   if (!showAlert) {
     return null;
@@ -88,25 +131,31 @@ export default function ActiveQuizAlertModal() {
           <div className="flex justify-end space-x-2">
             <button
               onClick={() => {
-                if (quizRoom && quizRoom.roomId) {
+                // quizRoom.roomId または manualRoomId を使用
+                const roomId = quizRoom?.roomId || manualRoomId;
+                
+                if (roomId) {
                   try {
-                    console.log('[ActiveQuizAlertModal] ルームにリダイレクト:', quizRoom.roomId);
+                    console.log('[ActiveQuizAlertModal] ルームにリダイレクト:', roomId);
                     
                     // まずNext.jsのrouterを使用
-                    router.push(`/quiz/room?id=${quizRoom.roomId}`);
+                    router.push(`/quiz/room?id=${roomId}`);
                     
                     // バックアップとして直接リダイレクト
                     setTimeout(() => {
-                      window.location.href = `/quiz/room?id=${quizRoom.roomId}`;
+                      window.location.href = `/quiz/room?id=${roomId}`;
                     }, 300);
                   } catch (error) {
                     console.error('[ActiveQuizAlertModal] リダイレクトエラー:', error);
                     // エラー時は直接リダイレクト
-                    window.location.href = `/quiz/room?id=${quizRoom.roomId}`;
+                    window.location.href = `/quiz/room?id=${roomId}`;
                   }
                   setShowAlert(false);
                 } else {
-                  console.error('[ActiveQuizAlertModal] ルームIDが存在しません:', quizRoom);
+                  console.error('[ActiveQuizAlertModal] ルームIDが存在しません:', {
+                    quizRoom,
+                    manualRoomId
+                  });
                   alert('ルームIDが取得できませんでした。ホームページに戻ります。');
                   router.push('/');
                 }
