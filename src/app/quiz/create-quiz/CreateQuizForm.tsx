@@ -65,22 +65,38 @@ export default function CreateQuizForm() {
     const unitId = searchParams.get('unitId');
     const genreId = searchParams.get('genreId');
     const officialGenre = searchParams.get('officialGenre');
+    const officialCategory = searchParams.get('officialCategory');
+    const officialUnit = searchParams.get('officialUnit');
     
-    console.log('URL パラメータ:', { edit, unitId, genreId, officialGenre });
+    console.log('URL パラメータ:', { edit, unitId, genreId, officialGenre, officialCategory, officialUnit });
     
     // 編集モードの場合、単元データを取得
-    if (edit === 'true' && unitId && genreId) {
+    if (edit === 'true' && unitId) {
       setIsEditMode(true);
       setEditUnitId(unitId);
-      setEditGenreId(genreId);
       
       // officialGenre パラメータが "true" の場合に公式クイズと判断
-      // 文字列比較を厳密に行う
       const isOfficialQuiz = officialGenre === 'true';
-      console.log('編集モード設定:', { isOfficialQuiz });
       
-      // 単元データを読み込む
-      loadUnitData(genreId, unitId, isOfficialQuiz);
+      // 実際に使用するジャンルIDを設定
+      let actualGenreId = '';
+      if (genreId) {
+        actualGenreId = genreId;
+      } else if (isOfficialQuiz) {
+        // 公式クイズの場合はofficialGenre（ジャンル名）を使用
+        actualGenreId = officialUnit || '';
+      }
+      
+      console.log('編集モード設定:', { isOfficialQuiz, actualGenreId, unitId });
+      
+      if (actualGenreId) {
+        setEditGenreId(actualGenreId);
+        // 単元データを読み込む
+        loadUnitData(actualGenreId, unitId, isOfficialQuiz);
+      } else {
+        console.error('ジャンルIDが見つかりません');
+        setErrorMessage('クイズの読み込みに必要な情報が不足しています');
+      }
     }
     
     // 自動保存タイマーの設定
@@ -313,7 +329,7 @@ export default function CreateQuizForm() {
       setIsPublic(unitData.isPublic);
       setDisableTitleGenre(true); // 単元名とジャンルを編集不可に
       
-      console.log('フォームデータ設定完了');
+      console.log('フォームデータ設定完了', { title: unitData.title, genre: genreId });
       
       // クイズデータを取得
       const quizzesCollection = collection(unitDocRef, 'quizzes');
@@ -322,8 +338,11 @@ export default function CreateQuizForm() {
       const quizzesSnapshot = await getDocs(quizzesCollection);
       const loadedQuizzes: Quiz[] = [];
       
+      console.log(`クイズデータドキュメント数: ${quizzesSnapshot.size}`);
+      
       quizzesSnapshot.forEach(quizDoc => {
         const quizData = quizDoc.data() as Omit<Quiz, 'quizId'>;
+        console.log(`クイズデータ読み込み: ${quizDoc.id}`, quizData);
         loadedQuizzes.push({
           ...quizData,
           quizId: quizDoc.id
@@ -405,7 +424,7 @@ export default function CreateQuizForm() {
     try {
       // 公式クイズかどうかを確認
       const isOfficial = searchParams.get('officialGenre') === 'true';
-      console.log(`単元更新開始: isOfficial=${isOfficial}`);
+      console.log(`単元更新開始: isOfficial=${isOfficial}, genreId=${editGenreId}, unitId=${editUnitId}`);
       
       // 管理者権限の確認
       const isAdmin = userProfile?.isAdmin === true || userProfile?.userId === '100000';
@@ -437,15 +456,24 @@ export default function CreateQuizForm() {
         quizCount: quizzes.length,
         averageDifficulty: quizzes.length > 0 
           ? quizzes.reduce((sum, q) => sum + q.difficulty, 0) / quizzes.length 
-          : 0
+          : 0,
+        updatedAt: serverTimestamp() as any
       };
+      
+      console.log('更新する単元データ:', updatedUnitData);
       
       // 単元データを更新
       await setDoc(unitRef, updatedUnitData, { merge: true });
+      console.log('単元データの更新完了');
       
       // クイズコレクションを一度クリアして再作成
       // まずは既存のクイズをすべて取得して削除
-      const quizzesSnapshot = await getDocs(collection(unitRef, 'quizzes'));
+      const quizzesCollection = collection(unitRef, 'quizzes');
+      console.log(`クイズコレクションパス: ${quizzesCollection.path}`);
+      
+      const quizzesSnapshot = await getDocs(quizzesCollection);
+      console.log(`既存のクイズ数: ${quizzesSnapshot.size}`);
+      
       const batch = writeBatch(db);
       
       quizzesSnapshot.forEach((quizDoc) => {
@@ -454,7 +482,10 @@ export default function CreateQuizForm() {
       
       await batch.commit();
       
+      
       // 新しいクイズを追加
+      console.log(`${quizzes.length}個のクイズを追加します`);
+      
       for (const quiz of quizzes) {
         const quizData = {
           title: quiz.title,
@@ -471,7 +502,9 @@ export default function CreateQuizForm() {
           correctCount: 0
         };
         
-        await addDoc(collection(unitRef, 'quizzes'), quizData);
+        console.log(`クイズを追加: ${quiz.title}`);
+        const newQuizRef = await addDoc(collection(unitRef, 'quizzes'), quizData);
+        console.log(`クイズ追加完了: ${newQuizRef.id}`);
       }
       
       setSuccessMessage('単元を更新しました！');

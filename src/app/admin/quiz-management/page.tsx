@@ -333,7 +333,7 @@ export default function QuizManagement() {
                               {unit.unitId ? (
                                 <>
                                   <Link 
-                                    href={`/quiz/create-quiz?officialGenre=${unit.genre}&officialCategory=${unit.category}&officialUnit=${unit.title}&unitId=${unit.unitId}&edit=true`}
+                                    href={`/quiz/create-quiz?officialGenre=true&genreId=${unit.genre}&officialCategory=${unit.category}&officialUnit=${unit.title}&unitId=${unit.unitId}&edit=true`}
                                     className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-1 px-2 rounded text-xs"
                                   >
                                     編集
