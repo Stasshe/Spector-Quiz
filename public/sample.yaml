@@ -1,0 +1,20 @@
+quizzes:
+  - title: 日本の首都
+    question: 日本の首都はどこですか？
+    type: multiple_choice
+    choices:
+      - 大阪
+      - 東京
+      - 京都
+      - 名古屋
+    correctAnswer: 東京
+    explanation: 東京都は1868年に日本の首都となりました。
+
+  - title: 富士山の高さ
+    question: 富士山の標高は何メートルですか？
+    type: input
+    correctAnswer: 3776
+    acceptableAnswers:
+      - "3,776"
+      - "約3800"
+    explanation: 富士山の正確な標高は3,776メートルです。
