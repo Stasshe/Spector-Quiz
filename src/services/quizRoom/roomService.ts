@@ -386,11 +386,6 @@ export async function updateUserStatsOnRoomComplete(
       if (userPerfomance.missCount === 0 && score > 0) expToAdd++; // ミスがない場合ボーナス
       if (roomData.totalQuizCount > 10 && score > 0) expToAdd++; // 長いクイズセッションのボーナス
       
-      // 単元の難易度に基づいたボーナス
-      if (roomData.unitDifficulty) {
-        const difficultyBonus = Math.floor(roomData.unitDifficulty / 2);
-        expToAdd += difficultyBonus;
-      }
       
       // ユーザー統計情報の更新（usersコレクションに直接保存）
       if (userDoc.exists()) {

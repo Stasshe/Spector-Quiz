@@ -97,7 +97,6 @@ firestore/
   useCount: number,         // 使用回数
   isPublic: boolean,        // 公開状態
   quizCount: number,        // クイズの数（クエリ削減のため）
-  averageDifficulty: number // 平均難易度（クエリ削減のため）
 }
 ```
 
@@ -112,7 +111,6 @@ firestore/
   correctAnswer: string,      // 正解
   acceptableAnswers: string[], // 許容される回答（配列、入力式の場合）
   explanation: string,        // 解説
-  difficulty: number,         // 難易度 (1-5)
   createdBy: string,          // 作成者のユーザーID
   createdAt: timestamp,       // 作成日時
   useCount: number,           // 使用回数
@@ -180,7 +178,6 @@ firestore/
   title: string,
   question: string,
   type: 'multiple_choice' | 'input',
-  difficulty: number,
   genre: string,
   createdBy: string,
   createdAt: timestamp,

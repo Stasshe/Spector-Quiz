@@ -52,7 +52,6 @@ export default function InitializeDatabase() {
                 quizCount: 0,
                 useCount: 0,
                 isPublic: true,
-                averageDifficulty: 3
               });
               setMessage(prev => prev + `\n  └ 単元「${unit}」を作成しました`);
             }
@@ -94,7 +93,6 @@ export default function InitializeDatabase() {
                 quizCount: 0,
                 useCount: 0,
                 isPublic: true,
-                averageDifficulty: 2
               });
               setMessage(prev => prev + `\n  └ 単元「${unit}」を作成しました`);
             }
@@ -118,7 +116,6 @@ export default function InitializeDatabase() {
           acceptableAnswers: [],
           explanation: 'サンプルクイズの説明です',
           genre: '日本史',
-          difficulty: 3,
           createdBy: currentUser.uid,
           createdAt: serverTimestamp(),
           useCount: 0,

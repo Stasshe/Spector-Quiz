@@ -238,7 +238,6 @@ export default function AdminDashboard() {
                 <th className="py-3 px-6 text-left">ジャンル</th>
                 <th className="py-3 px-6 text-left">クイズ数</th>
                 <th className="py-3 px-6 text-left">使用回数</th>
-                <th className="py-3 px-6 text-left">難易度</th>
               </tr>
             </thead>
             <tbody className="text-gray-600">
@@ -248,7 +247,7 @@ export default function AdminDashboard() {
                   <td className="py-3 px-6">{unit.genre}</td>
                   <td className="py-3 px-6">{unit.quizCount}</td>
                   <td className="py-3 px-6">{unit.useCount || 0}</td>
-                  <td className="py-3 px-6">{unit.averageDifficulty?.toFixed(1) || '不明'}</td>
+                  
                 </tr>
               ))}
               {stats.popularUnits.length === 0 && (

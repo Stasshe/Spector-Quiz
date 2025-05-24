@@ -160,8 +160,7 @@ export async function createRoomWithUnitService(
     
     const unitData = unitSnap.data();
     console.log(`[createRoomWithUnitService] 単元データ取得成功: ${unitData.title}`);
-    // 単元の難易度を取得（デフォルトは3）
-    const unitDifficulty = unitData.difficulty || 3;
+    
     
     // 単元内のクイズを取得
     const quizzesQuery = collection(db, 'genres', genreId, collectionName, unitId, 'quizzes');
@@ -191,7 +190,6 @@ export async function createRoomWithUnitService(
       name,
       genre: genreId,
       unitId,
-      unitDifficulty: unitDifficulty,
       classType,
       roomLeaderId: userId,
       participants: {

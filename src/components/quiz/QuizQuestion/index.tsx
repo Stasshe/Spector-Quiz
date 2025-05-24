@@ -11,8 +11,7 @@ export default function QuizQuestion({ quiz }: QuizQuestionProps) {
   const { showChoices, setShowChoices, animationInProgress, setAnimationInProgress, showQuestionDelay, quizRoom } = useQuiz();
   const [showQuestion, setShowQuestion] = useState(false);
   
-  // 難易度は単元から取得（単元情報が無い場合はクイズの難易度を使用）
-  const unitDifficulty = quizRoom?.unitDifficulty || quiz.difficulty;
+  
   
   // 問題を表示するアニメーション効果（アニメーションは縮小）
   useEffect(() => {
@@ -30,22 +29,6 @@ export default function QuizQuestion({ quiz }: QuizQuestionProps) {
   
   return (
     <div className="quiz-question relative">
-      {/* 難易度表示を右上に配置 */}
-      <div className="absolute top-0 right-0 flex items-center bg-white/80 backdrop-blur-sm px-3 py-1 rounded-lg shadow-sm">
-        <span className="text-sm text-gray-600 mr-2">難易度:</span>
-        <div className="flex">
-          {Array.from({ length: 5 }).map((_, index) => (
-            <span
-              key={index}
-              className={`w-3 h-3 rounded-full mx-0.5 ${
-                index < unitDifficulty
-                  ? 'bg-yellow-400'
-                  : 'bg-gray-200'
-              }`}
-            ></span>
-          ))}
-        </div>
-      </div>
       
       <motion.h2 
         initial={{ opacity: 0, y: -20 }}

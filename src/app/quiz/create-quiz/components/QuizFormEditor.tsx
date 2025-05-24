@@ -3,7 +3,7 @@
 import { FC, useState } from 'react';
 import { FaCheck, FaPlus, FaTrash } from 'react-icons/fa';
 import { Quiz, QuizType } from '@/types/quiz';
-import { QuizDifficulty } from '../create-types';
+
 
 interface QuizFormEditorProps {
   onSave: (quiz: Omit<Quiz, 'quizId' | 'createdAt'>) => void;
@@ -28,7 +28,6 @@ const QuizFormEditor: FC<QuizFormEditorProps> = ({
   const [correctAnswer, setCorrectAnswer] = useState(editingQuiz?.correctAnswer || '');
   const [acceptableAnswers, setAcceptableAnswers] = useState<string[]>(editingQuiz?.acceptableAnswers || ['']);
   const [explanation, setExplanation] = useState(editingQuiz?.explanation || '');
-  const [difficulty, setDifficulty] = useState<QuizDifficulty>((editingQuiz?.difficulty as QuizDifficulty) || 3);
   const [errorMessage, setErrorMessage] = useState('');
 
   // 選択肢の更新
@@ -108,7 +107,6 @@ const QuizFormEditor: FC<QuizFormEditorProps> = ({
       acceptableAnswers,
       explanation,
       genre,
-      difficulty,
       createdBy,
       useCount: 0,
       correctCount: 0
@@ -163,25 +161,7 @@ const QuizFormEditor: FC<QuizFormEditorProps> = ({
           ></textarea>
         </div>
         
-        <div>
-          <label className="form-label">難易度</label>
-          <div className="flex items-center space-x-2">
-            {[1, 2, 3, 4, 5].map((level) => (
-              <button
-                key={level}
-                type="button"
-                className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                  level <= difficulty
-                    ? 'bg-yellow-400 text-white'
-                    : 'bg-gray-200 text-gray-600'
-                }`}
-                onClick={() => setDifficulty(level as QuizDifficulty)}
-              >
-                {level}
-              </button>
-            ))}
-          </div>
-        </div>
+        
         
         <div>
           <label className="form-label">問題タイプ</label>

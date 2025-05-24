@@ -18,7 +18,6 @@ interface OfficialQuizUnit {
   useCount: number;
   isPublic: boolean;
   createdAt: any;
-  averageDifficulty?: number;
 }
 
 // カテゴリとそれに属する単元情報
@@ -119,7 +118,6 @@ export default function QuizManagement() {
               useCount: 0,
               isPublic: false,  // 未作成なのでデフォルトでは非公開
               createdAt: null,
-              averageDifficulty: 3
             });
           }
         }
@@ -171,7 +169,6 @@ export default function QuizManagement() {
           useCount: 0,
           isPublic: true, // 新規作成して公開
           createdAt: serverTimestamp(),
-          averageDifficulty: 3
         });
         
         // ローカル状態を更新

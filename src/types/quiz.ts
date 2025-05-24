@@ -11,7 +11,6 @@ export interface Quiz {
   acceptableAnswers: string[];
   explanation: string;
   genre?: string;      // 参照用（サブコレクション内では不要）
-  difficulty: number;
   createdBy: string;
   createdAt: Timestamp;
   useCount: number;
@@ -27,7 +26,6 @@ export interface QuizBase {
   correctAnswer: string;
   acceptableAnswers: string[];
   explanation: string;
-  difficulty: number;
   createdBy: string;
   createdAt: Timestamp;
   useCount: number;
@@ -55,7 +53,7 @@ export interface QuizAnswer {
 
 export type QuizType = 'multiple_choice' | 'input';
 
-export type QuizDifficulty = 1 | 2 | 3 | 4 | 5;
+
 
 export interface QuizStatistics {
   totalAttempts: number;
@@ -81,7 +79,6 @@ export interface QuizUnit {
   createdBy: string;
   createdAt: Timestamp;
   quizCount: number;         // クイズの数（クエリ削減のため）
-  averageDifficulty?: number;  // 平均難易度（クエリ削減のため）
   useCount: number;
   isPublic: boolean;
 }

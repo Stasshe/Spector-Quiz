@@ -4,7 +4,7 @@ import { FC, useState } from 'react';
 import { FaFileImport, FaSpinner } from 'react-icons/fa';
 import yaml from 'js-yaml';
 import { Quiz, QuizType } from '@/types/quiz';
-import { QuizDifficulty } from '../create-types';
+
 
 interface YamlBulkImportProps {
   onImport: (quizzes: Omit<Quiz, 'quizId' | 'createdAt'>[]) => void;
@@ -20,7 +20,6 @@ interface YamlQuiz {
   correctAnswer: string;
   acceptableAnswers?: string[];
   explanation?: string;
-  difficulty?: number;
 }
 
 interface YamlUnit {
@@ -90,7 +89,6 @@ const YamlBulkImport: FC<YamlBulkImportProps> = ({
           correctAnswer: yamlQuiz.correctAnswer,
           acceptableAnswers: yamlQuiz.acceptableAnswers || [],
           explanation: yamlQuiz.explanation || '',
-          difficulty: (yamlQuiz.difficulty as QuizDifficulty) || 3,
           genre,
           createdBy,
           useCount: 0,
@@ -124,7 +122,6 @@ quizzes:
       - 名古屋
     correctAnswer: 東京
     explanation: 東京都は1868年に日本の首都となりました。
-    difficulty: 1
 
   - title: 富士山の高さ
     question: 富士山の標高は何メートルですか？
@@ -134,7 +131,7 @@ quizzes:
       - "3,776"
       - "約3800"
     explanation: 富士山の正確な標高は3,776メートルです。
-    difficulty: 3`;
+    `;
 
   return (
     <div className="border border-gray-200 rounded-lg p-4 mb-6">

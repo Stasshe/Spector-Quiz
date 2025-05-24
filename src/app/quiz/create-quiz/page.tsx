@@ -1,9 +1,6 @@
 import { Suspense } from 'react';
 import ClientWrapper from './ClientWrapper';
 
-// QuizDifficultyの型定義（CreateQuizFormからエクスポートされている型なので残しておく）
-export type { QuizDifficulty } from './create-types';
-
 // ローディングコンポーネント
 const LoadingFallback = () => (
   <div className="flex justify-center items-center min-h-screen">

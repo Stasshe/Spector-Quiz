@@ -49,9 +49,6 @@ const QuizList: FC<QuizListProps> = ({
                     <span className="bg-gray-100 px-2 py-1 rounded mr-2">
                       {quiz.type === 'multiple_choice' ? '選択式' : '入力式'}
                     </span>
-                    <span className="bg-yellow-100 px-2 py-1 rounded">
-                      難易度: {quiz.difficulty}
-                    </span>
                   </div>
                 </div>
                 <div className="flex space-x-1">

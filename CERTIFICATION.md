@@ -88,7 +88,6 @@
 - 経験値獲得条件
   - 問題正解：基本EXP
   - 早押し成功：ボーナスEXP
-  - 難易度：難易度に応じたボーナス
   - セッション完了：ボーナスEXP
 - ランク制度
   - 経験値に基づくランク分け
@@ -143,7 +142,6 @@ quizzes/{quizId}
   explanation: string,      // 解説
   genre: string,            // ジャンル
   unit: string,         // 単元名
-  difficulty: number,       // 難易度
   createdBy: string,        // 作成者ID
   createdAt: timestamp,     // 作成日時
   useCount: number,         // 出題回数

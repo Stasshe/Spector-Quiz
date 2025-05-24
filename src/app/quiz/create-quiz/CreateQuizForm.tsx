@@ -17,7 +17,7 @@ import DraftManager from './components/DraftManager';
 import YamlBulkImport from './components/YamlBulkImport';
 
 // 型定義をエクスポート
-export type { QuizDifficulty } from './create-types';
+
 export default function CreateQuizForm() {
   const { currentUser, userProfile } = useAuth();
   const router = useRouter();
@@ -169,9 +169,7 @@ export default function CreateQuizForm() {
         quizCount: quizzes.length, // クイズの数
         useCount: 0,
         isPublic,
-        averageDifficulty: quizzes.length > 0 
-          ? quizzes.reduce((sum, q) => sum + q.difficulty, 0) / quizzes.length 
-          : 0
+        
       };
       
       // ジャンル->単元の階層構造でデータを保存
@@ -190,7 +188,6 @@ export default function CreateQuizForm() {
           correctAnswer: quiz.correctAnswer || '',
           acceptableAnswers: quiz.acceptableAnswers || [],
           explanation: quiz.explanation || '',
-          difficulty: quiz.difficulty || 3,
           createdBy: currentUser!.uid,
           createdAt: serverTimestamp() as any,
           useCount: 0,
@@ -454,9 +451,6 @@ export default function CreateQuizForm() {
         description: description || '',
         isPublic,
         quizCount: quizzes.length,
-        averageDifficulty: quizzes.length > 0 
-          ? quizzes.reduce((sum, q) => sum + q.difficulty, 0) / quizzes.length 
-          : 0,
         updatedAt: serverTimestamp() as any
       };
       
@@ -495,7 +489,6 @@ export default function CreateQuizForm() {
           correctAnswer: quiz.correctAnswer || '',
           acceptableAnswers: quiz.acceptableAnswers || [],
           explanation: quiz.explanation || '',
-          difficulty: quiz.difficulty || 3,
           createdBy: currentUser.uid,
           createdAt: serverTimestamp() as any,
           useCount: 0,
