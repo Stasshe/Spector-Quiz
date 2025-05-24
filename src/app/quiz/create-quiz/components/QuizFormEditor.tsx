@@ -29,6 +29,12 @@ const QuizFormEditor: FC<QuizFormEditorProps> = ({
   const [acceptableAnswers, setAcceptableAnswers] = useState<string[]>(editingQuiz?.acceptableAnswers || ['']);
   const [explanation, setExplanation] = useState(editingQuiz?.explanation || '');
   const [errorMessage, setErrorMessage] = useState('');
+  
+  // 問題タイプが変更されたときに正解をリセット
+  const handleTypeChange = (newType: QuizType) => {
+    setType(newType);
+    setCorrectAnswer(''); // 問題タイプが変わったときに正解をリセット
+  };
 
   // 選択肢の更新
   const updateChoice = (index: number, value: string) => {
@@ -78,8 +84,8 @@ const QuizFormEditor: FC<QuizFormEditorProps> = ({
       }
       
       // 正解が選択されているか確認
-      if (!correctAnswer) {
-        setErrorMessage('正解を選択してください');
+      if (!correctAnswer || !choices.includes(correctAnswer)) {
+        setErrorMessage('選択肢から正解を選択してください');
         return false;
       }
     } else if (type === 'input') {
@@ -172,7 +178,7 @@ const QuizFormEditor: FC<QuizFormEditorProps> = ({
                 name="type"
                 value="multiple_choice"
                 checked={type === 'multiple_choice'}
-                onChange={() => setType('multiple_choice')}
+                onChange={() => handleTypeChange('multiple_choice')}
                 className="mr-2"
               />
               選択式
@@ -183,7 +189,7 @@ const QuizFormEditor: FC<QuizFormEditorProps> = ({
                 name="type"
                 value="input"
                 checked={type === 'input'}
-                onChange={() => setType('input')}
+                onChange={() => handleTypeChange('input')}
                 className="mr-2"
               />
               入力式

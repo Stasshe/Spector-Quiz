@@ -14,8 +14,58 @@
 │   ├── file.svg
 │   ├── globe.svg
 │   ├── next.svg
+│   ├── official-quiz
+│   │   ├── 世界史
+│   │   │   ├── 中世
+│   │   │   │   ├── イスラーム世界.yaml
+│   │   │   │   ├── ビザンツ帝国.yaml
+│   │   │   │   └── 十字軍.yaml
+│   │   │   ├── 古代
+│   │   │   │   ├── エジプト文明.yaml
+│   │   │   │   ├── ギリシャ.yaml
+│   │   │   │   ├── メソポタミア文明.yaml
+│   │   │   │   └── ローマ.yaml
+│   │   │   ├── 現代
+│   │   │   │   ├── グローバル化.yaml
+│   │   │   │   └── 冷戦.yaml
+│   │   │   ├── 近世
+│   │   │   │   ├── ルネサンス.yaml
+│   │   │   │   ├── 大航海時代.yaml
+│   │   │   │   └── 宗教改革.yaml
+│   │   │   └── 近代
+│   │   │       ├── 世界大戦.yaml
+│   │   │       ├── 市民革命.yaml
+│   │   │       ├── 帝国主義.yaml
+│   │   │       └── 産業革命.yaml
+│   │   └── 日本史
+│   │       ├── 中世
+│   │       │   ├── 室町時代.yaml
+│   │       │   ├── 戦国時代.yaml
+│   │       │   └── 鎌倉時代.yaml
+│   │       ├── 古代
+│   │       │   ├── 古墳時代.yaml
+│   │       │   ├── 奈良時代.yaml
+│   │       │   ├── 平安時代.yaml
+│   │       │   ├── 弥生時代.yaml
+│   │       │   ├── 縄文時代.yaml
+│   │       │   └── 飛鳥時代.yaml
+│   │       ├── 現代
+│   │       │   ├── 令和.yaml
+│   │       │   ├── 平成.yaml
+│   │       │   └── 昭和後期.yaml
+│   │       ├── 近世
+│   │       │   ├── 安土桃山時代.yaml
+│   │       │   └── 江戸時代.yaml
+│   │       └── 近代
+│   │           ├── 大正時代.yaml
+│   │           ├── 明治時代.yaml
+│   │           └── 昭和前期.yaml
+│   ├── sample.yaml
 │   ├── vercel.svg
+│   ├── web-app-manifest-192x192.png
+│   ├── web-app-manifest-512x512.png
 │   └── window.svg
+├── re.txt
 ├── src
 │   ├── app
 │   │   ├── admin
@@ -42,6 +92,7 @@
 │   │   │       └── page.tsx
 │   │   ├── quiz
 │   │   │   ├── create-quiz
+│   │   │   │   ├── ClientWrapper.tsx
 │   │   │   │   ├── CreateQuizForm.tsx
 │   │   │   │   ├── components
 │   │   │   │   │   ├── BasicInfoForm.tsx
@@ -60,8 +111,10 @@
 │   │       └── page.tsx
 │   ├── components
 │   │   ├── layout
+│   │   │   ├── ActiveQuizAlertModal.tsx
 │   │   │   ├── Footer.tsx
 │   │   │   ├── Header.tsx
+│   │   │   ├── QuizRoomRedirectManager.tsx
 │   │   │   ├── RoomSwitchConfirmModal.tsx
 │   │   │   └── WaitingRoomFloating.tsx
 │   │   └── quiz
@@ -97,13 +150,15 @@
 │   │       ├── participationService.ts
 │   │       └── roomService.ts
 │   └── types
+│       ├── global.d.ts
 │       ├── quiz.ts
 │       ├── room.ts
 │       └── user.ts
 ├── tailwind.config.ts
 ├── test-output.txt
+├── tree.sh
 ├── tree.txt
 ├── tsconfig.json
 └── version
 
-34 directories, 72 files
+47 directories, 114 files
