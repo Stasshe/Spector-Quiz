@@ -38,6 +38,18 @@ export default function RootLayout({
         <Script id="eruda-init" strategy="afterInteractive">
           {`eruda.init();`}
         </Script>
+        <meta name="apple-mobile-web-app-title" content="Zap!" />
+        <meta name="application-name" content="Zap!" />
+        <meta name="theme-color" content="#ffffff" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="description" content="リアルタイムで友達と対戦できるクイズアプリ！" />
+        <meta name="keywords" content="Zap!, クイズ, オンライン, マルチプレイヤー" />
+        <meta name="author" content="Zap! Team" />
+        <meta name="robots" content="index, follow" />      
+        <meta property="og:title" content="Zap! - オンラインマルチクイズアプリケーション" />
+        <meta property="og:description" content="リアルタイムで友達と対戦できるクイズアプリ！" />
+        <meta property="og:image" content="/path/to/your/image.jpg" />
+        <meta property="og:url" content="https://zap-quiz.onrender.com" />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased flex flex-col min-h-screen`}
