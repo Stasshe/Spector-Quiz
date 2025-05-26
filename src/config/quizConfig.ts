@@ -4,21 +4,15 @@
 
 // タイミング関連の設定（ミリ秒）
 export const TIMING = {
+  AUTO_DISBAND_TIME_MS: 8 * 60 * 1000, // ルーム自動解散時間（8分）
+  
+
+
   // 正解後、次の問題に進むまでの待機時間
   NEXT_QUESTION_DELAY: 4000,
   
-  // 統計更新後のリダイレクト待機時間
-  STATS_REDIRECT_DELAY: 3000,
-  
-  // クイズルーム削除までの待機時間
-  ROOM_DELETION_DELAY: 10000,
-  
-  // statsUpdatedフラグが設定されない場合のバックアップリダイレクト時間
-  BACKUP_REDIRECT_DELAY: 8000,
-  
   // 問題の制限時間（デフォルト）
   QUESTION_TIMEOUT: 30000,
-  
   // ジャンル別制限時間（ミリ秒）
   GENRE_TIMEOUTS: {
     '日本史': 15000,    // 15秒
@@ -48,14 +42,11 @@ export const SCORING = {
 // その他の設定
 export const SETTINGS = {
   // 一人プレイの場合の経験値倍率
-  SOLO_MULTIPLIER: 0.1,
+  //SOLO_MULTIPLIER: 0.1,
   
-  // リトライ間隔の初期値（ミリ秒）
-  INITIAL_RETRY_INTERVAL: 1000,
-  
-  // 最大リトライ回数
-  MAX_RETRY_COUNT: 3
 };
+
+
 
 /**
  * ジャンルに応じた制限時間を取得

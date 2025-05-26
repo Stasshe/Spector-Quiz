@@ -1154,14 +1154,19 @@ export function useLeader(roomId: string) {
       
       console.log(`解答状況: ${answeredCount}/${totalParticipants}人が解答済み`);
       
-      // 全員が解答し、全員不正解の場合
-      if (answeredCount >= totalParticipants) {
-        console.log('全員が解答し、全員不正解です。次の問題に進みます');
+      // 全員が解答した場合、または時間切れの場合（タイムアウトの状態）
+      const isTimeout = roomData.currentState?.answerStatus === 'timeout';
+      const allAnswered = answeredCount >= totalParticipants;
+      
+      // 全員が解答した場合、または時間切れの場合
+      if (allAnswered || isTimeout) {
+        console.log(isTimeout ? '時間切れです。' : '全員が解答し、全員不正解です。');
+        console.log('正解と解説を表示して、一定時間後に次の問題に進みます');
         
         // ルーム状態を更新
         await updateDoc(roomRef, {
-          'currentState.answerStatus': 'all_incorrect',
-          'currentState.isRevealed': true
+          'currentState.answerStatus': isTimeout ? 'timeout' : 'all_incorrect',
+          'currentState.isRevealed': true // 正解と解説を表示するためにtrueに設定
         });
         
         // 一定時間後に次の問題へ

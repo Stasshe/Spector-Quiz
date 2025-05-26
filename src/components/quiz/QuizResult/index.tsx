@@ -30,35 +30,33 @@ export default function QuizResult({ isCorrect, quiz, answererId, participants }
         </div>
       </div>
 
-      {/* 正解の場合のみ正解と解説を表示 */}
-      {isCorrect && (
-        <>
+      {/* 正解・不正解に関わらず正解と解説を表示 */}
+      <>
+        <div className="mb-4">
+          <div className="font-medium mb-2">正解:</div>
+          <div className="bg-white p-3 rounded-md border border-gray-200">
+            {quiz.correctAnswer}
+          </div>
+        </div>
+
+        {quiz.type === 'input' && quiz.acceptableAnswers && quiz.acceptableAnswers.length > 0 && (
           <div className="mb-4">
-            <div className="font-medium mb-2">正解:</div>
+            <div className="font-medium mb-2">許容される他の回答:</div>
             <div className="bg-white p-3 rounded-md border border-gray-200">
-              {quiz.correctAnswer}
+              {quiz.acceptableAnswers.join('、 ')}
             </div>
           </div>
+        )}
 
-          {quiz.type === 'input' && quiz.acceptableAnswers && quiz.acceptableAnswers.length > 0 && (
-            <div className="mb-4">
-              <div className="font-medium mb-2">許容される他の回答:</div>
-              <div className="bg-white p-3 rounded-md border border-gray-200">
-                {quiz.acceptableAnswers.join('、 ')}
-              </div>
+        {quiz.explanation && (
+          <div>
+            <div className="font-medium mb-2">解説:</div>
+            <div className="bg-white p-3 rounded-md border border-gray-200 text-gray-700">
+              {quiz.explanation}
             </div>
-          )}
-
-          {quiz.explanation && (
-            <div>
-              <div className="font-medium mb-2">解説:</div>
-              <div className="bg-white p-3 rounded-md border border-gray-200 text-gray-700">
-                {quiz.explanation}
-              </div>
-            </div>
-          )}
-        </>
-      )}
+          </div>
+        )}
+      </>
     </div>
   );
 }

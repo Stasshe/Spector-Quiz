@@ -21,10 +21,10 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/config/firebase';
 import { QuizRoom, RoomListing, RoomStatus } from '@/types/room';
-import { ParticipantInfo } from '@/types/user';
+import { TIMING } from '@/config/quizConfig';
 
 // 8分（ミリ秒）- WaitingRoomFloating.tsxと同期を保つ
-export const AUTO_DISBAND_TIME_MS = 8 * 60 * 1000;
+
 
 // ------ ルーム取得関連のサービス関数 ------
 
@@ -126,7 +126,7 @@ export async function checkAndDisbandOldRooms(
   try {
     // 8分前の時間を計算
     const cutoffTime = new Date();
-    cutoffTime.setTime(cutoffTime.getTime() - AUTO_DISBAND_TIME_MS);
+    cutoffTime.setTime(cutoffTime.getTime() - TIMING.AUTO_DISBAND_TIME_MS);
     
     // 8分以上前に作成された待機中のルームを検索
     const oldRoomsQuery = query(
