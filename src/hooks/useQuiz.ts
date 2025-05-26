@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { useQuiz as useQuizContext } from '@/context/QuizContext';
 import { db } from '@/config/firebase';
-import { doc, getDoc, collection, query, where, getDocs, updateDoc, increment, setDoc } from 'firebase/firestore';
+import { useQuiz as useQuizContext } from '@/context/QuizContext';
 import { Quiz } from '@/types/quiz';
+import { collection, doc, getDoc, getDocs, increment, setDoc, updateDoc } from 'firebase/firestore';
+import { useCallback, useEffect, useState } from 'react';
 
 export function useQuizHook() {
   const { currentQuiz, setCurrentQuiz, quizRoom } = useQuizContext();

@@ -1,27 +1,28 @@
 'use client';
 
-import { 
-  collection, 
-  doc, 
-  getDoc, 
-  getDocs, 
-  query, 
-  where, 
-  orderBy, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  where,
+  orderBy,
+  addDoc,
+  updateDoc,
+  deleteDoc,
   //deleteField,
   //onSnapshot, 
-  serverTimestamp, 
+  serverTimestamp,
   increment,
   runTransaction,
   Timestamp,
   limit
 } from 'firebase/firestore';
 import { db } from '@/config/firebase';
-import { QuizRoom, RoomListing, RoomStatus } from '@/types/room';
+import { QuizRoom, RoomListing } from '@/types/room';
 import { TIMING } from '@/config/quizConfig';
+
 
 // 8分（ミリ秒）- WaitingRoomFloating.tsxと同期を保つ
 

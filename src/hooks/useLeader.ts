@@ -1,31 +1,31 @@
 'use client';
 
-import { useCallback, useEffect } from 'react';
 import { db } from '@/config/firebase';
-import { TIMING, SCORING, getQuestionTimeout } from '@/config/quizConfig';
-import { 
-  collection, 
-  doc, 
-  getDoc, 
-  getDocs,
-  query, 
-  where, 
-  orderBy, 
-  updateDoc, 
+import { SCORING, TIMING, getQuestionTimeout } from '@/config/quizConfig';
+import { useAuth } from '@/context/AuthContext';
+import { useQuiz } from '@/context/QuizContext';
+import { useQuizHook } from '@/hooks/useQuiz';
+import { Quiz } from '@/types/quiz';
+import { QuizRoom } from '@/types/room';
+import {
   addDoc,
+  collection,
   deleteDoc,
-  onSnapshot,
-  writeBatch,
-  serverTimestamp,
+  doc,
+  getDoc,
+  getDocs,
   increment,
   //deleteField,
-  limit
+  limit,
+  onSnapshot,
+  orderBy,
+  query,
+  serverTimestamp,
+  updateDoc,
+  where,
+  writeBatch
 } from 'firebase/firestore';
-import { QuizRoom } from '@/types/room';
-import { Quiz } from '@/types/quiz';
-import { useQuiz } from '@/context/QuizContext';
-import { useAuth } from '@/context/AuthContext';
-import { useQuizHook } from '@/hooks/useQuiz';
+import { useCallback, useEffect } from 'react';
 
 export function useLeader(roomId: string) {
   const { isLeader, quizRoom, currentQuiz, setCurrentQuiz, setShowChoices } = useQuiz();
@@ -541,15 +541,15 @@ export function useLeader(roomId: string) {
       
       // 参加者数を確認
       const participantCount = Object.keys(quizRoom.participants).length;
-      // 一人プレイの場合は経験値を1/10に
-      const soloMultiplier = participantCount === 1 ? 0.1 : 1;
+      // 一人プレイの場合は経験値をSOLO_MULTIPLIER倍に
+      const soloMultiplier = participantCount === 1 ? SCORING.SOLO_MULTIPLIER : 1;
       
       // 各参加者の処理
       Object.entries(quizRoom.participants).forEach(([userId, participant]) => {
         const userRef = doc(db, 'users', userId);
         
         // 獲得経験値の計算（例）
-        let expGain = participant.score + 20; // スコア + セッション完了ボーナス
+        let expGain = participant.score + SCORING.SESSION_COMPLETION_BONUS; // スコア + セッション完了ボーナス
         
         // 一人プレイの場合は1/10に
         expGain = Math.round(expGain * soloMultiplier);
@@ -940,7 +940,7 @@ export function useLeader(roomId: string) {
             const updateData: any = {
               'currentState.answerStatus': isCorrect ? 'correct' : 'incorrect',
               'currentState.isRevealed': true,
-              [`participants.${currentUser.uid}.score`]: increment(isCorrect ? 10 : 0)
+              [`participants.${currentUser.uid}.score`]: increment(isCorrect ? SCORING.CORRECT_ANSWER_SCORE : SCORING.INCORRECT_ANSWER_PENALTY)
             };
             
             // 不正解の場合は、解答権をリセットして他の人が回答できるようにする

@@ -1,24 +1,24 @@
 'use client';
 
-import { getAuth } from 'firebase/auth';
-import { getDoc, doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/config/firebase';
+import { getAuth } from 'firebase/auth';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 
 // roomService.ts からのインポート
 import {
-  fetchAvailableRooms,
+  calculateRank,
   checkAndDisbandOldRooms,
-  getUnitIdByName,
   createUnitIfNotExists,
-  updateUserStatsOnRoomComplete as updateRoomStats,
-  calculateRank
+  fetchAvailableRooms,
+  getUnitIdByName,
+  updateUserStatsOnRoomComplete as updateRoomStats
 } from './roomService';
 
 // participationService.ts からのインポート
 import {
+  getRoomById,
   joinRoomService,
-  leaveRoomService,
-  getRoomById
+  leaveRoomService
 } from './participationService';
 
 // creationService.ts からのインポート
@@ -33,9 +33,9 @@ import {
 import { QuizRoom } from '@/types/room';
 
 // サービス関連の全ての関数をエクスポート
-export * from './roomService';
-export * from './participationService';
 export * from './creationService';
+export * from './participationService';
+export * from './roomService';
 
 // useQuizRoomで使用する関数を明示的にエクスポート
 // ルーム作成・管理関連
@@ -168,12 +168,7 @@ export const findOrCreateRoomWithUnit = async (
 
 // roomService.ts からエクスポート
 export {
-  fetchAvailableRooms,
-  checkAndDisbandOldRooms,
-  getUnitIdByName,
-  createUnitIfNotExists,
-  calculateRank,
-  getRoomById
+  calculateRank, checkAndDisbandOldRooms, createUnitIfNotExists, fetchAvailableRooms, getRoomById, getUnitIdByName
 };
 
 // ラッパー関数

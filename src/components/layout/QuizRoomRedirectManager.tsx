@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { useQuiz } from '@/hooks/useQuiz';
-import { useAuth } from '@/context/AuthContext';
-import { useRouter, usePathname } from 'next/navigation';
 import { db } from '@/config/firebase';
+import { useAuth } from '@/context/AuthContext';
+import { useQuiz } from '@/hooks/useQuiz';
 import { doc, getDoc } from 'firebase/firestore';
+import { usePathname, useRouter } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react';
 
 // クイズルームの状態を監視して、必要に応じてリダイレクトするコンポーネント
 export default function QuizRoomRedirectManager() {

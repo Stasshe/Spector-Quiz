@@ -1,15 +1,15 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
-import { FaUserFriends, FaTimes, FaSignOutAlt, FaPlay, FaClock, FaExchangeAlt } from 'react-icons/fa';
-import { useQuiz } from '@/context/QuizContext';
-import { useRouter } from 'next/navigation';
 import { db } from '@/config/firebase';
-import { doc, deleteDoc, updateDoc, onSnapshot, getDoc, collection, query, where, getDocs, Timestamp, serverTimestamp } from 'firebase/firestore';
 import { useAuth } from '@/context/AuthContext';
-import { getRoomById } from '@/services/quizRoom';
+import { useQuiz } from '@/context/QuizContext';
 import { useQuizRoom } from '@/hooks/useQuizRoom';
+import { getRoomById } from '@/services/quizRoom';
+import { collection, deleteDoc, doc, getDoc, getDocs, onSnapshot, query, serverTimestamp, updateDoc, where } from 'firebase/firestore';
+import { AnimatePresence, motion } from 'framer-motion';
+import { useRouter } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react';
+import { FaClock, FaExchangeAlt, FaPlay, FaSignOutAlt, FaTimes, FaUserFriends } from 'react-icons/fa';
 
 const AUTO_DISBAND_TIME_MS = 8 * 60 * 1000; // 8分（ミリ秒）
 

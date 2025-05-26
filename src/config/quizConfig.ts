@@ -4,9 +4,8 @@
 
 // タイミング関連の設定（ミリ秒）
 export const TIMING = {
-  AUTO_DISBAND_TIME_MS: 8 * 60 * 1000, // ルーム自動解散時間（8分）
-  
-
+  // ルーム自動解散時間（8分）
+  AUTO_DISBAND_TIME_MS: 8 * 60 * 1000,
 
   // 正解後、次の問題に進むまでの待機時間
   NEXT_QUESTION_DELAY: 4000,
@@ -32,8 +31,12 @@ export const TIMING = {
 
 // スコア関連の設定
 export const SCORING = {
+  SOLO_MULTIPLIER: 0.1, // 一人プレイ時の経験値倍率 (0~1)
+
   // 正解時の得点
   CORRECT_ANSWER_SCORE: 10,
+  // 不正解時の減点
+  INCORRECT_ANSWER_PENALTY: -1,
   
   // クイズ完了時のボーナス
   SESSION_COMPLETION_BONUS: 20

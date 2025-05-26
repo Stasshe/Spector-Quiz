@@ -1,21 +1,16 @@
 'use client';
 
-import { 
-  collection, 
-  doc, 
-  getDoc, 
-  getDocs, 
-  query, 
-  where, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  deleteField,
-  serverTimestamp 
-} from 'firebase/firestore';
 import { db } from '@/config/firebase';
 import { QuizRoom } from '@/types/room';
 import { ParticipantInfo } from '@/types/user';
+import {
+  deleteDoc,
+  deleteField,
+  doc,
+  getDoc,
+  serverTimestamp,
+  updateDoc
+} from 'firebase/firestore';
 
 // ------ ルーム参加・退出関連のサービス関数 ------
 

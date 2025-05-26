@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { useAuth as useAuthContext } from '../context/AuthContext';
-import { useRouter, usePathname } from 'next/navigation';
 
 export function useAuth() {
   const { currentUser, userProfile, login, register, logout, loading, initialized } = useAuthContext();
