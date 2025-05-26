@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Quiz } from '@/types/quiz';
 import { useQuiz } from '@/context/QuizContext';
 import { motion, AnimatePresence } from 'framer-motion';
+import QuizTimer from '@/components/quiz/QuizTimer';
 
 interface QuizQuestionProps {
   quiz: Quiz;
@@ -10,6 +11,7 @@ interface QuizQuestionProps {
 export default function QuizQuestion({ quiz }: QuizQuestionProps) {
   const { showChoices, setShowChoices, animationInProgress, setAnimationInProgress, showQuestionDelay, quizRoom } = useQuiz();
   const [showQuestion, setShowQuestion] = useState(false);
+  const [timerActive, setTimerActive] = useState(false);
   
   
   
@@ -17,18 +19,40 @@ export default function QuizQuestion({ quiz }: QuizQuestionProps) {
   useEffect(() => {
     setAnimationInProgress(true);
     setShowQuestion(false);
+    setTimerActive(false);
     
     // 問題が切り替わった時に遅延を短くする（250ms）
     const questionTimer = setTimeout(() => {
       setShowQuestion(true);
       setAnimationInProgress(false);
+      // 問題表示後、少し遅れてタイマーを開始
+      setTimeout(() => {
+        setTimerActive(true);
+      }, 500);
     }, 250);
     
     return () => clearTimeout(questionTimer);
   }, [quiz.quizId, setAnimationInProgress]);
+
+  // タイマーが終了した時の処理
+  const handleTimeUp = () => {
+    console.log('時間切れです！');
+    setTimerActive(false);
+    // 必要に応じて他の処理を追加
+  };
   
   return (
     <div className="quiz-question relative">
+      
+      {/* タイマーコンポーネント */}
+      {quiz.genre && (
+        <QuizTimer
+          genre={quiz.genre}
+          isActive={timerActive && quizRoom?.status === 'in_progress'}
+          onTimeUp={handleTimeUp}
+          resetKey={quiz.quizId} // 問題が変わるたびにタイマーをリセット
+        />
+      )}
       
       <motion.h2 
         initial={{ opacity: 0, y: -20 }}

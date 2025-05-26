@@ -183,6 +183,13 @@
     @apply h-full rounded-full transition-all duration-300 ease-out;
   }
 
+  /* タイマー進行アニメーション */
+  .timer-bar-animate {
+    animation-name: timer-bar;
+    animation-timing-function: linear;
+    animation-fill-mode: forwards;
+  }
+
   /* クイズルームカード */
   .room-card {
     @apply bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-200 p-5 border-2 border-transparent hover:border-indigo-100;
@@ -217,4 +224,10 @@
   .ranking-other {
     @apply bg-indigo-50 text-indigo-800;
   }
+}
+
+/* タイマーバーのキーフレームアニメーション */
+@keyframes timer-bar {
+  from { width: 100%; }
+  to { width: 0%; }
 }
