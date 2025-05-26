@@ -69,10 +69,24 @@ export default function ActiveQuizAlertModal() {
       return;
     }
     
-    // quizRoomがnullの場合や、既にquizRoomページにいる場合は何もしない
-    if (!quizRoom || (typeof window !== 'undefined' && (window.location.pathname.includes('/quiz/room') || window.inQuizRoomPage))) {
+    // quizRoomがnullの場合は何もしない
+    if (!quizRoom) {
       setShowAlert(false);
       return;
+    }
+    
+    // 既にquizRoomページにいる場合の詳細チェック
+    if (typeof window !== 'undefined' && (window.location.pathname.includes('/quiz/room') || window.inQuizRoomPage)) {
+      // 現在のルームIDを取得
+      const currentRoomIdFromUrl = new URLSearchParams(window.location.search).get('id');
+      const targetRoomId = quizRoom.roomId || manualRoomId;
+      
+      // 既に正しいルームにいる場合はアラートを表示しない
+      if (currentRoomIdFromUrl === targetRoomId) {
+        console.log('[ActiveQuizAlertModal] 既に正しいルームページにいます:', targetRoomId);
+        setShowAlert(false);
+        return;
+      }
     }
     
     // ユーザードキュメントからルームIDを確認

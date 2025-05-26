@@ -182,11 +182,21 @@ export function useQuizHook() {
   }, [setCurrentQuiz, quizRoom]);
 
   // ジャンルと単元に基づいてクイズを検索
-  const searchQuizzes = useCallback(async (genreId: string, unitId: string) => {
+  const searchQuizzes = useCallback(async (genreId: string, unitId: string, classType?: string) => {
     try {
       setLoading(true);
       
-      const quizzesRef = collection(db, 'genres', genreId, 'quiz_units', unitId, 'quizzes');
+      // classTypeまたはquizRoomの情報から公式クイズかどうか判定
+      const isOfficial = classType === '公式' || 
+                        (quizRoom?.classType === '公式') || 
+                        (quizRoom?.quizType === 'official');
+      
+      // パスを適切に構築
+      const collectionName = isOfficial ? 'official_quiz_units' : 'quiz_units';
+      const quizzesRef = collection(db, 'genres', genreId, collectionName, unitId, 'quizzes');
+      
+      console.log(`[useQuiz.searchQuizzes] クイズ検索: ${genreId}/${collectionName}/${unitId}/quizzes, isOfficial=${isOfficial}`);
+      
       const quizzesSnap = await getDocs(quizzesRef);
       const quizzes: Quiz[] = [];
       
@@ -207,7 +217,7 @@ export function useQuizHook() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [quizRoom]);
 
   // ジャンルと単元の利用回数を更新
   const updateGenreStats = useCallback(async (genre: string, unitId?: string) => {

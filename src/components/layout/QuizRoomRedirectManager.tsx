@@ -140,6 +140,13 @@ export default function QuizRoomRedirectManager() {
     
     // クイズが進行中かつ有効なroomIdがある場合のみ処理
     if (quizRoom && quizRoom.status === 'in_progress' && activeRoomId) {
+      // 現在のパスがすでに正しいルームページの場合はスキップ
+      const currentRoomIdFromPath = pathname?.includes('/quiz/room') && new URLSearchParams(window?.location?.search || '').get('id');
+      if (currentRoomIdFromPath === activeRoomId) {
+        console.log('[QuizRoomRedirectManager] 既に正しいルームページにいます:', activeRoomId);
+        return;
+      }
+      
       // デバッグ情報を出力
       console.log('[QuizRoomRedirectManager] 進行中クイズルーム検出:', {
         roomId: activeRoomId,
@@ -149,14 +156,26 @@ export default function QuizRoomRedirectManager() {
         redirectInProgress: redirectInProgressRef.current
       });
       
-      // すでにルームページにいる場合は何もしない
+      // すでにルームページにいる場合の詳細チェック
       const inRoomPage = 
         (pathname?.includes('/quiz/room')) || 
         (typeof window !== 'undefined' && window.inQuizRoomPage);
       
       if (inRoomPage) {
+        // URLパラメータから現在のルームIDを取得
+        const currentRoomIdFromUrl = typeof window !== 'undefined' ? 
+          new URLSearchParams(window.location.search).get('id') : null;
+        
+        // 既に正しいルームにいる場合はリダイレクトをスキップ
+        if (currentRoomIdFromUrl === activeRoomId) {
+          console.log('[QuizRoomRedirectManager] 既に正しいルームページにいます:', activeRoomId);
+          return;
+        }
+        
         console.log('[QuizRoomRedirectManager] すでにルームページにいるため、リダイレクト処理をスキップ', {
           pathname,
+          currentRoomIdFromUrl,
+          targetRoomId: activeRoomId,
           windowFlag: typeof window !== 'undefined' ? window.inQuizRoomPage : undefined
         });
         return;
