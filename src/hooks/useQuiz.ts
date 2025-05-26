@@ -140,10 +140,21 @@ export function useQuizHook() {
   }, [fetchUnitsForGenre]); // unitsを依存配列から削除
 
   // 特定のクイズを取得
-  const fetchQuiz = useCallback(async (genreId: string, unitId: string, quizId: string) => {
+  const fetchQuiz = useCallback(async (genreId: string, unitId: string, quizId: string, classType?: string) => {
     try {
       setLoading(true);
-      const quizRef = doc(db, 'genres', genreId, 'quiz_units', unitId, 'quizzes', quizId);
+      
+      // classTypeまたはquizRoomの情報から公式クイズかどうか判定
+      const isOfficial = classType === '公式' || 
+                        (quizRoom?.classType === '公式') || 
+                        (quizRoom?.quizType === 'official');
+      
+      // パスを適切に構築
+      const collectionName = isOfficial ? 'official_quiz_units' : 'quiz_units';
+      const quizRef = doc(db, 'genres', genreId, collectionName, unitId, 'quizzes', quizId);
+      
+      console.log(`[useQuiz.fetchQuiz] クイズ取得: ${genreId}/${collectionName}/${unitId}/quizzes/${quizId}, isOfficial=${isOfficial}`);
+      
       const quizSnap = await getDoc(quizRef);
       
       if (quizSnap.exists()) {
@@ -158,6 +169,7 @@ export function useQuizHook() {
         setCurrentQuiz(quiz);
         return quiz;
       } else {
+        console.error(`[useQuiz.fetchQuiz] クイズが見つかりません: ${genreId}/${collectionName}/${unitId}/quizzes/${quizId}`);
         throw new Error('クイズが見つかりません');
       }
     } catch (err: any) {
@@ -167,7 +179,7 @@ export function useQuizHook() {
     } finally {
       setLoading(false);
     }
-  }, [setCurrentQuiz]);
+  }, [setCurrentQuiz, quizRoom]);
 
   // ジャンルと単元に基づいてクイズを検索
   const searchQuizzes = useCallback(async (genreId: string, unitId: string) => {
@@ -256,7 +268,8 @@ export function useQuizHook() {
       const unitId = quizRoom.unitId;
       
       if (unitId && genre) {
-        fetchQuiz(genre, unitId, currentQuizId);
+        // classTypeを明示的に渡す
+        fetchQuiz(genre, unitId, currentQuizId, quizRoom.classType);
       } else {
         console.error('Quiz room is missing genre or unitId');
         setError('クイズルームの情報が不完全です');

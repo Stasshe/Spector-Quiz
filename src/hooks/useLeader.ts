@@ -35,17 +35,21 @@ export function useLeader(roomId: string) {
   // 現在の問題を取得してセット
   const fetchCurrentQuiz = useCallback(async () => {
     if (!quizRoom) {
-      console.log('クイズルームが設定されていません');
+      console.log('[fetchCurrentQuiz] クイズルームが設定されていません');
       return;
     }
+    
+    console.log(`[fetchCurrentQuiz] 実行開始: roomId=${roomId}, currentQuizIndex=${quizRoom.currentQuizIndex}`);
     
     try {
       // quizIdsがundefinedの可能性を考慮
       const quizIds = quizRoom.quizIds || [];
       const currentQuizId = quizIds[quizRoom.currentQuizIndex];
       
+      console.log(`[fetchCurrentQuiz] クイズIDs: ${JSON.stringify(quizIds)}, 現在のインデックス: ${quizRoom.currentQuizIndex}, 現在のクイズID: ${currentQuizId}`);
+      
       if (!currentQuizId) {
-        console.log('クイズIDが見つかりません');
+        console.log('[fetchCurrentQuiz] クイズIDが見つかりません - クイズ配列が空かインデックスが範囲外');
         return;
       }
       
@@ -73,9 +77,11 @@ export function useLeader(roomId: string) {
       
       try {
         // クイズタイプによってコレクションを決定
-        const isOfficial = quizRoom.quizType === 'official';
+        // quizTypeが未定義の場合はclassTypeをフォールバックとして使用
+        const isOfficial = quizRoom.quizType === 'official' || 
+                          (quizRoom.quizType === undefined && quizRoom.classType === '公式');
         
-        console.log(`[useLeader] クイズ取得: genre=${quizRoom.genre}, unitId=${quizRoom.unitId}, quizId=${currentQuizId}, isOfficial=${isOfficial}`);
+        console.log(`[useLeader] クイズ取得: genre=${quizRoom.genre}, unitId=${quizRoom.unitId}, quizId=${currentQuizId}, quizType=${quizRoom.quizType}, classType=${quizRoom.classType}, isOfficial=${isOfficial}`);
         
         // 公式クイズかユーザー作成クイズかに応じてパスを構築
         let quizRef;
@@ -149,7 +155,14 @@ export function useLeader(roomId: string) {
             ? `genres/${quizRoom.genre}/official_quiz_units/${quizRoom.unitId}/quizzes/${currentQuizId}`
             : `genres/${quizRoom.genre}/quiz_units/${quizRoom.unitId}/quizzes/${currentQuizId}`;
           
-          console.error(`[useLeader] クイズが見つかりません: ${currentQuizId}, パス: ${pathInfo}`);
+          console.error(`[useLeader] クイズが見つかりません:`);
+          console.error(`- クイズID: ${currentQuizId}`);
+          console.error(`- パス: ${pathInfo}`);
+          console.error(`- クイズタイプ: ${quizRoom.quizType}`);
+          console.error(`- クラスタイプ: ${quizRoom.classType}`);
+          console.error(`- isOfficial: ${isOfficial}`);
+          console.error(`- ジャンル: ${quizRoom.genre}`);
+          console.error(`- 単元ID: ${quizRoom.unitId}`);
           
           // エラー時刻を記録（リダイレクトループ防止用）
           if (typeof window !== 'undefined') {
@@ -448,7 +461,9 @@ export function useLeader(roomId: string) {
         try {
           // クイズ統計の更新（新しいデータベース構造に合わせて修正）
           if (currentQuiz.genre && quizRoom.unitId) {
-            const isOfficial = quizRoom.quizType === 'official';
+            // quizTypeが未定義の場合はclassTypeをフォールバックとして使用
+            const isOfficial = quizRoom.quizType === 'official' || 
+                              (quizRoom.quizType === undefined && quizRoom.classType === '公式');
             let statsRef;
             
             if (isOfficial) {
@@ -1174,6 +1189,10 @@ export function useLeader(roomId: string) {
 
 // 回答の正規化（小文字化、空白除去など）
 function normalizeAnswer(answer: string): string {
+  if (typeof answer !== 'string') {
+    console.warn('normalizeAnswer: answer is not a string:', answer);
+    return String(answer || '').toLowerCase().replace(/\s+/g, '');
+  }
   return answer.toLowerCase().replace(/\s+/g, '');
 }
 
