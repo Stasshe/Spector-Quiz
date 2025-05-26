@@ -443,7 +443,7 @@ const judgeAnswer = useCallback(async (roomId: string, answerId: string) => {
   
   // 次の問題に進むタイマーを設定
   if (isLeader) {
-    setTimeout(() => moveToNextQuestion(roomId), 5000);
+    setTimeout(() => moveToNextQuestion(roomId), 3000);
   }
 }, [isLeader]);
 

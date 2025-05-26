@@ -25,17 +25,22 @@ export default function QuizRoomRedirectManager() {
       return;
     }
     
-    // クイズルームページにいる場合の処理
-    if (pathname && pathname.includes('/quiz/room')) {
+    // クイズルームページにいる場合の処理（末尾のスラッシュも考慮）
+    if (pathname && (pathname.includes('/quiz/room') || pathname === '/quiz/room/')) {
       console.log('[QuizRoomRedirectManager] クイズルームページに滞在中 - リダイレクト処理は無効化');
       
       // クイズルームページにいる場合はリダイレクト処理をスキップするためのフラグを設定
       redirectInProgressRef.current = true;
       
+      // window.inQuizRoomPageフラグも設定（グローバルフラグとして使用）
+      if (typeof window !== 'undefined') {
+        window.inQuizRoomPage = true;
+      }
+      
       // 5秒後にフラグをリセット（ページ内移動のための時間）
       const timer = setTimeout(() => {
         redirectInProgressRef.current = false;
-      }, 5000);
+      }, 3000);
       
       return () => clearTimeout(timer);
     } else if (typeof window !== 'undefined') {
@@ -48,9 +53,12 @@ export default function QuizRoomRedirectManager() {
         // 5秒後にフラグをリセット
         const timer = setTimeout(() => {
           redirectInProgressRef.current = false;
-        }, 5000);
+        }, 3000);
         
         return () => clearTimeout(timer);
+      } else {
+        // クイズルームページ以外にいる場合はフラグをリセット
+        window.inQuizRoomPage = false;
       }
     }
   }, [pathname, currentUser]);
@@ -77,6 +85,16 @@ export default function QuizRoomRedirectManager() {
               if (roomSnap.exists()) {
                 const roomData = roomSnap.data();
                 console.log(`[QuizRoomRedirectManager] ルーム状態: ${roomData.status}`);
+                
+                // 公式クイズの場合は特別処理（quizIdがユーザー作成ではなく公式データを参照するため）
+                if (roomData.quizType === 'official' && roomData.status === 'in_progress') {
+                  console.log('[QuizRoomRedirectManager] 公式クイズルームを検出。特別処理を適用します');
+                  
+                  // 無限リダイレクトを防ぐために、公式クイズであることをマーク
+                  if (typeof window !== 'undefined') {
+                    window.isOfficialQuiz = true;
+                  }
+                }
               }
             }
           }
@@ -103,6 +121,23 @@ export default function QuizRoomRedirectManager() {
     // ルームIDを決定（quizRoom.roomIdが優先、なければmanualRoomIdを使用）
     const activeRoomId = quizRoom?.roomId || manualRoomId || roomIdRef.current;
     
+    // 最近エラーが発生したかどうかをチェック（エラー発生後のリダイレクト抑制用）
+    const hasRecentError = typeof window !== 'undefined' && window.quizErrorTimestamp && 
+      (Date.now() - window.quizErrorTimestamp < 3000);
+    
+    // エラーが発生している場合はリダイレクトを一時的にスキップ
+    if (hasRecentError) {
+      console.log('[QuizRoomRedirectManager] 最近エラーが発生したため、リダイレクトを一時的に停止します');
+      // 5秒後にエラーフラグをリセット
+      const errorResetTimer = setTimeout(() => {
+        if (typeof window !== 'undefined') {
+          window.quizErrorTimestamp = null;
+        }
+      }, 3000);
+      cleanupTimers.push(errorResetTimer);
+      return;
+    }
+    
     // クイズが進行中かつ有効なroomIdがある場合のみ処理
     if (quizRoom && quizRoom.status === 'in_progress' && activeRoomId) {
       // デバッグ情報を出力
@@ -110,6 +145,7 @@ export default function QuizRoomRedirectManager() {
         roomId: activeRoomId,
         currentPath: pathname,
         inRoom: pathname?.includes('/quiz/room'),
+        isOfficialQuiz: typeof window !== 'undefined' ? window.isOfficialQuiz : false,
         redirectInProgress: redirectInProgressRef.current
       });
       
@@ -151,14 +187,46 @@ export default function QuizRoomRedirectManager() {
           // リダイレクト進行中フラグをセット
           redirectInProgressRef.current = true;
           
+          // クイズ取得エラーの検出と記録のためのエラーハンドラを設定
+          if (typeof window !== 'undefined') {
+            // クイズエラーの検出とタイムスタンプ記録のためのエラーハンドラ
+            const originalOnError = window.onerror;
+            window.onerror = function(message, source, lineno, colno, error) {
+              // クイズが見つからないエラーを検出
+              if (message && (
+                message.toString().includes('クイズが見つかりません') || 
+                message.toString().includes('Error fetching quiz')
+              )) {
+                console.log('[QuizRoomRedirectManager] クイズ取得エラーを検出。リダイレクトを一時停止します');
+                window.quizErrorTimestamp = Date.now();
+              }
+              
+              // 元のエラーハンドラを呼び出し
+              if (originalOnError) {
+                return originalOnError.apply(this, arguments as any);
+              }
+              return false;
+            };
+            
+            // エラーハンドラクリーンアップ用のタイマー
+            const cleanupErrorHandler = setTimeout(() => {
+              window.onerror = originalOnError;
+            }, 6000);
+            cleanupTimers.push(cleanupErrorHandler);
+          }
+          
           // 直接リダイレクト
           try {
             // パス構築して安全に遷移
             const redirectUrl = `/quiz/room?id=${encodeURIComponent(activeRoomId)}`;
             console.log(`[QuizRoomRedirectManager] リダイレクト実行: ${redirectUrl}`);
             
+            // 公式クイズでエラーが発生したことがある場合はクエリパラメータを追加
+            const isOfficialQuiz = typeof window !== 'undefined' ? window.isOfficialQuiz : false;
+            const finalUrl = isOfficialQuiz ? `${redirectUrl}&official=true` : redirectUrl;
+            
             // App Routerを使用（Next.jsの推奨方法）- より強制的なreplace方式を使用
-            router.replace(redirectUrl);
+            router.replace(finalUrl);
             
             // バックアップとして1秒後に再チェック
             const backupTimer = setTimeout(() => {
@@ -172,7 +240,7 @@ export default function QuizRoomRedirectManager() {
               console.log('[QuizRoomRedirectManager] バックアップリダイレクト実行');
               // 本当に緊急時のバックアップとしてwindow.location.hrefを使用
               if (typeof window !== 'undefined') {
-                window.location.href = `/quiz/room?id=${activeRoomId}`;
+                window.location.href = finalUrl;
               }
             }, 1000);
             

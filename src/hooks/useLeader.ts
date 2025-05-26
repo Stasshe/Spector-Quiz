@@ -961,7 +961,7 @@ export function useLeader(roomId: string) {
                 // 数秒後に次の問題に進む
                 setTimeout(() => {
                   moveToNextQuestion();
-                }, 5000);
+                }, 3000);
                 
                 console.log('緊急リカバリー: ルームを次の問題に進める準備をしました');
               } catch (recoveryError) {

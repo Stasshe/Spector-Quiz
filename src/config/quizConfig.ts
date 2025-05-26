@@ -8,7 +8,7 @@ export const TIMING = {
   NEXT_QUESTION_DELAY: 4000,
   
   // 統計更新後のリダイレクト待機時間
-  STATS_REDIRECT_DELAY: 5000,
+  STATS_REDIRECT_DELAY: 3000,
   
   // クイズルーム削除までの待機時間
   ROOM_DELETION_DELAY: 10000,
