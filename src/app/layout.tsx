@@ -38,6 +38,11 @@ export default function RootLayout({
         <Script id="eruda-init" strategy="afterInteractive">
           {`eruda.init();`}
         </Script>
+        <meta name="apple-mobile-web-app-icon" content="/favicon512x512.png" />
+        <link rel="apple-touch-icon" href="/favicon512x512.png" />
+        <link rel="icon" href="/favicon512x512.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="/favicon192x192.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="/favicon-192x192.png" />
         <meta name="apple-mobile-web-app-title" content="Zap!" />
         <meta name="application-name" content="Zap!" />
         <meta name="theme-color" content="#ffffff" />
