@@ -11,6 +11,8 @@
 ├── package.json
 ├── postcss.config.js
 ├── public
+│   ├── favicon192x192.png
+│   ├── favicon512x512.png
 │   ├── file.svg
 │   ├── globe.svg
 │   ├── next.svg
@@ -62,8 +64,6 @@
 │   │           └── 昭和前期.yaml
 │   ├── sample.yaml
 │   ├── vercel.svg
-│   ├── web-app-manifest-192x192.png
-│   ├── web-app-manifest-512x512.png
 │   └── window.svg
 ├── re.txt
 ├── src
@@ -142,7 +142,6 @@
 │   │   ├── useQuiz.ts
 │   │   ├── useQuizRoom.ts
 │   │   └── useQuizUnit.ts
-│   ├── patches
 │   ├── services
 │   │   └── quizRoom
 │   │       ├── creationService.ts
@@ -161,4 +160,4 @@
 ├── tsconfig.json
 └── version
 
-47 directories, 114 files
+46 directories, 114 files

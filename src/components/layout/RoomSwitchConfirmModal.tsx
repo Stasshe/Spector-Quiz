@@ -88,42 +88,60 @@ export default function RoomSwitchConfirmModal() {
     });
   }, [confirmRoomSwitch, roomToJoin, forcedVisible, forcedRoomInfo]);
 
-  // クイズが進行中かどうかの判定
+  // 進行中クイズのルームIDを保持するためのstate
+  const [activeQuizRoomId, setActiveQuizRoomId] = React.useState<string | null>(null);
+
+  // クイズが進行中かどうかの判定と同時にルームIDを保存
   const isQuizInProgress = React.useMemo(() => {
     // quizRoomがnullの場合は進行中ではない
     if (!quizRoom) return false;
     
-    // ステータスが'in_progress'の場合は進行中
-    return quizRoom.status === 'in_progress';
+    // quizRoomがあり、ステータスが'in_progress'の場合は進行中
+    if (quizRoom.status === 'in_progress') {
+      // ルームIDを保存
+      if (quizRoom.roomId) {
+        setActiveQuizRoomId(quizRoom.roomId);
+      }
+      return true;
+    }
+    return false;
   }, [quizRoom]);
   
   // 直接ルームページに移動する関数
   const redirectToQuizRoom = React.useCallback(() => {
-    if (quizRoom && quizRoom.roomId) {
-      // モーダルを閉じる
-      setForcedVisible(false);
-      setForcedRoomInfo(null);
-      setConfirmRoomSwitch(false);
-      
-      // ドキュメント属性をクリア
-      document.documentElement.removeAttribute('data-room-switch-pending');
-      document.documentElement.removeAttribute('data-room-info');
-      
+    // モーダルを閉じる
+    setForcedVisible(false);
+    setForcedRoomInfo(null);
+    setConfirmRoomSwitch(false);
+    
+    // ドキュメント属性をクリア
+    document.documentElement.removeAttribute('data-room-switch-pending');
+    document.documentElement.removeAttribute('data-room-info');
+    
+    // quizRoomから直接取得するか、保存されたIDを使用
+    const roomId = quizRoom?.roomId || activeQuizRoomId;
+    
+    if (roomId) {
+      console.log('[RoomSwitchConfirmModal] ルームへリダイレクト:', roomId);
       try {
         // ルームページに移動（Next.jsのrouter）
-        router.push(`/quiz/room?id=${quizRoom.roomId}`);
+        router.push(`/quiz/room?id=${roomId}`);
         
         // バックアップとして直接リダイレクト
         setTimeout(() => {
-          window.location.href = `/quiz/room?id=${quizRoom.roomId}`;
+          window.location.href = `/quiz/room?id=${roomId}`;
         }, 300);
       } catch (error) {
         console.error('[RoomSwitchConfirmModal] リダイレクトエラー:', error);
         // エラー時は直接リダイレクト
-        window.location.href = `/quiz/room?id=${quizRoom.roomId}`;
+        window.location.href = `/quiz/room?id=${roomId}`;
       }
+    } else {
+      console.error('[RoomSwitchConfirmModal] リダイレクト失敗: ルームIDが取得できませんでした');
+      alert('ルーム情報の取得に失敗しました。ホームに戻ります。');
+      router.push('/');
     }
-  }, [quizRoom, router, setConfirmRoomSwitch]);
+  }, [quizRoom, activeQuizRoomId, router, setConfirmRoomSwitch]);
 
   // 進行中クイズ用のアラートモーダルコンテンツ
   const inProgressAlertContent = () => (
