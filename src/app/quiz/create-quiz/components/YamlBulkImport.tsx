@@ -77,8 +77,13 @@ const YamlBulkImport: FC<YamlBulkImportProps> = ({
           ? yamlQuiz.type 
           : 'input';
 
-        if (quizType === 'multiple_choice' && (!yamlQuiz.choices || yamlQuiz.choices.length < 2)) {
-          throw new Error(`選択式クイズ「${yamlQuiz.title}」に選択肢が足りません`);
+        if (quizType === 'multiple_choice') {
+          if (!yamlQuiz.choices || yamlQuiz.choices.length < 3) {
+            throw new Error(`選択式クイズ「${yamlQuiz.title}」には最低3つの選択肢が必要です`);
+          }
+          if (yamlQuiz.choices.length > 5) {
+            throw new Error(`選択式クイズ「${yamlQuiz.title}」の選択肢は最大5つまでです`);
+          }
         }
 
         return {
@@ -111,6 +116,8 @@ const YamlBulkImport: FC<YamlBulkImportProps> = ({
   };
 
   const exampleYaml = `# クイズユニット一括インポート例
+# このYAMLフォーマットを使用して、複数のクイズを一度にインポートできます。
+# 選択肢の数は3~5つまで。
 quizzes:
   - title: 日本の首都
     question: 日本の首都はどこですか？
@@ -119,9 +126,20 @@ quizzes:
       - 大阪
       - 東京
       - 京都
-      - 名古屋
     correctAnswer: 東京
     explanation: 東京都は1868年に日本の首都となりました。
+
+  - title: G7加盟国
+    question: 次のうちG7（主要国首脳会議）加盟国はどれですか？
+    type: multiple_choice
+    choices:
+      - カナダ
+      - ロシア
+      - 中国
+      - オーストラリア
+      - インド
+    correctAnswer: カナダ
+    explanation: G7加盟国は、アメリカ、日本、イギリス、フランス、ドイツ、イタリア、カナダの7か国です。
 
   - title: 富士山の高さ
     question: 富士山の標高は何メートルですか？

@@ -24,7 +24,7 @@ const QuizFormEditor: FC<QuizFormEditorProps> = ({
   const [quizTitle, setQuizTitle] = useState(editingQuiz?.title || '');
   const [question, setQuestion] = useState(editingQuiz?.question || '');
   const [type, setType] = useState<QuizType>(editingQuiz?.type || 'multiple_choice');
-  const [choices, setChoices] = useState<string[]>(editingQuiz?.choices || ['', '', '', '']);
+  const [choices, setChoices] = useState<string[]>(editingQuiz?.choices && editingQuiz.choices.length >= 3 ? editingQuiz.choices : ['', '', '']);
   const [correctAnswer, setCorrectAnswer] = useState(editingQuiz?.correctAnswer || '');
   const [acceptableAnswers, setAcceptableAnswers] = useState<string[]>(editingQuiz?.acceptableAnswers || ['']);
   const [explanation, setExplanation] = useState(editingQuiz?.explanation || '');
@@ -34,6 +34,9 @@ const QuizFormEditor: FC<QuizFormEditorProps> = ({
   const handleTypeChange = (newType: QuizType) => {
     setType(newType);
     setCorrectAnswer(''); // 問題タイプが変わったときに正解をリセット
+    if (newType === 'multiple_choice' && choices.length < 3) {
+      setChoices(['', '', '']);
+    }
   };
 
   // 選択肢の更新
@@ -41,6 +44,28 @@ const QuizFormEditor: FC<QuizFormEditorProps> = ({
     const newChoices = [...choices];
     newChoices[index] = value;
     setChoices(newChoices);
+  };
+  
+  // 選択肢を追加
+  const addChoice = () => {
+    if (choices.length < 5) {
+      setChoices([...choices, '']);
+    }
+  };
+
+  // 選択肢を削除
+  const removeChoice = (index: number) => {
+    if (choices.length > 3) {
+      const newChoices = [...choices];
+      newChoices.splice(index, 1);
+      
+      // 削除した選択肢が正解だった場合、正解をリセット
+      if (correctAnswer === choices[index]) {
+        setCorrectAnswer('');
+      }
+      
+      setChoices(newChoices);
+    }
   };
 
   // 許容回答の更新
@@ -77,6 +102,17 @@ const QuizFormEditor: FC<QuizFormEditorProps> = ({
     }
     
     if (type === 'multiple_choice') {
+      // 選択肢の数を確認
+      if (choices.length < 3) {
+        setErrorMessage('選択肢は最低3つ必要です');
+        return false;
+      }
+      
+      if (choices.length > 5) {
+        setErrorMessage('選択肢は最大5つまでです');
+        return false;
+      }
+      
       // 選択肢が全て入力されているか確認
       if (choices.some(choice => !choice.trim())) {
         setErrorMessage('全ての選択肢を入力してください');
@@ -200,7 +236,17 @@ const QuizFormEditor: FC<QuizFormEditorProps> = ({
         {/* 選択式の場合の選択肢 */}
         {type === 'multiple_choice' && (
           <div className="space-y-3">
-            <p className="form-label">選択肢</p>
+            <div className="flex justify-between items-center">
+              <p className="form-label">選択肢（3〜5択）</p>
+              <button
+                type="button"
+                onClick={addChoice}
+                disabled={choices.length >= 5}
+                className={`text-sm flex items-center ${choices.length >= 5 ? 'text-gray-400 cursor-not-allowed' : 'text-indigo-600 hover:text-indigo-800'}`}
+              >
+                <FaPlus className="mr-1" size={12} /> 選択肢を追加
+              </button>
+            </div>
             
             {choices.map((choice, index) => (
               <div key={index} className="flex items-center">
@@ -222,12 +268,24 @@ const QuizFormEditor: FC<QuizFormEditorProps> = ({
                   type="text"
                   value={choice}
                   onChange={(e) => updateChoice(index, e.target.value)}
-                  className="form-input"
+                  className="form-input mr-2"
                   placeholder={`選択肢 ${String.fromCharCode(65 + index)}`}
                   required
                 />
+                {choices.length > 3 && (
+                  <button
+                    type="button"
+                    onClick={() => removeChoice(index)}
+                    className="text-red-500 hover:text-red-700"
+                  >
+                    <FaTrash />
+                  </button>
+                )}
               </div>
             ))}
+            <p className="text-xs text-gray-500">
+              ※ 選択肢は3〜5個の間で設定できます
+            </p>
           </div>
         )}
         
