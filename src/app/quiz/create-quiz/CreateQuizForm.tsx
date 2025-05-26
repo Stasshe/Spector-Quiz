@@ -1,19 +1,20 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import Link from 'next/link';
+import { db } from '@/config/firebase';
 import { useAuth } from '@/hooks/useAuth';
-import { db } from '@/config/firebase'; 
-import { collection, addDoc, serverTimestamp, getDocs, query, where, doc, getDoc, setDoc, writeBatch } from 'firebase/firestore';
-import { FaArrowLeft, FaUpload, FaSpinner } from 'react-icons/fa';
-import { Quiz, QuizType, QuizUnit } from '@/types/quiz';
+import { Quiz, QuizUnit } from '@/types/quiz';
+import { addDoc, collection, doc, getDoc, getDocs, query, serverTimestamp, setDoc, where, writeBatch } from 'firebase/firestore';
+import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react';
+import { FaArrowLeft, FaSpinner, FaUpload } from 'react-icons/fa';
+import { TIMING } from '@/config/quizConfig';
 
 // コンポーネントのインポート
 import BasicInfoForm from './components/BasicInfoForm';
-import QuizList from './components/QuizList';
-import QuizFormEditor from './components/QuizFormEditor';
 import DraftManager from './components/DraftManager';
+import QuizFormEditor from './components/QuizFormEditor';
+import QuizList from './components/QuizList';
 import YamlBulkImport from './components/YamlBulkImport';
 
 // 型定義をエクスポート
@@ -104,7 +105,7 @@ export default function CreateQuizForm() {
       if (title || quizzes.length > 0) {
         saveDraft(false);
       }
-    }, 30000); // 30秒ごとに自動保存
+    }, TIMING.QUIZ_AUTO_SAVE_INTERVAL); // 10秒ごとに自動保存
     
     return () => {
       if (autoSaveTimerRef.current) {
@@ -206,7 +207,7 @@ export default function CreateQuizForm() {
       // 3秒後にクイズプレイページに遷移
       setTimeout(() => {
         router.push('/quiz');
-      }, 3000);
+      }, TIMING.QUIZ_UNIT_PUBLISH_ROUTER_INTERVAL);
     } catch (error) {
       console.error('Error publishing unit:', error);
       if (error instanceof Error) {
@@ -507,7 +508,7 @@ export default function CreateQuizForm() {
       const redirectPath = isOfficial ? '/admin/quiz-management' : '/quiz';
       setTimeout(() => {
         router.push(redirectPath);
-      }, 3000);
+      }, TIMING.QUIZ_UNIT_PUBLISH_ROUTER_INTERVAL);
     } catch (error) {
       console.error('Error updating unit:', error);
       if (error instanceof Error) {

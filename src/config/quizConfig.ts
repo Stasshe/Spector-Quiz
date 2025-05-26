@@ -26,7 +26,13 @@ export const TIMING = {
     '倫理': 30000,      // 30秒
     '国語': 30000,      // 30秒
     '英語': 30000       // 30秒
-  } as const
+  } as const,
+
+
+  QUIZ_AUTO_SAVE_INTERVAL: 10000, // クイズ自動保存間隔（ミリ秒）
+
+
+  QUIZ_UNIT_PUBLISH_ROUTER_INTERVAL: 1000, // クイズユニットのパブリッシュ間隔（ミリ秒）
 };
 
 // スコア関連の設定

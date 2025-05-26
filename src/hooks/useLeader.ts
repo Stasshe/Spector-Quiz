@@ -986,7 +986,7 @@ export function useLeader(roomId: string) {
                   } catch (error) {
                     console.error('不正解後の自動進行判定でエラー:', error);
                   }
-                }, 5000);
+                }, TIMING.NEXT_QUESTION_DELAY);
               }
             } else {
               // 正解の場合、次の問題に進むためのフラグを設定
@@ -1040,7 +1040,7 @@ export function useLeader(roomId: string) {
                 // 数秒後に次の問題に進む
                 setTimeout(() => {
                   moveToNextQuestion();
-                }, 3000);
+                }, TIMING.NEXT_QUESTION_DELAY);
                 
                 console.log('緊急リカバリー: ルームを次の問題に進める準備をしました');
               } catch (recoveryError) {
