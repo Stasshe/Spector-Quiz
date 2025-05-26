@@ -7,6 +7,7 @@ export interface QuizRoom {
   name: string;
   genre: string;
   classType: string; // 'ユーザー作成' または '公式'
+  quizType?: 'official' | 'user_created'; // クイズのタイプを明示的に指定
   roomLeaderId: string;
   unitId?: string;    // 使用する単元ID
   participants: ParticipantsMap;

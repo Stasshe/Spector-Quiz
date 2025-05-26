@@ -52,7 +52,35 @@ function QuizRoomContent() {
     
     // グローバルフラグとして設定（window経由で他のコンポーネントからもアクセス可能）
     if (typeof window !== 'undefined') {
+      // クイズルームページにいることを示すフラグ
       window.inQuizRoomPage = true;
+      
+      // エラー検出用のグローバルエラーハンドラを追加
+      const originalOnError = window.onerror;
+      window.onerror = function(message, source, lineno, colno, error) {
+        // クイズが見つからないエラーを検出
+        if (message && (
+          message.toString().includes('クイズが見つかりません') || 
+          message.toString().includes('Error fetching quiz')
+        )) {
+          console.log('[QuizRoomPage] クイズ取得エラーを検出しました:', message);
+          window.quizErrorTimestamp = Date.now();
+          
+          // URLパラメータから公式クイズフラグをチェック
+          const searchParams = new URLSearchParams(window.location.search);
+          const isOfficial = searchParams.get('official') === 'true';
+          
+          // 公式クイズフラグを設定
+          window.isOfficialQuiz = isOfficial || params.get('official') === 'true';
+          console.log(`[QuizRoomPage] 公式クイズフラグ設定: ${window.isOfficialQuiz}`);
+        }
+        
+        // 元のエラーハンドラを呼び出し
+        if (originalOnError) {
+          return originalOnError.apply(this, arguments as any);
+        }
+        return false;
+      };
       
       // 確実に設定されるようにタイマーも使用（非同期処理対策）
       const confirmTimer = setTimeout(() => {

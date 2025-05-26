@@ -72,12 +72,20 @@ export function useLeader(roomId: string) {
       }
       
       try {
-        const quizRef = doc(db, 'genres', quizRoom.genre, 'quiz_units', quizRoom.unitId, 'quizzes', currentQuizId);
+        // クイズタイプによってコレクションを決定
+        const isOfficial = quizRoom.quizType === 'official';
+        const collectionName = isOfficial ? 'official_quiz_units' : 'quiz_units';
+        
+        console.log(`[useLeader] クイズ取得: genre=${quizRoom.genre}, unitId=${quizRoom.unitId}, quizId=${currentQuizId}, collectionName=${collectionName}`);
+        
+        // 公式クイズかユーザー作成クイズかに応じてパスを構築
+        const quizRef = doc(db, 'genres', quizRoom.genre, collectionName, quizRoom.unitId, 'quizzes', currentQuizId);
         const quizSnap = await getDoc(quizRef);
         
         if (quizSnap.exists()) {
           const quizData = quizSnap.data() as Quiz;
           setCurrentQuiz({ ...quizData, quizId: quizSnap.id });
+          console.log(`[useLeader] クイズ取得成功: ${quizSnap.id}`);
           // 新しい問題が表示されたら選択肢を非表示に戻す
           setShowChoices(false);
           
@@ -128,10 +136,17 @@ export function useLeader(roomId: string) {
             }
           }
         } else {
-          console.error(`Quiz with ID ${currentQuizId} not found`);
+          console.error(`[useLeader] クイズが見つかりません: ${currentQuizId}, パス: genres/${quizRoom.genre}/${collectionName}/${quizRoom.unitId}/quizzes/${currentQuizId}`);
+          
+          // エラー時刻を記録（リダイレクトループ防止用）
+          if (typeof window !== 'undefined') {
+            window.quizErrorTimestamp = Date.now();
+          }
+          
+          throw new Error('クイズが見つかりません');
         }
       } catch (fetchError: any) {
-        console.error('Error fetching quiz:', fetchError);
+        console.error('[useLeader] Error fetching quiz:', fetchError);
         
         if (fetchError?.code === 'permission-denied') {
           console.error('権限エラー: クイズデータへのアクセスが拒否されました');

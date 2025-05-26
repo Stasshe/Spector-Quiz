@@ -60,6 +60,7 @@ export async function createRoomService(
       genre,
       unitId,
       classType,
+      quizType: classType === '公式' ? 'official' : 'user_created', // クイズタイプを明示的に設定
       roomLeaderId: userId,
       participants: {
         [userId]: {
@@ -191,6 +192,7 @@ export async function createRoomWithUnitService(
       genre: genreId,
       unitId,
       classType,
+      quizType: classType === '公式' ? 'official' : 'user_created', // クイズタイプを明示的に設定
       roomLeaderId: userId,
       participants: {
         [userId]: {
