@@ -11,7 +11,8 @@ import {
   collection,
   serverTimestamp,
   getDocs,
-  updateDoc
+  updateDoc,
+  writeBatch
 } from 'firebase/firestore';
 
 // ------ ルーム参加・退出関連のサービス関数 ------
@@ -93,22 +94,22 @@ export async function joinRoomService(
         isOnline: true
       };
       
+      // バッチ処理でルーム参加とユーザー情報を一度に更新（書き込み回数削減）
+      const batch = writeBatch(db);
+      
       // ルームに参加者を追加
-      await updateDoc(roomRef, {
+      batch.update(roomRef, {
         [`participants.${userId}`]: participantInfo,
         updatedAt: serverTimestamp()
       });
       
+      // ユーザーに現在のルームIDを設定
+      batch.update(userRef, { currentRoomId: roomId });
+      
+      // バッチ実行
+      await batch.commit();
+      
       console.log(`[joinRoomService] ルーム(${roomId})への参加に成功しました`);
-
-      // ルームの参加が成功した後で、ユーザーに現在のルームIDを設定
-      try {
-        await updateDoc(userRef, { currentRoomId: roomId });
-        console.log(`[joinRoomService] ユーザー(${userId})のcurrentRoomIdを${roomId}に更新しました`);
-      } catch (updateErr) {
-        console.error(`[joinRoomService] ユーザー(${userId})のcurrentRoomId更新エラー:`, updateErr);
-        // エラーがあっても続行（ルームへの参加自体は成功しているため）
-      }
       
       // 参加したルームの情報を再取得して返す
       try {

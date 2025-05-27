@@ -103,24 +103,12 @@ export function useLeader(roomId: string) {
           // 新しい問題が表示されたら選択肢を非表示に戻す
           setShowChoices(false);
           
-          try {
-            // クイズの使用回数を更新
-            await updateDoc(quizRef, {
-              useCount: increment(1)
-            });
-            
-            // ジャンルと単元の統計も更新
-            if (quizData.genre) {
-              await updateGenreStats(quizData.genre, quizRoom.unitId);
-            }
-          } catch (statsError) {
-            console.warn('統計更新中にエラーが発生しましたが、クイズは継続します:', statsError);
-            // 統計更新エラーは無視して進行
-          }
+          // ルーム状態のみ更新（統計更新は全クイズ終了時に一括実行）
+          const roomRef = doc(db, 'quiz_rooms', roomId);
           
           try {
             // ルームの現在のクイズ状態を更新
-            await updateDoc(doc(db, 'quiz_rooms', roomId), {
+            await updateDoc(roomRef, {
               'currentState.quizId': currentQuizId,
               'currentState.startTime': serverTimestamp(),
               'currentState.endTime': null,
@@ -128,11 +116,14 @@ export function useLeader(roomId: string) {
               'currentState.answerStatus': 'waiting',
               'currentState.isRevealed': false
             });
-          } catch (roomError: any) {
-            console.error('ルーム状態の更新中にエラーが発生しました:', roomError);
             
-            if (roomError?.code === 'permission-denied') {
-              console.error('権限エラー: ルーム状態の更新が拒否されました');
+            console.log('ルーム状態を更新しました（統計更新は全クイズ終了時に実行）');
+            
+          } catch (batchError: any) {
+            console.error('バッチ処理中にエラーが発生しました:', batchError);
+            
+            if (batchError?.code === 'permission-denied') {
+              console.error('権限エラー: データ更新が拒否されました');
               
               // リーダーのセッションがまだ有効かを確認
               if (currentUser && quizRoom.roomLeaderId === currentUser.uid) {
@@ -203,7 +194,7 @@ export function useLeader(roomId: string) {
     if (!isLeader || !quizRoom) return;
     
     try {
-      // ルームのステータスを更新
+      // ルームのステータスを更新（重要な状態変更のみupdatedAtを更新）
       await updateDoc(doc(db, 'quiz_rooms', roomId), {
         status: 'in_progress',
         startedAt: serverTimestamp(),
@@ -227,7 +218,7 @@ export function useLeader(roomId: string) {
       const quizIds = quizRoom.quizIds || [];
       
       if (nextIndex >= quizIds.length) {
-        // 全問題が終了した場合
+        // 全問題が終了した場合（重要な状態変更のみupdatedAtを更新）
         await updateDoc(doc(db, 'quiz_rooms', roomId), {
           status: 'completed',
           updatedAt: serverTimestamp()
@@ -238,10 +229,9 @@ export function useLeader(roomId: string) {
         return;
       }
       
-      // 次の問題インデックスに更新
+      // 次の問題インデックスに更新（頻繁な更新はupdatedAtを省略）
       await updateDoc(doc(db, 'quiz_rooms', roomId), {
-        currentQuizIndex: nextIndex,
-        updatedAt: serverTimestamp()
+        currentQuizIndex: nextIndex
       });
       
       // 次の問題を取得
@@ -333,7 +323,7 @@ export function useLeader(roomId: string) {
         console.log(isTimeout ? '時間切れです。' : '全員が解答し、全員不正解です。');
         console.log('正解と解説を表示して、一定時間後に次の問題に進みます');
         
-        // ルーム状態を更新
+        // ルーム状態を更新（頻繁な状態変更はupdatedAtを省略）
         await updateDoc(roomRef, {
           'currentState.answerStatus': isTimeout ? 'timeout' : 'all_incorrect',
           'currentState.isRevealed': true // 正解と解説を表示するためにtrueに設定
@@ -376,7 +366,7 @@ export function useLeader(roomId: string) {
         ) {
           console.log('時間切れです。自動進行判定を開始します。');
           
-          // 時間切れであることを記録
+          // 時間切れであることを記録（頻繁な状態変更はupdatedAtを省略）
           await updateDoc(roomRef, {
             'currentState.answerStatus': 'timeout',
             'currentState.isRevealed': true
@@ -437,7 +427,7 @@ export function useLeader(roomId: string) {
         }
         
         try {
-          // 解答権をDBに記録
+          // 解答権をDBに記録（頻繁な状態変更はupdatedAtを省略）
           await updateDoc(roomRef, {
             'currentState.currentAnswerer': fastestUserId,
             'currentState.answerStatus': 'answering'
@@ -479,41 +469,41 @@ export function useLeader(roomId: string) {
           }
         }
         
+        // 全ての解答を一度のバッチ処理で更新（書き込み回数削減）
         try {
-          // 処理済みとしてマーク
-          await updateDoc(fastestAnswer.ref, {
+          const batch = writeBatch(db);
+          
+          // 最初の解答を処理済みにマーク
+          batch.update(fastestAnswer.ref, {
             processingStatus: 'processed'
           });
-        } catch (answerUpdateError: any) {
-          console.error('解答状態の更新に失敗しました:', answerUpdateError);
-          if (answerUpdateError?.code === 'permission-denied') {
-            console.error('権限エラー: 解答状態の更新が拒否されました');
-          }
-        }
-        
-        // 他の保留中の回答をキャンセル
-        if (snapshot.docs.length > 1) {
-          try {
-            const batch = writeBatch(db);
-            snapshot.docs.slice(1).forEach(doc => {
-              batch.update(doc.ref, { processingStatus: 'processed' });
-            });
-            await batch.commit();
-            console.log(`${snapshot.docs.length - 1}件の他の解答をキャンセルしました`);
-          } catch (batchError: any) {
-            console.error('他の解答のキャンセルに失敗しました:', batchError);
-            if (batchError?.code === 'permission-denied') {
-              console.error('権限エラー: 解答のバッチ処理が拒否されました');
-              
-              // 個別更新を試みる
-              snapshot.docs.slice(1).forEach(async (doc) => {
-                try {
-                  await updateDoc(doc.ref, { processingStatus: 'processed' });
-                } catch (individualError) {
-                  console.error(`解答 ${doc.id} の更新に失敗しました:`, individualError);
-                }
-              });
+          
+          // 他の保留中の解答もキャンセル
+          snapshot.docs.slice(1).forEach(doc => {
+            batch.update(doc.ref, { processingStatus: 'processed' });
+          });
+          
+          await batch.commit();
+          console.log(`解答処理完了: 1件処理済み、${snapshot.docs.length - 1}件キャンセル`);
+        } catch (batchError: any) {
+          console.error('解答のバッチ処理に失敗しました:', batchError);
+          if (batchError?.code === 'permission-denied') {
+            console.error('権限エラー: 解答のバッチ処理が拒否されました');
+            
+            // フォールバック: 個別更新を試みる
+            try {
+              await updateDoc(fastestAnswer.ref, { processingStatus: 'processed' });
+            } catch (individualError) {
+              console.error('個別の解答更新に失敗しました:', individualError);
             }
+            
+            snapshot.docs.slice(1).forEach(async (doc) => {
+              try {
+                await updateDoc(doc.ref, { processingStatus: 'processed' });
+              } catch (individualError) {
+                console.error(`解答 ${doc.id} の更新に失敗しました:`, individualError);
+              }
+            });
           }
         }
       } catch (error) {
@@ -557,61 +547,31 @@ export function useLeader(roomId: string) {
             .some(answer => answer === normalizedUserAnswer);
         }
         
-        // バッチ処理を使わず、個別に更新して権限エラーを回避
-        try {
-          // 解答結果の更新
-          await updateDoc(answerRef, { isCorrect });
-          console.log(`解答結果を更新しました: ${isCorrect ? '正解' : '不正解'}`);
-        } catch (answerError: any) {
-          console.error('解答結果の更新に失敗しました:', answerError);
-          if (answerError?.code === 'permission-denied') {
-            console.error('権限エラー: 解答データの更新が拒否されました');
-          }
-        }
+        // バッチ処理で複数の更新を一度に実行（書き込み回数削減）
+        const batch = writeBatch(db);
         
         try {
-          // ルーム状態の更新
-          await updateDoc(doc(db, 'quiz_rooms', roomId), {
+          // 解答結果の更新
+          batch.update(answerRef, { isCorrect });
+          
+          // ルーム状態の更新（頻繁な状態変更はupdatedAtを省略）
+          batch.update(doc(db, 'quiz_rooms', roomId), {
             'currentState.answerStatus': isCorrect ? 'correct' : 'incorrect',
             'currentState.isRevealed': true,
             [`participants.${userId}.score`]: increment(isCorrect ? 10 : 0)
           });
-          console.log('ルーム状態を更新しました');
-        } catch (roomError: any) {
-          console.error('ルーム状態の更新に失敗しました:', roomError);
-          if (roomError?.code === 'permission-denied') {
-            console.error('権限エラー: ルーム状態の更新が拒否されました');
+          
+          // バッチ実行
+          await batch.commit();
+          console.log(`解答処理完了: ${isCorrect ? '正解' : '不正解'}`);
+        } catch (batchError: any) {
+          console.error('バッチ処理に失敗しました:', batchError);
+          if (batchError?.code === 'permission-denied') {
+            console.error('権限エラー: データ更新が拒否されました');
           }
         }
         
-        try {
-          // クイズ統計の更新（新しいデータベース構造に合わせて修正）
-          if (currentQuiz.genre && quizRoom.unitId) {
-            // quizTypeが未定義の場合はclassTypeをフォールバックとして使用
-            const isOfficial = quizRoom.quizType === 'official' || 
-                              (quizRoom.quizType === undefined && quizRoom.classType === '公式');
-            let statsRef;
-            
-            if (isOfficial) {
-              // 公式クイズの統計更新
-              statsRef = doc(db, 'genres', currentQuiz.genre, 'official_quiz_units', quizRoom.unitId, 'quizzes', currentQuiz.quizId);
-            } else {
-              // ユーザー作成クイズの統計更新
-              statsRef = doc(db, 'genres', currentQuiz.genre, 'quiz_units', quizRoom.unitId, 'quizzes', currentQuiz.quizId);
-            }
-            
-            await updateDoc(statsRef, {
-              useCount: increment(1),
-              correctCount: increment(isCorrect ? 1 : 0)
-            });
-            console.log('クイズ統計を更新しました');
-          }
-        } catch (statsError: any) {
-          console.warn('クイズ統計の更新に失敗しましたが、ゲームは継続します:', statsError);
-          if (statsError?.code === 'permission-denied') {
-            console.warn('権限エラー: クイズ統計の更新が拒否されました');
-          }
-        }
+        // クイズ統計の更新は全クイズ終了時に一括実行（優先度低のため）
         
         // 正解の場合は次の問題に進む、不正解の場合は自動進行チェック
         if (isCorrect) {
@@ -691,42 +651,21 @@ export function useLeader(roomId: string) {
         await batch.commit();
         console.log('ユーザー統計情報をバッチ処理で更新しました');
         
-        // 統計更新済みのフラグをルームに設定（重複更新防止）
-        // 重要なフラグなので、エラー発生時は複数回試行
-        const setStatsFlag = async (retryCount = 0) => {
-          try {
-            const roomRef = doc(db, 'quiz_rooms', roomId);
-            await updateDoc(roomRef, {
-              statsUpdated: true
-            });
-            console.log('統計更新フラグを設定しました');
-          } catch (flagError) {
-            console.error(`統計更新フラグの設定に失敗しました (試行: ${retryCount + 1}/3):`, flagError);
-            
-            // 最大3回まで再試行
-            if (retryCount < 2) {
-              console.log(`統計更新フラグの設定を ${retryCount + 1} 秒後に再試行します...`);
-              setTimeout(() => setStatsFlag(retryCount + 1), (retryCount + 1) * 1000);
-            } else {
-              console.error('統計更新フラグの設定に失敗しましたが、処理を続行します');
-            }
-          }
-        };
-        
-        // 統計更新フラグの設定を開始
-        setStatsFlag();
+        // 統計更新済みのフラグをルームに設定（書き込み回数削減のため1回のみ）
+        try {
+          const roomRef = doc(db, 'quiz_rooms', roomId);
+          await updateDoc(roomRef, {
+            statsUpdated: true
+          });
+          console.log('統計更新フラグを設定しました');
+        } catch (flagError) {
+          console.error('統計更新フラグの設定に失敗しました:', flagError);
+          // フラグ設定の失敗は無視（書き込み回数削減のため再試行しない）
+        }
       } catch (statsError) {
         console.error('統計情報の更新に失敗しました:', statsError);
         // 統計更新の失敗は無視して処理を続行
-        
-        // それでも統計更新フラグは設定を試みる（重要なため）
-        try {
-          const roomRef = doc(db, 'quiz_rooms', roomId);
-          await updateDoc(roomRef, { statsUpdated: true });
-          console.log('バッチ処理エラー後に統計更新フラグを設定しました');
-        } catch (flagError) {
-          console.error('バッチエラー後の統計更新フラグの設定に失敗しました:', flagError);
-        }
+        // フラグ設定は上記で既に実行済み（書き込み回数削減のため重複を避ける）
       }
       
       console.log(`Quiz room ${roomId} completed - scheduling deletion in 10 seconds`);
@@ -788,7 +727,7 @@ export function useLeader(roomId: string) {
         } catch (error) {
           console.error('Error in room cleanup process:', error);
         }
-      }, 10000); // 10秒後に削除（前の修正と合わせる）
+      }, 5000); // 5秒後に削除（前の修正と合わせる）
     } catch (error: any) {
       console.error('Error finishing quiz game:', error);
       

@@ -944,7 +944,7 @@ export function useQuizRoom() {
     }
 
     try {
-      // 直接Firestoreを操作して準備状態を更新
+      // 直接Firestoreを操作して準備状態を更新（頻繁な更新はupdatedAtを省略）
       const roomRef = doc(db, 'quiz_rooms', roomId);
       await updateDoc(roomRef, {
         [`participants.${currentUser.uid}.isReady`]: isReady
@@ -970,7 +970,7 @@ export function useQuizRoom() {
     try {
       setLoading(true);
       
-      // 直接Firestoreを操作してクイズを開始
+      // 直接Firestoreを操作してクイズを開始（重要な状態変更のみupdatedAtを更新）
       const roomRef = doc(db, 'quiz_rooms', roomId);
       await updateDoc(roomRef, {
         status: 'in_progress',
@@ -998,7 +998,7 @@ export function useQuizRoom() {
     try {
       setHasClickedQuiz(true);
       
-      // 直接Firestoreを操作してクリック時間を登録
+      // 直接Firestoreを操作してクリック時間を登録（頻繁な更新はupdatedAtを省略）
       const roomRef = doc(db, 'quiz_rooms', roomId);
       const now = new Date();
       
@@ -1273,11 +1273,7 @@ export function useQuizRoom() {
             
             console.log('次の問題に進むフラグが検出されました。次の問題に進みます');
             
-            // 一度だけ実行するためにフラグをリセット
-            updateDoc(roomRef, { readyForNextQuestion: false }).catch(err => {
-              console.error('readyForNextQuestionフラグのリセットに失敗:', err);
-            });
-            
+            // フラグは自動的にfalseになるので、明示的なリセットは不要（書き込み回数削減）
             // goToNextQuizを呼び出す
             goToNextQuiz(roomId).catch(err => {
               console.error('次の問題への移動に失敗:', err);

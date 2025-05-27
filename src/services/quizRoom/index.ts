@@ -1,14 +1,15 @@
 'use client';
 
 import { db } from '@/config/firebase';
+import { SCORING } from '@/config/quizConfig';
+import { QuizRoom } from '@/types/room';
 import { getAuth } from 'firebase/auth';
-import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, serverTimestamp, writeBatch, increment } from 'firebase/firestore';
 
 // roomService.ts からのインポート
 import {
   cleanupRoomAnswersById,
   fetchAvailableRooms,
-  updateUserStatsOnRoomComplete as updateRoomStats,
   subscribeToAvailableRooms
 } from './roomService';
 
@@ -28,9 +29,6 @@ import {
   findOrCreateRoomService,
   findOrCreateRoomWithUnitService
 } from './creationService';
-
-// QuizRoom型のインポート（引数型チェック用）
-import { QuizRoom } from '@/types/room';
 
 // 直接エクスポートは削除し、必要に応じてラッパー関数を提供
 
@@ -203,44 +201,8 @@ export const updateUserStatsOnRoomComplete = async (roomId: string): Promise<boo
         return true;
       }
       
-      // 既に統計が更新済みの場合はスキップ
-      if (roomData.statsUpdated) {
-        console.log('このルームの統計は既に更新済みです');
-        return true;
-      }
-      
-      // まず自分自身の統計を更新（エラーをキャッチして続行）
-      try {
-        // 自分がルームの参加者として含まれているか確認
-        if (roomData.participants && roomData.participants[user.uid]) {
-          await updateRoomStats(user.uid, roomId);
-          console.log('自分の統計情報を更新しました');
-        }
-      } catch (selfErr) {
-        console.warn('自分の統計更新に失敗しましたが、処理を続行します:', selfErr);
-      }
-      
-      // 各ユーザーは自身の統計のみ更新する（セキュリティ上の理由）
-      // リーダーが他の参加者の統計を更新しようとするとパーミッションエラーが発生するため、
-      // 各ユーザーは自分の統計情報のみを自己責任で更新する
-      
-      if (roomData.roomLeaderId === user.uid && roomData.participants) {
-        // 他のユーザーの統計情報は更新しない（SecurityRulesの制限のため）
-        // 代わりに、完了フラグを設定して各ユーザーが自分の統計を更新できるようにする
-        try {
-          // ルームに統計処理完了フラグを設定（各ユーザーが確認できるように）
-          const roomRef = doc(db, 'quiz_rooms', roomId);
-          await updateDoc(roomRef, {
-            statsUpdated: true
-          });
-          console.log('ルームの統計処理完了フラグを設定しました。各ユーザーは次回ログイン時に自身の統計を更新します。');
-        } catch (flagErr) {
-          console.warn('統計処理フラグの設定に失敗しました:', flagErr);
-        }
-      }
-      
-      // 一部でも成功していれば true を返す
-      return true;
+      // 最適化された統計更新を使用
+      return await updateAllQuizStats(roomId, roomData, user);
     } catch (statsErr) {
       console.error('統計更新中にエラーが発生しました:', statsErr);
       // 部分的に成功している可能性があるのでtrueを返す
@@ -273,6 +235,93 @@ export const finishQuiz = async (roomId: string): Promise<boolean> => {
     return true;
   } catch (err) {
     console.error('[finishQuiz] ルーム完了処理中にエラー:', err);
+    return false;
+  }
+};
+
+/**
+ * クイズ完了時に全ての統計を一括更新する関数
+ * 書き込み回数を最小限に抑えるための最適化済み関数
+ */
+export const updateAllQuizStats = async (
+  roomId: string,
+  roomData: QuizRoom,
+  user: { uid: string }
+): Promise<boolean> => {
+  try {
+    console.log('[updateAllQuizStats] クイズ統計の一括更新を開始');
+    
+    const batch = writeBatch(db);
+    let batchCount = 0;
+    const MAX_BATCH_SIZE = 500; // Firestoreの制限
+    
+    // 自分の統計のみ更新（セキュリティルールの制限により）
+    if (roomData.participants && roomData.participants[user.uid]) {
+      const userPerformance = roomData.participants[user.uid];
+      const userRef = doc(db, 'users', user.uid);
+      
+      // 経験値計算
+      let expToAdd = Math.floor((userPerformance.score || 0) / 100);
+      if (expToAdd < 1 && (userPerformance.score || 0) > 0) expToAdd = 1;
+      if (userPerformance.missCount === 0 && (userPerformance.score || 0) > 0) expToAdd++;
+      
+      // 一人プレイの場合は経験値を削減
+      const participantCount = Object.keys(roomData.participants).length;
+      if (participantCount === 1) {
+        expToAdd = Math.round(expToAdd * SCORING.SOLO_MULTIPLIER);
+      }
+      
+      // ユーザー統計を更新
+      batch.update(userRef, {
+        exp: increment(expToAdd),
+        'stats.totalAnswered': increment(roomData.totalQuizCount || 1),
+        'stats.correctAnswers': increment(userPerformance.score || 0),
+        [`stats.genres.${roomData.genre}.totalAnswered`]: increment(roomData.totalQuizCount || 1),
+        [`stats.genres.${roomData.genre}.correctAnswers`]: increment(userPerformance.score || 0),
+        'stats.lastActivity': serverTimestamp()
+      });
+      batchCount++;
+      
+      // ジャンル統計を更新（あれば）
+      if (roomData.genre) {
+        const genreRef = doc(db, 'genres', roomData.genre);
+        batch.update(genreRef, {
+          'stats.useCount': increment(1),
+          'stats.lastUpdated': serverTimestamp()
+        });
+        batchCount++;
+        
+        // 単元統計も更新（あれば）
+        if (roomData.unitId) {
+          batch.update(genreRef, {
+            [`stats.units.${roomData.unitId}.useCount`]: increment(1)
+          });
+        }
+      }
+    }
+    
+    // ルームに統計更新完了フラグを設定
+    if (user.uid === roomData.roomLeaderId && !roomData.statsUpdated) {
+      const roomRef = doc(db, 'quiz_rooms', roomId);
+      batch.update(roomRef, {
+        statsUpdated: true,
+        updatedAt: serverTimestamp()
+      });
+      batchCount++;
+    }
+    
+    // バッチサイズの制限チェック
+    if (batchCount > MAX_BATCH_SIZE) {
+      console.warn(`[updateAllQuizStats] バッチサイズが制限を超えています: ${batchCount}`);
+    }
+    
+    // バッチをコミット
+    await batch.commit();
+    console.log(`[updateAllQuizStats] 統計更新完了 (${batchCount}件の書き込み)`);
+    
+    return true;
+  } catch (error) {
+    console.error('[updateAllQuizStats] 統計更新中にエラー:', error);
     return false;
   }
 };
