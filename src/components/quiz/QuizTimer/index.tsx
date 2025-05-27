@@ -23,6 +23,11 @@ export default function QuizTimer({ genre, isActive, onTimeUp, resetKey }: QuizT
   useEffect(() => {
     if (resetKey && resetKey !== lastResetKeyRef.current) {
       console.log('タイマーリセット:', resetKey);
+      // 既存のインターバルをクリア
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
       setTimeLeft(totalTime);
       lastResetKeyRef.current = resetKey;
     }
@@ -37,13 +42,11 @@ export default function QuizTimer({ genre, isActive, onTimeUp, resetKey }: QuizT
       intervalRef.current = null;
     }
 
-    if (!isActive) return;
+    if (!isActive || timeLeft <= 0) return;
 
     intervalRef.current = setInterval(() => {
       setTimeLeft(prev => {
-        const newTime = prev - 100; // 100msごとに更新
-        
-        if (newTime <= 0) {
+        if (prev <= 100) { // 100ms以下になったら終了
           if (intervalRef.current) {
             clearInterval(intervalRef.current);
             intervalRef.current = null;
@@ -52,7 +55,7 @@ export default function QuizTimer({ genre, isActive, onTimeUp, resetKey }: QuizT
           return 0;
         }
         
-        return newTime;
+        return prev - 100; // 100msごとに更新
       });
     }, 100);
 
@@ -62,7 +65,7 @@ export default function QuizTimer({ genre, isActive, onTimeUp, resetKey }: QuizT
         intervalRef.current = null;
       }
     };
-  }, [isActive, onTimeUp]);
+  }, [isActive, onTimeUp, timeLeft]);
 
   // 時間の表示形式を変換
   const formatTime = (milliseconds: number) => {

@@ -12,12 +12,11 @@ interface QuizQuestionProps {
 export default function QuizQuestion({ quiz }: QuizQuestionProps) {
   const { setAnimationInProgress, quizRoom } = useQuiz();
   const { startQuestionTimer } = useLeader(quizRoom?.roomId || '');
-  const [showQuestion, setShowQuestion] = useState(false);
   const [timerActive, setTimerActive] = useState(false);
   const [timerResetKey, setTimerResetKey] = useState<string>('');
   const [isInitialized, setIsInitialized] = useState(false);
   
-  // 問題を表示するアニメーション効果（アニメーションは縮小）
+  // タイマーを開始する処理（問題は常に表示）
   useEffect(() => {
     // 既に同じ問題が表示されている場合はアニメーションを実行しない
     if (timerResetKey === quiz.quizId && isInitialized) {
@@ -25,12 +24,10 @@ export default function QuizQuestion({ quiz }: QuizQuestionProps) {
     }
 
     setAnimationInProgress(true);
-    setShowQuestion(false);
     setTimerActive(false);
     
     // 問題が切り替わった時に遅延を短くする（250ms）
     const questionTimer = setTimeout(() => {
-      setShowQuestion(true);
       setAnimationInProgress(false);
       // 問題表示後、少し遅れてタイマーを開始
       setTimeout(() => {
@@ -45,8 +42,8 @@ export default function QuizQuestion({ quiz }: QuizQuestionProps) {
         if (quizRoom?.roomId) {
           startQuestionTimer();
         }
-      }, 500);
-    }, 250);
+      }, 300);
+    }, 100);
     
     return () => clearTimeout(questionTimer);
   }, [quiz.quizId, setAnimationInProgress, timerResetKey, isInitialized, startQuestionTimer, quizRoom?.roomId]);
@@ -82,15 +79,13 @@ export default function QuizQuestion({ quiz }: QuizQuestionProps) {
         {quiz.title}
       </motion.h2>
       
-      {/* 問題文表示 - アニメーションなし */}
-      {(showQuestion || quizRoom?.currentState?.answerStatus === 'incorrect') && (
-        <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-4 mb-6">
-          <p className="text-lg font-medium">{quiz.question}</p>
-        </div>
-      )}
+      {/* 問題文表示 - 常に表示 */}
+      <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-4 mb-6">
+        <p className="text-lg font-medium">{quiz.question}</p>
+      </div>
       
-      {/* 入力式問題の場合は選択肢表示なし */}
-      {quiz.type === 'input' && showQuestion && (
+      {/* 入力式問題の場合のガイダンス */}
+      {quiz.type === 'input' && (
         <motion.div 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
