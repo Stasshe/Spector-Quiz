@@ -1,46 +1,21 @@
-import { useState, FormEvent, useEffect } from 'react';
+import { useState, FormEvent } from 'react';
 import { Quiz } from '@/types/quiz';
-import { FaPaperPlane, FaClock } from 'react-icons/fa';
+import { FaPaperPlane } from 'react-icons/fa';
 
 interface AnswerInputProps {
   quiz: Quiz | null;
   onSubmit: (answer: string) => void;
-  timeLimit?: number; // 制限時間（秒）
 }
 
-export default function AnswerInput({ quiz, onSubmit, timeLimit = 15 }: AnswerInputProps) {
+export default function AnswerInput({ quiz, onSubmit }: AnswerInputProps) {
   const [answer, setAnswer] = useState('');
-  const [remainingTime, setRemainingTime] = useState(timeLimit);
-
-  // 制限時間のカウントダウン
-  useEffect(() => {
-    if (!remainingTime) return;
-
-    const timer = setInterval(() => {
-      setRemainingTime((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [remainingTime]);
-
-  // 制限時間が0になったらタイムアウト処理
-  useEffect(() => {
-    if (remainingTime === 0) {
-      handleSubmit();
-    }
-  }, [remainingTime]);
 
   const handleSubmit = (e?: FormEvent) => {
     if (e) e.preventDefault();
 
-    // 空の回答の場合はタイムアウトとして扱う
-    onSubmit(answer || 'タイムアウト');
+    if (!answer.trim()) return; // 空の回答は送信しない
+
+    onSubmit(answer);
     setAnswer('');
   };
 
@@ -54,14 +29,8 @@ export default function AnswerInput({ quiz, onSubmit, timeLimit = 15 }: AnswerIn
 
   return (
     <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
-      <div className="flex items-center justify-between mb-4">
+      <div className="mb-4">
         <h3 className="font-bold text-yellow-800">回答してください</h3>
-        <div className="flex items-center text-yellow-800">
-          <FaClock className="mr-1" />
-          <span className={remainingTime <= 5 ? 'text-red-600 font-bold' : ''}>
-            {remainingTime}秒
-          </span>
-        </div>
       </div>
 
       {quiz.type === 'multiple_choice' ? (

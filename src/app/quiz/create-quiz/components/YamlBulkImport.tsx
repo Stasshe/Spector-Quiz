@@ -28,6 +28,19 @@ interface YamlUnit {
   quizzes: YamlQuiz[];
 }
 
+interface ValidationError {
+  quizIndex: number;
+  quizTitle: string;
+  errors: string[];
+}
+
+interface ImportResult {
+  successCount: number;
+  errorCount: number;
+  validationErrors: ValidationError[];
+  processedQuizzes: Omit<Quiz, 'quizId' | 'createdAt'>[];
+}
+
 const YamlBulkImport: FC<YamlBulkImportProps> = ({
   onImport,
   genre,
@@ -37,8 +50,119 @@ const YamlBulkImport: FC<YamlBulkImportProps> = ({
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [showExample, setShowExample] = useState(false);
+  const [importResult, setImportResult] = useState<ImportResult | null>(null);
+  const [showErrors, setShowErrors] = useState(false);
 
-  // YAMLの解析と処理
+  // 個別クイズのバリデーション
+  const validateQuiz = (yamlQuiz: any, index: number): string[] => {
+    const errors: string[] = [];
+
+    // 基本的な必須フィールドのチェック
+    if (!yamlQuiz || typeof yamlQuiz !== 'object') {
+      errors.push('クイズデータが正しい形式ではありません');
+      return errors;
+    }
+
+    // タイトルの検証
+    if (!yamlQuiz.title || typeof yamlQuiz.title !== 'string' || !yamlQuiz.title.trim()) {
+      errors.push(String(index),'番目のクイズでタイトルが入力されていません');
+    } else {
+      if (yamlQuiz.title.length > 50) {
+        errors.push(String(index),'番目のクイズでエラー,タイトルは50文字以内で入力してください');
+      }
+    }
+
+    // 問題文の検証
+    if (!yamlQuiz.question || typeof yamlQuiz.question !== 'string' || !yamlQuiz.question.trim()) {
+      errors.push(String(index),'番目のクイズでエラー,問題文が入力されていません');
+    } else {
+      if (yamlQuiz.question.length > 100) {
+        errors.push(String(index),'番目のクイズでエラー,問題文は100文字以内で入力してください');
+      }
+    }
+
+    // 正解の検証
+    if (!yamlQuiz.correctAnswer || typeof yamlQuiz.correctAnswer !== 'string' || !yamlQuiz.correctAnswer.trim()) {
+      errors.push(String(index),'番目のクイズでエラー,正解が入力されていません');
+    } else {
+      if (yamlQuiz.correctAnswer.length > 30) {
+        errors.push(String(index),'番目のクイズでエラー,正解は30文字以内で入力してください');
+      }
+    }
+
+    // タイプの検証
+    const validTypes = ['multiple_choice', 'input'];
+    if (!yamlQuiz.type || !validTypes.includes(yamlQuiz.type)) {
+      errors.push(`${String(index)}番目のクイズでエラー,問題タイプが無効です。使用可能なタイプ: ${validTypes.join(', ')}`);
+    }
+
+    // 選択式問題の場合の追加検証
+    if (yamlQuiz.type === 'multiple_choice') {
+      if (!yamlQuiz.choices || !Array.isArray(yamlQuiz.choices)) {
+        errors.push(String(index),'番目のクイズでエラー,選択式問題には選択肢（choices）が必要です');
+      } else {
+        if (yamlQuiz.choices.length < 3) {
+          errors.push(String(index),'番目のクイズでエラー,選択肢は最低3つ必要です');
+        }
+        if (yamlQuiz.choices.length > 5) {
+          errors.push(String(index),'番目のクイズでエラー,選択肢は最大5つまでです');
+        }
+
+        // 選択肢が全て入力されているかチェック
+        const emptyChoices = yamlQuiz.choices.filter((choice: any, i: number) => 
+          !choice || typeof choice !== 'string' || !choice.trim()
+        );
+        if (emptyChoices.length > 0) {
+          errors.push(String(index),'番目のクイズでエラー,全ての選択肢を入力してください');
+        }
+
+        // 選択肢の長さチェック
+        yamlQuiz.choices.forEach((choice: any, i: number) => {
+          if (typeof choice === 'string' && choice.length > 100) {
+            errors.push(`${String(index)}番目のクイズでエラー,選択肢${i + 1}は100文字以内で入力してください`);
+          }
+        });
+
+        // 正解が選択肢に含まれているかチェック
+        if (yamlQuiz.correctAnswer && yamlQuiz.choices && 
+            !yamlQuiz.choices.includes(yamlQuiz.correctAnswer)) {
+          errors.push(String(index),'番目のクイズでエラー,正解が選択肢に含まれていません');
+        }
+
+        // 選択肢の重複チェック
+        const uniqueChoices = new Set(yamlQuiz.choices.filter((choice: string) => choice && choice.trim()));
+        if (uniqueChoices.size !== yamlQuiz.choices.length) {
+          errors.push(String(index),'番目のクイズでエラー,選択肢に重複があります');
+        }
+      }
+    }
+
+    // 入力式問題の場合の追加検証
+    if (yamlQuiz.type === 'input') {
+      // 許容回答の検証
+      if (yamlQuiz.acceptableAnswers && !Array.isArray(yamlQuiz.acceptableAnswers)) {
+        errors.push('許容回答（acceptableAnswers）は配列である必要があります');
+      } else if (yamlQuiz.acceptableAnswers) {
+        // 許容回答の各項目をチェック
+        yamlQuiz.acceptableAnswers.forEach((answer: any, i: number) => {
+          if (typeof answer !== 'string') {
+            errors.push(`${String(index)}番目のクイズでエラー,許容回答${i + 1}は文字列である必要があります`);
+          } else if (answer.length > 200) {
+            errors.push(`${String(index)}番目のクイズでエラー,許容回答${i + 1}は200文字以内で入力してください`);
+          }
+        });
+      }
+    }
+
+    // 解説の検証（オプション）
+    if (yamlQuiz.explanation && typeof yamlQuiz.explanation === 'string') {
+      if (yamlQuiz.explanation.length > 500) {
+        errors.push(`${String(index)}番目のクイズでエラー,解説は500文字以内で入力してください`);
+      }
+    }
+
+    return errors;
+  };
   const processYaml = () => {
     if (!yamlText.trim()) {
       setErrorMessage('YAMLテキストが入力されていません');
@@ -47,6 +171,7 @@ const YamlBulkImport: FC<YamlBulkImportProps> = ({
 
     setLoading(true);
     setErrorMessage('');
+    setImportResult(null);
 
     try {
       // YAMLをJavaScriptオブジェクトに変換
@@ -60,50 +185,76 @@ const YamlBulkImport: FC<YamlBulkImportProps> = ({
         throw new Error('クイズが見つかりませんでした。YAMLフォーマットを確認してください');
       }
 
-      // クイズデータを変換
-      const processedQuizzes: Omit<Quiz, 'quizId' | 'createdAt'>[] = parsedData.quizzes.map((yamlQuiz) => {
-        // バリデーション
-        if (!yamlQuiz.title) {
-          throw new Error(`クイズにタイトルがありません: ${JSON.stringify(yamlQuiz).substring(0, 50)}...`);
-        }
-        if (!yamlQuiz.question) {
-          throw new Error(`クイズ「${yamlQuiz.title}」に問題文がありません`);
-        }
-        if (!yamlQuiz.correctAnswer) {
-          throw new Error(`クイズ「${yamlQuiz.title}」に正解がありません`);
-        }
+      // 全てのクイズをバリデーションし、エラーがあるものをスキップ
+      const processedQuizzes: Omit<Quiz, 'quizId' | 'createdAt'>[] = [];
+      const validationErrors: ValidationError[] = [];
+      let successCount = 0;
+      let errorCount = 0;
 
-        const quizType: QuizType = (yamlQuiz.type === 'multiple_choice' || yamlQuiz.type === 'input') 
-          ? yamlQuiz.type 
-          : 'input';
+      parsedData.quizzes.forEach((yamlQuiz, index) => {
+        const errors = validateQuiz(yamlQuiz, index);
+        
+        if (errors.length > 0) {
+          // エラーがある場合は記録してスキップ
+          errorCount++;
+          validationErrors.push({
+            quizIndex: index + 1,
+            quizTitle: yamlQuiz?.title || `問題 ${index + 1}`,
+            errors
+          });
+        } else {
+          // エラーがない場合は処理して追加
+          try {
+            const quizType: QuizType = (yamlQuiz.type === 'multiple_choice' || yamlQuiz.type === 'input') 
+              ? yamlQuiz.type 
+              : 'input';
 
-        if (quizType === 'multiple_choice') {
-          if (!yamlQuiz.choices || yamlQuiz.choices.length < 3) {
-            throw new Error(`選択式クイズ「${yamlQuiz.title}」には最低3つの選択肢が必要です`);
+            processedQuizzes.push({
+              title: yamlQuiz.title,
+              question: yamlQuiz.question,
+              type: quizType,
+              choices: yamlQuiz.choices || [],
+              correctAnswer: yamlQuiz.correctAnswer,
+              acceptableAnswers: yamlQuiz.acceptableAnswers || [],
+              explanation: yamlQuiz.explanation || '',
+              genre,
+              createdBy,
+              useCount: 0,
+              correctCount: 0
+            });
+            successCount++;
+          } catch (conversionError) {
+            // 変換エラーが発生した場合
+            errorCount++;
+            validationErrors.push({
+              quizIndex: index + 1,
+              quizTitle: yamlQuiz?.title || `問題 ${index + 1}`,
+              errors: [`データ変換エラー: ${conversionError instanceof Error ? conversionError.message : '不明なエラー'}`]
+            });
           }
-          if (yamlQuiz.choices.length > 5) {
-            throw new Error(`選択式クイズ「${yamlQuiz.title}」の選択肢は最大5つまでです`);
-          }
         }
-
-        return {
-          title: yamlQuiz.title,
-          question: yamlQuiz.question,
-          type: quizType,
-          choices: yamlQuiz.choices || [],
-          correctAnswer: yamlQuiz.correctAnswer,
-          acceptableAnswers: yamlQuiz.acceptableAnswers || [],
-          explanation: yamlQuiz.explanation || '',
-          genre,
-          createdBy,
-          useCount: 0,
-          correctCount: 0
-        };
       });
 
-      // 成功したらコールバック関数を呼び出し
-      onImport(processedQuizzes);
-      setYamlText(''); // 入力欄をクリア
+      // インポート結果を設定
+      const result: ImportResult = {
+        successCount,
+        errorCount,
+        validationErrors,
+        processedQuizzes
+      };
+      setImportResult(result);
+
+      // 成功した問題がある場合のみコールバック関数を呼び出し
+      if (processedQuizzes.length > 0) {
+        onImport(processedQuizzes);
+        setYamlText(''); // 入力欄をクリア
+      }
+
+      // エラーがある場合は自動的にエラー詳細を表示
+      if (validationErrors.length > 0) {
+        setShowErrors(true);
+      }
+
     } catch (error) {
       if (error instanceof Error) {
         setErrorMessage(`YAMLの処理中にエラーが発生しました: ${error.message}`);
@@ -177,6 +328,68 @@ quizzes:
       {errorMessage && (
         <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded-lg mb-4">
           <p>{errorMessage}</p>
+        </div>
+      )}
+
+      {importResult && (
+        <div className="mb-4">
+          {/* インポート結果サマリー */}
+          <div className={`border-l-4 p-4 rounded-lg mb-4 ${
+            importResult.errorCount === 0 
+              ? 'bg-green-50 border-green-500 text-green-700'
+              : importResult.successCount > 0
+                ? 'bg-yellow-50 border-yellow-500 text-yellow-700'
+                : 'bg-red-50 border-red-500 text-red-700'
+          }`}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium">
+                  インポート完了: {importResult.successCount}件成功
+                  {importResult.errorCount > 0 && `, ${importResult.errorCount}件エラー`}
+                </p>
+                {importResult.successCount > 0 && (
+                  <p className="text-sm mt-1">
+                    {importResult.successCount}件の問題が正常にインポートされました。
+                  </p>
+                )}
+              </div>
+              {importResult.errorCount > 0 && (
+                <button
+                  onClick={() => setShowErrors(!showErrors)}
+                  className="text-sm underline hover:no-underline"
+                >
+                  {showErrors ? 'エラー詳細を隠す' : 'エラー詳細を表示'}
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* エラー詳細（折りたたみ可能） */}
+          {showErrors && importResult.validationErrors.length > 0 && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+              <h4 className="font-medium text-red-800 mb-3">エラー詳細</h4>
+              <div className="space-y-3">
+                {importResult.validationErrors.map((error, index) => (
+                  <div key={index} className="bg-white border border-red-200 rounded p-3">
+                    <h5 className="font-medium text-red-700 mb-2">
+                      問題 {error.quizIndex}: {error.quizTitle}
+                    </h5>
+                    <ul className="list-disc list-inside text-sm text-red-600 space-y-1">
+                      {error.errors.map((errorMsg, errorIndex) => (
+                        <li key={errorIndex}>{errorMsg}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded">
+                <p className="text-sm text-blue-700">
+                  <strong>ヒント:</strong> エラーがある問題は自動的にスキップされ、正常な問題のみがインポートされます。
+                  上記のエラーを修正してから再度インポートしてください。
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       )}
       

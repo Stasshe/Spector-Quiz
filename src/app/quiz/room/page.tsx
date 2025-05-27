@@ -250,8 +250,8 @@ function QuizRoomContent() {
             {/* 進行中の場合 */}
             {quizRoom.status === 'in_progress' && (
               <div>
-                {/* 問題表示 */}
-                {currentQuiz && <QuizQuestion quiz={currentQuiz} />}
+                {/* 問題表示（正解/不正解が表示されている場合以外は常に表示） */}
+                {currentQuiz && !isRevealed && <QuizQuestion quiz={currentQuiz} />}
 
                 {/* 早押しボタン（解答者がいない場合、かつ選択肢が表示されていない場合） */}
                 {!quizRoom.currentState.currentAnswerer && !hasAnsweringRight && currentUser && 
