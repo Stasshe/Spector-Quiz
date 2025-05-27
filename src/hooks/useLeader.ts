@@ -899,6 +899,12 @@ export function useLeader(roomId: string) {
       return;
     }
     
+    // 空文字列の解答をチェック
+    if (!answer || !answer.trim()) {
+      console.log('空の解答は受け付けられません');
+      return;
+    }
+    
     try {
       // 解答権があるか確認
       if (quizRoom.currentState.currentAnswerer !== currentUser.uid) {
@@ -1161,6 +1167,12 @@ function normalizeAnswer(answer: string): string {
 
 // 正誤判定ヘルパー関数
 function judgeCorrectness(quizData: Quiz, userAnswer: string): boolean {
+  // 空文字列や無効な回答の場合は不正解とする
+  if (!userAnswer || typeof userAnswer !== 'string' || !userAnswer.trim()) {
+    console.log('空の解答のため不正解です');
+    return false;
+  }
+  
   if (quizData.type === 'multiple_choice') {
     return userAnswer === quizData.correctAnswer;
   } else {
