@@ -82,19 +82,12 @@ export default function QuizQuestion({ quiz }: QuizQuestionProps) {
         {quiz.title}
       </motion.h2>
       
-      <AnimatePresence>
-        {showQuestion && (
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.98 }}
-            transition={{ duration: 0.4 }}
-            className="bg-indigo-50 border border-indigo-100 rounded-lg p-4 mb-6"
-          >
-            <p className="text-lg font-medium">{quiz.question}</p>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* 問題文表示 - アニメーションなし */}
+      {(showQuestion || quizRoom?.currentState?.answerStatus === 'incorrect') && (
+        <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-4 mb-6">
+          <p className="text-lg font-medium">{quiz.question}</p>
+        </div>
+      )}
       
       {/* 入力式問題の場合は選択肢表示なし */}
       {quiz.type === 'input' && showQuestion && (
