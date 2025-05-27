@@ -1,9 +1,9 @@
 'use client';
 
 import { db } from '@/config/firebase';
+import { TIMING } from '@/config/quizConfig';
 import { useAuth } from '@/context/AuthContext';
 import { useQuiz } from '@/context/QuizContext';
-import { useQuizRoom } from '@/hooks/useQuizRoom';
 import { getRoomById } from '@/services/quizRoom';
 import { collection, deleteDoc, doc, getDoc, getDocs, onSnapshot, query, serverTimestamp, updateDoc, where } from 'firebase/firestore';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -11,7 +11,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { FaClock, FaExchangeAlt, FaPlay, FaSignOutAlt, FaTimes, FaUserFriends } from 'react-icons/fa';
 
-const AUTO_DISBAND_TIME_MS = 8 * 60 * 1000; // 8分（ミリ秒）
+
 
 export default function WaitingRoomFloating() {
   const { 
@@ -28,14 +28,6 @@ export default function WaitingRoomFloating() {
   const [roomCreationTime, setRoomCreationTime] = useState<Date | null>(null);
   const autoCheckTimerRef = useRef<NodeJS.Timeout | null>(null);
   
-  // useQuizRoomからルーム切り替え関連の機能を取得
-  const { 
-    confirmRoomSwitch: isRoomSwitchConfirmOpen,
-    roomToJoin: newRoomToJoin,
-    switchRoom: handleGlobalSwitchRoom,
-    cancelRoomSwitch: handleGlobalCancelRoomSwitch
-  } = useQuizRoom();
-
   // 画面ロード時にユーザーの現在参加中のルームを確認
   useEffect(() => {
     // ルームチェックの重複実行を防ぐためのフラグ
@@ -118,8 +110,8 @@ export default function WaitingRoomFloating() {
       console.log(`ルーム ${roomId} の経過時間: ${Math.floor(elapsedMs / 1000 / 60)}分${Math.floor((elapsedMs / 1000) % 60)}秒`);
       
       // 8分以上経過していたら自動解散
-      if (elapsedMs >= AUTO_DISBAND_TIME_MS) {
-        console.log(`ルーム ${roomId} は作成から${Math.floor(AUTO_DISBAND_TIME_MS / 1000 / 60)}分以上経過したため自動解散します`);
+      if (elapsedMs >= TIMING.AUTO_DISBAND_TIME_MS) {
+        console.log(`ルーム ${roomId} は作成から${Math.floor(TIMING.AUTO_DISBAND_TIME_MS / 1000 / 60)}分以上経過したため自動解散します`);
         
         try {
           // 自分がリーダーかどうかチェック
@@ -163,7 +155,7 @@ export default function WaitingRoomFloating() {
             setIsWaitingRoomModalOpen(false);
             
             // 自動解散通知
-            alert(`待機ルーム「${waitingRoom.name}」は${Math.floor(AUTO_DISBAND_TIME_MS / 1000 / 60)}分以上経過したため自動解散されました。`);
+            alert(`待機ルーム「${waitingRoom.name}」は${Math.floor(TIMING.AUTO_DISBAND_TIME_MS / 1000 / 60)}分以上経過したため自動解散されました。`);
           }
         } catch (err) {
           console.error('自動解散処理中にエラーが発生しました:', err);
@@ -258,7 +250,7 @@ export default function WaitingRoomFloating() {
       setWaitTimeMs(elapsedMs);
       
       // 8分以上経過した場合、現在のルームをチェック
-      if (elapsedMs >= AUTO_DISBAND_TIME_MS) {
+      if (elapsedMs >= TIMING.AUTO_DISBAND_TIME_MS) {
         checkAndDisbandRoom(waitingRoom.roomId);
       }
     }, 1000);
@@ -420,12 +412,12 @@ export default function WaitingRoomFloating() {
                 
                 <div className="bg-indigo-50 rounded p-4">
                   <p className="font-medium text-indigo-800 mb-1">待機時間:</p>
-                  <p className={`text-gray-700 flex items-center ${waitTimeMs > AUTO_DISBAND_TIME_MS * 0.75 ? 'text-red-600 font-medium' : ''}`}>
+                  <p className={`text-gray-700 flex items-center ${waitTimeMs > TIMING.AUTO_DISBAND_TIME_MS * 0.75 ? 'text-red-600 font-medium' : ''}`}>
                     <FaClock className="mr-2 text-indigo-600" />
                     <span>
                       {Math.floor(waitTimeMs / 1000 / 60)}分{Math.floor((waitTimeMs / 1000) % 60)}秒
-                      {waitTimeMs > AUTO_DISBAND_TIME_MS * 0.75 && 
-                        ` (あと${Math.max(0, Math.ceil((AUTO_DISBAND_TIME_MS - waitTimeMs) / 1000 / 60))}分で自動解散)`}
+                      {waitTimeMs > TIMING.AUTO_DISBAND_TIME_MS * 0.75 && 
+                        ` (あと${Math.max(0, Math.ceil((TIMING.AUTO_DISBAND_TIME_MS - waitTimeMs) / 1000 / 60))}分で自動解散)`}
                     </span>
                   </p>
                 </div>

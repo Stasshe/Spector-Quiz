@@ -9,7 +9,7 @@ interface QuizQuestionProps {
 }
 
 export default function QuizQuestion({ quiz }: QuizQuestionProps) {
-  const { showChoices, setShowChoices, animationInProgress, setAnimationInProgress, showQuestionDelay, quizRoom } = useQuiz();
+  const { setAnimationInProgress, quizRoom } = useQuiz();
   const [showQuestion, setShowQuestion] = useState(false);
   const [timerActive, setTimerActive] = useState(false);
   

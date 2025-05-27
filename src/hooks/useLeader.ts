@@ -15,7 +15,6 @@ import {
   getDoc,
   getDocs,
   increment,
-  //deleteField,
   limit,
   onSnapshot,
   orderBy,
@@ -26,7 +25,6 @@ import {
   writeBatch
 } from 'firebase/firestore';
 import { useCallback, useEffect } from 'react';
-import { cleanupRoomAnswers } from '@/services/quizRoom';
 
 export function useLeader(roomId: string) {
   const { isLeader, quizRoom, currentQuiz, setCurrentQuiz, setShowChoices } = useQuiz();

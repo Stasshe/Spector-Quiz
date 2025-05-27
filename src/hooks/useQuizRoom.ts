@@ -4,7 +4,6 @@ import { doc, getDoc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { db } from '../config/firebase';
-//import { TIMING } from '../config/quizConfig';
 import { useAuth } from '../context/AuthContext';
 import { useQuiz } from '../context/QuizContext';
 import { Quiz } from '../types/quiz';
