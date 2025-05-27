@@ -6,7 +6,8 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "release": "echo 'Please use GitHub Actions to create a release: https://github.com/your-repo/actions/workflows/release.yml'"
   },
   "dependencies": {
     "@types/js-yaml": "^4.0.9",

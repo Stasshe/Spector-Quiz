@@ -208,6 +208,47 @@ src/
 - **GitHub Issues**: バグ報告・機能リクエスト
 - **Discussions**: 質問・アイデア共有
 
+## 🚀 リリース管理
+
+このプロジェクトでは、GitHub Actionsを使用した自動リリースシステムを採用しています。
+
+### リリースの作成方法
+
+1. **package.jsonのバージョンを更新**:
+   ```bash
+   # 手動でpackage.jsonのversionを編集
+   # 例: "version": "1.1.0" → "version": "1.2.0"
+   ```
+
+2. **変更をコミット・プッシュ**:
+   ```bash
+   git add package.json
+   git commit -m "chore: bump version to v1.2.0"
+   git push origin main
+   ```
+
+3. **GitHub Actionsからリリース**:
+   - GitHubリポジトリページの「Actions」タブを開く
+   - 左サイドバーから「Create Release」ワークフローを選択
+   - 右上の「Run workflow」ボタンをクリック
+   - 「Run workflow」を実行
+
+4. **自動実行される処理**:
+   - `package.json`のバージョンから`v1.2.0`形式のGitタグが作成
+   - GitHubリリースページが自動生成
+   - コミット履歴へのリンク付きリリースノートが作成
+
+### ローカルでのリリース確認
+
+```bash
+# リリース案内メッセージを表示
+npm run release
+```
+
+**注意**: 
+- 同じバージョンのリリースが既に存在する場合、ワークフローは失敗します
+- 実際のリリース作成はGitHub Actionsから行ってください
+
 ---
 
 <div align="center">
