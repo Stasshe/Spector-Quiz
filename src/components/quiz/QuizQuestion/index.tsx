@@ -72,6 +72,17 @@ export default function QuizQuestion({ quiz }: QuizQuestionProps) {
     setTimerActive(false);
     // サーバー側のタイムアウト処理は useLeader の startQuestionTimer で実行される
   };
+
+  // タイマーの状態をデバッグ用にログ出力
+  useEffect(() => {
+    console.log('Timer状態変化:', {
+      timerActive,
+      quizRoomStatus: quizRoom?.status,
+      isRevealed: quizRoom?.currentState?.isRevealed,
+      resetKey: timerResetKey,
+      finalIsActive: timerActive && quizRoom?.status === 'in_progress'
+    });
+  }, [timerActive, quizRoom?.status, quizRoom?.currentState?.isRevealed, timerResetKey]);
   
   return (
     <div className="quiz-question relative">
@@ -81,7 +92,7 @@ export default function QuizQuestion({ quiz }: QuizQuestionProps) {
         <div className="mb-4">
           <QuizTimer
             genre={quiz.genre}
-            isActive={timerActive && quizRoom?.status === 'in_progress' && !quizRoom?.currentState?.isRevealed}
+            isActive={timerActive && quizRoom?.status === 'in_progress'}
             onTimeUp={handleTimeUp}
             resetKey={timerResetKey} // 問題が変わるたびにタイマーをリセット
           />

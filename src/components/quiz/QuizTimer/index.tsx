@@ -49,17 +49,24 @@ export default function QuizTimer({ genre, isActive, onTimeUp, resetKey }: QuizT
 
   // カウントダウン処理
   useEffect(() => {
+    console.log('Timer countdown effect:', { isActive, timeLeft, hasInterval: !!intervalRef.current });
+    
     // 既存のインターバルをクリア
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
 
-    if (!isActive || timeLeft <= 0) return;
+    if (!isActive) {
+      console.log('Timer not active, stopping countdown');
+      return;
+    }
 
+    console.log('Starting timer countdown');
     intervalRef.current = setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 100) { // 100ms以下になったら終了
+          console.log('Timer reached zero, calling onTimeUp');
           if (intervalRef.current) {
             clearInterval(intervalRef.current);
             intervalRef.current = null;
@@ -73,12 +80,13 @@ export default function QuizTimer({ genre, isActive, onTimeUp, resetKey }: QuizT
     }, 100);
 
     return () => {
+      console.log('Cleaning up timer interval');
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
     };
-  }, [isActive, onTimeUp, timeLeft]);
+  }, [isActive, onTimeUp]); // timeLeftを依存配列から除去
 
   // 時間の表示形式を変換
   const formatTime = (milliseconds: number) => {
