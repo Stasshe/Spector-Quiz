@@ -227,11 +227,28 @@ export async function createRoomWithUnitService(
     console.log(`新しいルーム(${roomId})を作成しました`);
     
     try {
-      // ユーザーに現在のルームIDを設定
+      // ユーザーに現在のルームIDを設定（公式クイズ対応改善）
+      console.log(`[createRoomWithUnitService] ユーザー(${userId})にルームID(${roomId})を設定中... classType=${classType}`);
       await updateDoc(userRef, { currentRoomId: roomId });
+      console.log(`[createRoomWithUnitService] ユーザーのcurrentRoomID設定完了: ${roomId}`);
     } catch (updateErr) {
-      console.error('Error updating user room ID:', updateErr);
-      // エラーがあってもルーム作成は成功させる
+      console.error('[createRoomWithUnitService] ユーザーのcurrentRoomID設定エラー:', updateErr);
+      
+      // 公式クイズの場合はエラーを重要視
+      if (classType === '公式') {
+        console.error('[createRoomWithUnitService] 公式クイズでのユーザードキュメント更新に失敗。再試行します');
+        try {
+          // 公式クイズの場合は再試行
+          await updateDoc(userRef, { currentRoomId: roomId });
+          console.log('[createRoomWithUnitService] 公式クイズ用ユーザードキュメント更新再試行成功');
+        } catch (retryErr) {
+          console.error('[createRoomWithUnitService] 公式クイズ用ユーザードキュメント更新再試行も失敗:', retryErr);
+          // エラーがあってもルーム作成は成功させる
+        }
+      } else {
+        // ユーザー作成クイズの場合はエラーがあってもルーム作成は成功させる
+        console.warn('[createRoomWithUnitService] ユーザー作成クイズでのユーザードキュメント更新エラー（続行）');
+      }
     }
     
     // 作成したルームを返す
