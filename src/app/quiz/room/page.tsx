@@ -256,8 +256,9 @@ function QuizRoomContent() {
                 {/* 問題表示（常に表示） */}
                 {currentQuiz && <QuizQuestion quiz={currentQuiz} />}
 
-                {/* 早押しボタン（解答者がいない場合、かつ選択肢が表示されていない場合） */}
+                {/* 早押しボタン（解答者がいない場合、かつ選択肢が表示されていない場合、かつ正答が表示されていない場合） */}
                 {!displayRoom.currentState?.currentAnswerer && !hasAnsweringRight && currentUser && 
+                  !isRevealed && // 正答が表示されている場合はボタンを非表示
                   // ユーザーがこの問題で間違えていない場合のみボタンを表示
                   (!(displayRoom.participants?.[currentUser.uid]?.missCount) || 
                    !(displayRoom.participants?.[currentUser.uid]?.wrongQuizIds?.includes(currentQuiz?.quizId || ''))) && (

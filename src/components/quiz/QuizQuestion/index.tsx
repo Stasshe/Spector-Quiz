@@ -57,8 +57,8 @@ export default function QuizQuestion({ quiz }: QuizQuestionProps) {
           console.log('Starting server-side question timer');
           startQuestionTimer();
         }
-      }, 200); // タイマー開始までの遅延を短縮
-    }, 50); // 初期遅延を短縮
+      }, 150); // タイマー開始までの遅延を少し増やして確実性を向上
+    }, 50); // 初期遅延を維持
     
     return () => {
       console.log('Cleaning up question timer');
