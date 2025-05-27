@@ -23,35 +23,48 @@ export default function QuizQuestion({ quiz }: QuizQuestionProps) {
   
   // タイマーを開始する処理（問題は常に表示）
   useEffect(() => {
+    console.log('QuizQuestion effect triggered', { 
+      quizId: quiz.quizId, 
+      timerResetKey, 
+      isInitialized,
+      quizRoomId: quizRoom?.roomId,
+      status: quizRoom?.status 
+    });
+    
     // 既に同じ問題が表示されている場合はアニメーションを実行しない
     if (timerResetKey === quiz.quizId && isInitialized) {
+      console.log('Same quiz already initialized, skipping');
       return;
     }
 
     setAnimationInProgress(true);
     setTimerActive(false);
     
-    // 問題が切り替わった時に遅延を短くする（250ms）
+    // 問題が切り替わった時の遅延を最小限にする
     const questionTimer = setTimeout(() => {
+      console.log('Starting question display');
       setAnimationInProgress(false);
-      // 問題表示後、少し遅れてタイマーを開始
+      
+      // 問題表示後、タイマーを開始
       setTimeout(() => {
+        console.log('Starting timer for quiz:', quiz.quizId);
         setTimerActive(true);
-        // タイマーリセットキーを設定（問題変更時のみ）
-        if (timerResetKey !== quiz.quizId) {
-          setTimerResetKey(quiz.quizId);
-        }
+        setTimerResetKey(quiz.quizId);
         setIsInitialized(true);
         
         // リーダーの場合はサーバー側でもタイマーを開始
-        if (quizRoom?.roomId) {
+        if (quizRoom?.roomId && quizRoom.status === 'in_progress') {
+          console.log('Starting server-side question timer');
           startQuestionTimer();
         }
-      }, 300);
-    }, 100);
+      }, 200); // タイマー開始までの遅延を短縮
+    }, 50); // 初期遅延を短縮
     
-    return () => clearTimeout(questionTimer);
-  }, [quiz.quizId, setAnimationInProgress, timerResetKey, isInitialized, startQuestionTimer, quizRoom?.roomId]);
+    return () => {
+      console.log('Cleaning up question timer');
+      clearTimeout(questionTimer);
+    };
+  }, [quiz.quizId, setAnimationInProgress, startQuestionTimer, quizRoom?.roomId, quizRoom?.status]);
 
   // タイマーが終了した時の処理
   const handleTimeUp = () => {
@@ -63,12 +76,12 @@ export default function QuizQuestion({ quiz }: QuizQuestionProps) {
   return (
     <div className="quiz-question relative">
       
-      {/* タイマーコンポーネント - 埋め込み形式 */}
+      {/* タイマーコンポーネント - 回答表示中でも表示するが停止状態 */}
       {quiz.genre && (
         <div className="mb-4">
           <QuizTimer
             genre={quiz.genre}
-            isActive={timerActive && quizRoom?.status === 'in_progress'}
+            isActive={timerActive && quizRoom?.status === 'in_progress' && !quizRoom?.currentState?.isRevealed}
             onTimeUp={handleTimeUp}
             resetKey={timerResetKey} // 問題が変わるたびにタイマーをリセット
           />

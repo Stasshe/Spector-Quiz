@@ -26,6 +26,8 @@ export default function QuizTimer({ genre, isActive, onTimeUp, resetKey }: QuizT
 
   // タイマーをリセット（resetKeyが変わった時のみ）
   useEffect(() => {
+    console.log('Timer effect:', { resetKey, lastResetKey: lastResetKeyRef.current, isActive, totalTime });
+    
     if (resetKey && resetKey !== lastResetKeyRef.current) {
       console.log('タイマーリセット:', resetKey);
       // 既存のインターバルをクリア
@@ -36,7 +38,13 @@ export default function QuizTimer({ genre, isActive, onTimeUp, resetKey }: QuizT
       setTimeLeft(totalTime);
       lastResetKeyRef.current = resetKey;
     }
-    setIsVisible(isActive);
+    
+    // isActiveの状態とresetKeyに基づいて表示状態を決定
+    if (resetKey) {
+      setIsVisible(true); // resetKeyがあれば常に表示
+    } else {
+      setIsVisible(isActive);
+    }
   }, [resetKey, totalTime, isActive]);
 
   // カウントダウン処理
@@ -113,7 +121,26 @@ export default function QuizTimer({ genre, isActive, onTimeUp, resetKey }: QuizT
   // 非常に危険状態（残り3秒以下）の判定
   const isCritical = timeLeft <= 3000;
 
-  if (!isVisible) return null;
+  if (!isVisible) {
+    // resetKeyがある場合は停止状態でも表示
+    return resetKey ? (
+      <div className="relative bg-gray-100 rounded-lg shadow-lg border-2 border-gray-300 p-4 w-full opacity-60">
+        <div className="flex items-center mb-2">
+          <FaClock className="mr-2 text-gray-500" />
+          <span className="text-sm font-medium text-gray-500">時間切れ / 停止中</span>
+        </div>
+        <div className="text-center">
+          <div className="text-2xl font-bold text-gray-500">
+            {formatTime(timeLeft)}
+          </div>
+          <div className="text-xs text-gray-400">秒</div>
+        </div>
+        <div className="mt-2 text-xs text-gray-500 text-center">
+          {genre}
+        </div>
+      </div>
+    ) : null;
+  }
 
   return (
     <AnimatePresence>
