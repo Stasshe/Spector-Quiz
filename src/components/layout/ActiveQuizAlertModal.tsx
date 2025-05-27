@@ -6,7 +6,7 @@ import { FaExclamationTriangle, FaTimes } from 'react-icons/fa';
 import { useQuiz } from '@/hooks/useQuiz';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
-import { db } from '@/config/firebase';
+import { db, usersDb } from '@/config/firebase';
 import { doc, getDoc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
 
 export default function ActiveQuizAlertModal() {
@@ -104,7 +104,7 @@ export default function ActiveQuizAlertModal() {
           console.log('[ActiveQuizAlertModal] quizRoomにroomIdがありません。Firebaseから取得を試みます');
           
           // 1. ユーザードキュメントから現在のルームIDを取得
-          const userRef = doc(db, 'users', currentUser.uid);
+          const userRef = doc(usersDb, 'users', currentUser.uid);
           const userDoc = await getDoc(userRef);
           
           let foundRoomId = null;

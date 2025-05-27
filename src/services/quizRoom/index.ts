@@ -1,6 +1,6 @@
 'use client';
 
-import { db } from '@/config/firebase';
+import { db, usersDb } from '@/config/firebase';
 import { SCORING } from '@/config/quizConfig';
 import { QuizRoom } from '@/types/room';
 import { getAuth } from 'firebase/auth';
@@ -258,7 +258,7 @@ export const updateAllQuizStats = async (
     // 自分の統計のみ更新（セキュリティルールの制限により）
     if (roomData.participants && roomData.participants[user.uid]) {
       const userPerformance = roomData.participants[user.uid];
-      const userRef = doc(db, 'users', user.uid);
+      const userRef = doc(usersDb, 'users', user.uid);
       
       // 経験値計算
       let expToAdd = Math.floor((userPerformance.score || 0) / 100);

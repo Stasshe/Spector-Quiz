@@ -13,20 +13,6 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
     
-    // ユーザー統計情報 - トップレベルコレクション
-    match /user_stats/{userId} {
-      allow read;
-      // どのログインユーザーでも統計情報を更新できるように変更、管理者は全ての操作可能
-      allow write: if request.auth != null || isAdmin();
-    }
-    
-    // ジャンル統計情報
-    match /genre_stats/{genreId} {
-      allow read;
-      // ログインしているユーザーなら更新可能、管理者は全ての操作可能
-      allow write: if request.auth != null || isAdmin();
-    }
-    
     // ジャンル情報
     match /genres/{genreId} {
       allow read;
@@ -72,16 +58,6 @@ service cloud.firestore {
           allow write: if isAdmin();
         }
       }
-    }
-    
-    // クイズコレクション（共有クイズ）
-    match /quizzes/{quizId} {
-      allow read;
-      allow create, update: if request.auth != null;
-      allow delete: if request.auth != null && (
-                     request.auth.uid == resource.data.createdBy ||
-                     request.auth.token.admin == true
-                   );
     }
     
     // クイズルーム

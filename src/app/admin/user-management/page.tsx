@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { db } from '@/config/firebase';
+import { db, usersDb } from '@/config/firebase';
 import { collection, getDocs, query, orderBy, limit, doc, updateDoc, deleteDoc, getDoc } from 'firebase/firestore';
 import { User } from '@/types/user';
 import { useAuth } from '@/context/AuthContext';
@@ -42,7 +42,7 @@ export default function UserManagement() {
       try {
         setLoading(true);
         const usersQuery = query(
-          collection(db, 'users'),
+          collection(usersDb, 'users'),
           orderBy('lastLoginAt', 'desc')
         );
         
@@ -109,7 +109,7 @@ export default function UserManagement() {
         return;
       }
       
-      const userRef = doc(db, 'users', targetUser.firestoreId);
+      const userRef = doc(usersDb, 'users', targetUser.firestoreId);
       await updateDoc(userRef, { rank });
       
       // ローカルの状態を更新

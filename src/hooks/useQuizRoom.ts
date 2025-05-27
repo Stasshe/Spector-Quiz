@@ -3,7 +3,7 @@
 import { doc, getDoc, onSnapshot, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { db } from '../config/firebase';
+import { db, usersDb } from '../config/firebase';
 import { useAuth } from '../context/AuthContext';
 import { useQuiz } from '../context/QuizContext';
 import { Quiz } from '../types/quiz';
@@ -58,7 +58,7 @@ export function useQuizRoom() {
     
     const checkCurrentRoomFromFirebase = async () => {
       try {
-        const userRef = doc(db, 'users', currentUser.uid);
+        const userRef = doc(usersDb, 'users', currentUser.uid);
         const userDoc = await getDoc(userRef);
         
         if (userDoc.exists() && userDoc.data().currentRoomId) {
@@ -211,7 +211,7 @@ export function useQuizRoom() {
     
     // 参加前にFirebase上のユーザー情報を確認
     try {
-      const userRef = doc(db, 'users', currentUser.uid);
+      const userRef = doc(usersDb, 'users', currentUser.uid);
       const userDoc = await getDoc(userRef);
       
       if (userDoc.exists()) {
@@ -251,7 +251,7 @@ export function useQuizRoom() {
     if (currentWaitingRoomId || true) {
       try {
         // ユーザーの現在のルームを直接Firebaseから確認 (常に確認する)
-        const userRef = doc(db, 'users', currentUser.uid);
+        const userRef = doc(usersDb, 'users', currentUser.uid);
         const userDoc = await getDoc(userRef);
         
         if (userDoc.exists() && userDoc.data().currentRoomId) {
@@ -327,7 +327,7 @@ export function useQuizRoom() {
         
         // ユーザードキュメントを更新して現在のルームを保存
         try {
-          const userRef = doc(db, 'users', currentUser.uid);
+          const userRef = doc(usersDb, 'users', currentUser.uid);
           await updateDoc(userRef, { currentRoomId: roomId });
           console.log(`[joinExistingRoom] ユーザードキュメントにルームID(${roomId})を保存しました`);
         } catch (userErr) {
@@ -420,7 +420,7 @@ export function useQuizRoom() {
       // それでもない場合はFirebaseから取得
       if (!actualRoomId) {
         try {
-          const userRef = doc(db, 'users', currentUser.uid);
+          const userRef = doc(usersDb, 'users', currentUser.uid);
           const userDoc = await getDoc(userRef);
           if (userDoc.exists() && userDoc.data().currentRoomId) {
             actualRoomId = userDoc.data().currentRoomId;
@@ -472,7 +472,7 @@ export function useQuizRoom() {
         
         // ユーザードキュメントからも現在のルームID情報を削除
         try {
-          const userRef = doc(db, 'users', currentUser.uid);
+          const userRef = doc(usersDb, 'users', currentUser.uid);
           await updateDoc(userRef, { currentRoomId: null });
           console.log('[exitRoom] ユーザードキュメントからルームID情報を削除しました');
         } catch (userErr) {
@@ -527,7 +527,7 @@ export function useQuizRoom() {
     let actualCurrentRoomId = currentWaitingRoomId;
     if (!actualCurrentRoomId) {
       try {
-        const userRef = doc(db, 'users', currentUser.uid);
+        const userRef = doc(usersDb, 'users', currentUser.uid);
         const userDoc = await getDoc(userRef);
         if (userDoc.exists() && userDoc.data().currentRoomId) {
           actualCurrentRoomId = userDoc.data().currentRoomId;
@@ -558,7 +558,7 @@ export function useQuizRoom() {
           // ルームが既に削除されている可能性があるため、エラーがあっても処理を継続
           // ただし、ユーザードキュメントは確実にクリア
           try {
-            const userRef = doc(db, 'users', currentUser.uid);
+            const userRef = doc(usersDb, 'users', currentUser.uid);
             await updateDoc(userRef, { currentRoomId: null });
             console.log('[RoomSwitch] ルーム取得エラー後、ユーザードキュメントからルームID情報を削除しました');
             setCurrentWaitingRoomId(null);
@@ -603,7 +603,7 @@ export function useQuizRoom() {
         
         // 退出処理の成否に関わらず、ユーザードキュメントを確実に更新
         try {
-          const userRef = doc(db, 'users', currentUser.uid);
+          const userRef = doc(usersDb, 'users', currentUser.uid);
           await updateDoc(userRef, { currentRoomId: null });
           console.log('[RoomSwitch] ユーザードキュメントからルームID情報を削除しました');
           
@@ -648,7 +648,7 @@ export function useQuizRoom() {
         try {
           // 参加前にもう一度ユーザードキュメントを確認
           try {
-            const userRef = doc(db, 'users', currentUser.uid);
+            const userRef = doc(usersDb, 'users', currentUser.uid);
             const userSnap = await getDoc(userRef);
             if (userSnap.exists() && userSnap.data().currentRoomId) {
               console.log(`[RoomSwitch] 参加前確認: ユーザーは既にルーム(${userSnap.data().currentRoomId})に参加しています`);

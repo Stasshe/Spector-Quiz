@@ -13,7 +13,7 @@ import {
   serverTimestamp,
   where
 } from 'firebase/firestore';
-import { db } from '../../config/firebase';
+import { db, usersDb } from '../../config/firebase';
 import type { QuizRoom, RoomListing } from '../../types/room';
 
 
@@ -114,7 +114,7 @@ export async function updateUserStatsOnRoomComplete(
     const score = userPerfomance.score || 0;
     
     // ユーザーとジャンル情報の参照を取得
-    const userRef = doc(db, 'users', currentUserId);
+    const userRef = doc(usersDb, 'users', currentUserId);
     const userDoc = await getDoc(userRef);
     
     let genreRef = null;
