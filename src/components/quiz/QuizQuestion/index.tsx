@@ -16,6 +16,11 @@ export default function QuizQuestion({ quiz }: QuizQuestionProps) {
   const [timerResetKey, setTimerResetKey] = useState<string>('');
   const [isInitialized, setIsInitialized] = useState(false);
   
+  // quizがnullの場合は何も表示しない
+  if (!quiz) {
+    return null;
+  }
+  
   // タイマーを開始する処理（問題は常に表示）
   useEffect(() => {
     // 既に同じ問題が表示されている場合はアニメーションを実行しない

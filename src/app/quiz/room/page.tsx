@@ -166,7 +166,7 @@ function QuizRoomContent() {
   }, [room, currentUser, roomId, updateUserStatsOnRoomComplete, statsUpdated, handleLeaveRoom]);
 
   // ルーム情報が読み込まれていない場合のローディング表示
-  if (!quizRoom || !room) {
+  if (!room) {
     return (
       <div className="flex justify-center items-center min-h-[calc(100vh-64px)]">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
@@ -174,15 +174,18 @@ function QuizRoomContent() {
     );
   }
 
+  // roomが存在するがquizRoomがない場合は、roomをquizRoomとして使用
+  const displayRoom = quizRoom || room;
+
   // 正解/不正解の状態
-  const isCorrect = quizRoom.currentState.answerStatus === 'correct';
-  const isIncorrect = quizRoom.currentState.answerStatus === 'incorrect';
-  const isRevealed = quizRoom.currentState.isRevealed;
+  const isCorrect = displayRoom.currentState?.answerStatus === 'correct';
+  const isIncorrect = displayRoom.currentState?.answerStatus === 'incorrect';
+  const isRevealed = displayRoom.currentState?.isRevealed;
 
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-6 flex justify-between items-center">
-        <h1 className="text-2xl font-bold">{quizRoom.name}</h1>
+        <h1 className="text-2xl font-bold">{displayRoom.name}</h1>
         <button
           onClick={handleLeaveRoom}
           className="bg-red-600 text-white px-4 py-2 rounded-md flex items-center"
@@ -196,13 +199,13 @@ function QuizRoomContent() {
         <div className="lg:col-span-1">
           <div className="bg-white rounded-lg shadow-md p-4 mb-6">
             <h2 className="text-lg font-medium mb-4">参加者</h2>
-            <ParticipantList participants={quizRoom.participants} leaderId={quizRoom.roomLeaderId} />
+            <ParticipantList participants={displayRoom.participants || {}} leaderId={displayRoom.roomLeaderId} />
           </div>
 
           {/* スコアボード */}
           <div className="bg-white rounded-lg shadow-md p-4">
             <h2 className="text-lg font-medium mb-4">スコアボード</h2>
-            <ScoreBoard participants={quizRoom.participants} />
+            <ScoreBoard participants={displayRoom.participants || {}} />
           </div>
         </div>
 
@@ -210,7 +213,7 @@ function QuizRoomContent() {
         <div className="lg:col-span-2">
           <div className="bg-white rounded-lg shadow-md p-6 mb-6">
             {/* 待機中の場合 */}
-            {quizRoom.status === 'waiting' && (
+            {displayRoom.status === 'waiting' && (
               <div className="text-center py-8">
                 <h2 className="text-2xl font-bold mb-4">クイズの開始を待っています</h2>
                 <p className="text-gray-600 mb-6">
@@ -228,16 +231,16 @@ function QuizRoomContent() {
                 ) : (
                   <div className="mt-4">
                     <p className="text-gray-500">
-                      参加者数: {Object.keys(quizRoom.participants).length}人
+                      参加者数: {Object.keys(displayRoom.participants || {}).length}人
                     </p>
                     <p className="text-gray-500">
-                    ルームリーダー: {quizRoom.participants[quizRoom.roomLeaderId]?.username}
+                    ルームリーダー: {displayRoom.participants?.[displayRoom.roomLeaderId]?.username || 'Unknown'}
                     </p>
                     <p className="text-gray-500">
-                      ジャンル: {quizRoom.genre}
+                      ジャンル: {displayRoom.genre}
                     </p>
                     <p className="text-gray-500">
-                      単元: {quizRoom.unitId}
+                      単元: {displayRoom.unitId}
                     </p>
                     <p className="text-gray-500">
                       ルームID: {roomId}
@@ -248,16 +251,16 @@ function QuizRoomContent() {
             )}
 
             {/* 進行中の場合 */}
-            {quizRoom.status === 'in_progress' && (
+            {displayRoom.status === 'in_progress' && (
               <div>
                 {/* 問題表示（正解/不正解が表示されている場合以外は常に表示） */}
                 {currentQuiz && !isRevealed && <QuizQuestion quiz={currentQuiz} />}
 
                 {/* 早押しボタン（解答者がいない場合、かつ選択肢が表示されていない場合） */}
-                {!quizRoom.currentState.currentAnswerer && !hasAnsweringRight && currentUser && 
+                {!displayRoom.currentState?.currentAnswerer && !hasAnsweringRight && currentUser && 
                   // ユーザーがこの問題で間違えていない場合のみボタンを表示
-                  (!(quizRoom.participants[currentUser.uid]?.missCount) || 
-                   !(quizRoom.participants[currentUser.uid]?.wrongQuizIds?.includes(currentQuiz?.quizId || ''))) && (
+                  (!(displayRoom.participants?.[currentUser.uid]?.missCount) || 
+                   !(displayRoom.participants?.[currentUser.uid]?.wrongQuizIds?.includes(currentQuiz?.quizId || ''))) && (
                   <div className="mt-6 text-center">
                     <button
                       onClick={handleBuzzer}
@@ -269,7 +272,7 @@ function QuizRoomContent() {
                 )}
 
                 {/* 解答入力（解答権を持っている場合） */}
-                {hasAnsweringRight && quizRoom.currentState.answerStatus === 'answering' && (
+                {hasAnsweringRight && displayRoom.currentState?.answerStatus === 'answering' && (
                   <AnswerInput
                     quiz={currentQuiz}
                     onSubmit={submitAnswer}
@@ -277,12 +280,12 @@ function QuizRoomContent() {
                 )}
 
                 {/* 他のプレイヤーが解答中 */}
-                {quizRoom.currentState.currentAnswerer && 
-                  quizRoom.currentState.currentAnswerer !== currentUser?.uid && 
-                  quizRoom.currentState.answerStatus === 'answering' && (
+                {displayRoom.currentState?.currentAnswerer && 
+                  displayRoom.currentState.currentAnswerer !== currentUser?.uid && 
+                  displayRoom.currentState.answerStatus === 'answering' && (
                   <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-md text-center">
                     <p className="text-yellow-700">
-                      {quizRoom.participants[quizRoom.currentState.currentAnswerer]?.username} さんが解答中...
+                      {displayRoom.participants?.[displayRoom.currentState.currentAnswerer]?.username || 'Unknown'} さんが解答中...
                     </p>
                   </div>
                 )}
@@ -292,15 +295,15 @@ function QuizRoomContent() {
                   <QuizResult
                     isCorrect={isCorrect}
                     quiz={currentQuiz}
-                    answererId={quizRoom.currentState.currentAnswerer || ''}
-                    participants={quizRoom.participants}
+                    answererId={displayRoom.currentState?.currentAnswerer || ''}
+                    participants={displayRoom.participants || {}}
                   />
                 )}
               </div>
             )}
 
             {/* 完了した場合 */}
-            {quizRoom.status === 'completed' && (
+            {displayRoom.status === 'completed' && (
               <div className="text-center py-8">
                 <h2 className="text-2xl font-bold mb-4">クイズが終了しました</h2>
                 <p className="text-gray-600 mb-6">
@@ -327,19 +330,19 @@ function QuizRoomContent() {
           </div>
 
           {/* クイズ進行状況 */}
-          {quizRoom.status === 'in_progress' && (
+          {displayRoom.status === 'in_progress' && (
             <div className="bg-white rounded-lg shadow-md p-4">
               <div className="flex justify-between items-center mb-2">
                 <span className="text-sm text-gray-600">問題の進行状況</span>
                 <span className="text-sm font-medium">
-                  {quizRoom.currentQuizIndex + 1} / {quizRoom.totalQuizCount}
+                  {(displayRoom.currentQuizIndex || 0) + 1} / {displayRoom.totalQuizCount || 0}
                 </span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2.5">
                 <div
                   className="bg-indigo-600 h-2.5 rounded-full"
                   style={{
-                    width: `${((quizRoom.currentQuizIndex + 1) / quizRoom.totalQuizCount) * 100}%`,
+                    width: `${(((displayRoom.currentQuizIndex || 0) + 1) / (displayRoom.totalQuizCount || 1)) * 100}%`,
                   }}
                 ></div>
               </div>

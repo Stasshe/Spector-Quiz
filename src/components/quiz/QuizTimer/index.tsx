@@ -19,6 +19,11 @@ export default function QuizTimer({ genre, isActive, onTimeUp, resetKey }: QuizT
   const lastResetKeyRef = useRef<string>(''); // 前回のresetKeyを記録
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
+  // ジャンルまたは制限時間が無効な場合は何も表示しない
+  if (!genre || totalTime <= 0) {
+    return null;
+  }
+
   // タイマーをリセット（resetKeyが変わった時のみ）
   useEffect(() => {
     if (resetKey && resetKey !== lastResetKeyRef.current) {

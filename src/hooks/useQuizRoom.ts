@@ -2,7 +2,7 @@
 
 import { doc, getDoc, onSnapshot, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { db } from '../config/firebase';
 import { useAuth } from '../context/AuthContext';
 import { useQuiz } from '../context/QuizContext';
@@ -1164,20 +1164,25 @@ export function useQuizRoom() {
       if (docSnap.exists()) {
         const roomData = docSnap.data() as QuizRoom;
         
-        setCurrentRoom(roomData);
-        setQuizRoom(roomData);
-        setIsLeader(roomData.roomLeaderId === currentUser.uid);
-        
-        // 現在のクイズを取得
-        if (roomData.status === 'in_progress' && roomData.currentState) {
-          await fetchCurrentQuizData(roomData);
+        // 安全にstateを更新
+        try {
+          setCurrentRoom(roomData);
+          setQuizRoom(roomData);
+          setIsLeader(roomData.roomLeaderId === currentUser.uid);
           
-          // 解答権の判定
-          const hasRight = 
-            roomData.currentState.currentAnswerer === currentUser.uid && 
-            roomData.currentState.answerStatus === 'answering';
-          
-          setHasAnsweringRight(hasRight);
+          // 現在のクイズを取得
+          if (roomData.status === 'in_progress' && roomData.currentState) {
+            await fetchCurrentQuizData(roomData);
+            
+            // 解答権の判定
+            const hasRight = 
+              roomData.currentState.currentAnswerer === currentUser.uid && 
+              roomData.currentState.answerStatus === 'answering';
+            
+            setHasAnsweringRight(hasRight);
+          }
+        } catch (error) {
+          console.error('ルーム状態更新エラー:', error);
         }
       } else {
         // ルームが削除された場合
@@ -1209,62 +1214,71 @@ export function useQuizRoom() {
     const [previousStatsUpdated, setPreviousStatsUpdated] = useState<boolean | undefined>(undefined);
     const [prevQuizIndex, setPrevQuizIndex] = useState<number>(-1);
     const [previousReadyForNext, setPreviousReadyForNext] = useState<boolean | undefined>(undefined);
+    const isSubscribed = useRef(true);
     
     useEffect(() => {
       if (!roomId) return;
+      isSubscribed.current = true;
       
       const roomRef = doc(db, 'quiz_rooms', roomId);
       const unsubscribe = onSnapshot(roomRef, (docSnap) => {
-        if (docSnap.exists()) {
+        try {
+          if (!isSubscribed.current) return;
+          
+          if (!docSnap.exists()) {
+            setRoom(null);
+            return;
+          }
+
           const roomData = docSnap.data() as Omit<QuizRoom, 'roomId'>;
           const roomWithId = { ...roomData, roomId: docSnap.id } as QuizRoom;
-          
-          // ルームのステータスが変わったかを確認
-          if (previousStatus !== null && previousStatus !== roomData.status) {
-            // ルームが完了状態になったら統計情報を更新
-            if (roomData.status === 'completed') {
-              updateUserStatsOnRoomComplete(docSnap.id).catch(err => {
-                console.error('統計更新エラー:', err);
-              });
-              
-              // statsUpdatedフラグが設定されない場合のバックアップとして機能
-              // 統計が更新されないエラーケースでも、ユーザーが画面に残されないようにする
-              console.log('クイズが完了しました。統計更新フラグが8秒以内に設定されない場合は自動リダイレクト実行します');
-              setTimeout(() => {
-                // 最新のルーム情報を取得して確認
-                getDoc(roomRef).then(latestSnapshot => {
-                  if (latestSnapshot.exists()) {
-                    const latestData = latestSnapshot.data();
-                    // statsUpdatedフラグが設定されていない場合のみリダイレクト
-                    if (!latestData.statsUpdated) {
-                      console.log('統計更新フラグが設定されていないため、バックアップリダイレクトを実行します');
+            
+            // ルームのステータスが変わったかを確認
+            if (previousStatus !== null && previousStatus !== roomData.status) {
+              // ルームが完了状態になったら統計情報を更新
+              if (roomData.status === 'completed') {
+                updateUserStatsOnRoomComplete(docSnap.id).catch(err => {
+                  console.error('統計更新エラー:', err);
+                });
+                
+                // statsUpdatedフラグが設定されない場合のバックアップとして機能
+                // 統計が更新されないエラーケースでも、ユーザーが画面に残されないようにする
+                console.log('クイズが完了しました。統計更新フラグが8秒以内に設定されない場合は自動リダイレクト実行します');
+                setTimeout(() => {
+                  // 最新のルーム情報を取得して確認
+                  getDoc(roomRef).then(latestSnapshot => {
+                    if (latestSnapshot.exists()) {
+                      const latestData = latestSnapshot.data();
+                      // statsUpdatedフラグが設定されていない場合のみリダイレクト
+                      if (!latestData.statsUpdated) {
+                        console.log('統計更新フラグが設定されていないため、バックアップリダイレクトを実行します');
+                        router.push('/quiz');
+                      }
+                    } else {
+                      // ルームが存在しなくなった場合もリダイレクト
                       router.push('/quiz');
                     }
-                  } else {
-                    // ルームが存在しなくなった場合もリダイレクト
+                  }).catch(err => {
+                    console.error('バックアップリダイレクトチェック中にエラー:', err);
+                    // エラー時はデフォルトでリダイレクト
                     router.push('/quiz');
-                  }
-                }).catch(err => {
-                  console.error('バックアップリダイレクトチェック中にエラー:', err);
-                  // エラー時はデフォルトでリダイレクト
-                  router.push('/quiz');
-                });
-              }, 8000);
+                  });
+                }, 8000);
+              }
             }
-          }
-          
-          // statsUpdatedフラグが変更されたか確認（undefinedからtrueへの変更も検出）
-          if ((previousStatsUpdated === undefined && roomData.statsUpdated === true) || 
-              (previousStatsUpdated === false && roomData.statsUpdated === true)) {
-            console.log('統計更新フラグが設定されました。クイズ選択画面に戻ります...');
-            // 統計更新完了時にクイズ選択画面にリダイレクト
-            router.push('/quiz');
-          }
-          
-          // クイズインデックスの変更を検知
-          if (prevQuizIndex !== -1 && prevQuizIndex !== roomData.currentQuizIndex) {
-            console.log(`問題が更新されました: ${prevQuizIndex} → ${roomData.currentQuizIndex}`);
-          }
+            
+            // statsUpdatedフラグが変更されたか確認（undefinedからtrueへの変更も検出）
+            if ((previousStatsUpdated === undefined && roomData.statsUpdated === true) || 
+                (previousStatsUpdated === false && roomData.statsUpdated === true)) {
+              console.log('統計更新フラグが設定されました。クイズ選択画面に戻ります...');
+              // 統計更新完了時にクイズ選択画面にリダイレクト
+              router.push('/quiz');
+            }
+            
+            // クイズインデックスの変更を検知
+            if (prevQuizIndex !== -1 && prevQuizIndex !== roomData.currentQuizIndex) {
+              console.log(`問題が更新されました: ${prevQuizIndex} → ${roomData.currentQuizIndex}`);
+            }
           
           // readyForNextQuestionフラグの検出 - リーダーでない場合に使用
           if (roomData.readyForNextQuestion === true && previousReadyForNext !== true && 
@@ -1323,19 +1337,19 @@ export function useQuizRoom() {
               fetchCurrentQuizData(roomWithId);
             }
           }
-        } else {
-          // ルームが削除された場合はリダイレクトと状態クリア
-          setRoom(null);
-          setQuizRoom(null);
-          setWaitingRoom(null);
-          router.push('/quiz');
+        } catch (error) {
+          console.error('Room listener error:', error);
+          setError('ルーム情報の取得中にエラーが発生しました');
         }
       }, (error) => {
-        console.error('Room listener error:', error);
+        console.error('Room onSnapshot error:', error);
         setError('ルーム情報の取得中にエラーが発生しました');
       });
       
-      return () => unsubscribe();
+      return () => {
+        isSubscribed.current = false;
+        unsubscribe();
+      };
     }, [roomId, currentUser, router, previousStatus, previousStatsUpdated, previousReadyForNext, prevQuizIndex, setQuizRoom, setIsLeader, setHasAnsweringRight, setWaitingRoom, goToNextQuiz]);
     
     return room;
