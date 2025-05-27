@@ -21,6 +21,7 @@ import {
   getRoomById,
   joinRoom,
   leaveRoom,
+  subscribeToAvailableRooms,
   updateUserStatsOnRoomComplete
 } from '../services/quizRoom';
 
@@ -897,6 +898,43 @@ export function useQuizRoom() {
   }, [currentUser, userProfile, currentWaitingRoomId, joinCreatedRoom, getRoomById, confirmRoomSwitch, roomToJoin]);
 
   /**
+   * リアルタイムでルーム一覧を監視する
+   * @returns 登録解除用の関数
+   */
+  const subscribeToRoomList = useCallback((
+    genre: string, 
+    classType: string = 'ユーザー作成',
+    onRoomsUpdate: (rooms: RoomListing[]) => void,
+    onError?: (error: Error) => void
+  ) => {
+    console.log(`[useQuizRoom] ルーム一覧リアルタイム監視を開始: ${genre}, ${classType}`);
+    
+    try {
+      // リアルタイムリスナーを設定
+      const unsubscribe = subscribeToAvailableRooms(
+        genre, 
+        classType, 
+        (rooms: RoomListing[]) => {
+          setAvailableRooms(rooms);
+          onRoomsUpdate(rooms);
+        },
+        (error: Error) => {
+          setError('ルーム一覧の監視中にエラーが発生しました');
+          if (onError) onError(error);
+        }
+      );
+      
+      // 登録解除用の関数を返す
+      return unsubscribe;
+    } catch (err) {
+      console.error('[useQuizRoom] ルーム一覧監視の設定エラー:', err);
+      setError('ルーム一覧の監視を開始できませんでした');
+      // 空のunsubscribe関数を返す
+      return () => {};
+    }
+  }, []);
+
+  /**
    * 準備状態を切り替える
    */
   const toggleReadyStatus = useCallback(async (roomId: string, isReady: boolean) => {
@@ -1430,6 +1468,7 @@ export function useQuizRoom() {
 
     // ルーム管理
     fetchRoomList,
+    subscribeToRoomList, // リアルタイム監視を追加
     createNewRoom,
     joinExistingRoom,
     exitRoom,

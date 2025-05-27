@@ -8,7 +8,8 @@ import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import {
   cleanupRoomAnswersById,
   fetchAvailableRooms,
-  updateUserStatsOnRoomComplete as updateRoomStats
+  updateUserStatsOnRoomComplete as updateRoomStats,
+  subscribeToAvailableRooms
 } from './roomService';
 
 
@@ -164,7 +165,7 @@ export const findOrCreateRoomWithUnit = async (
 
 // roomService.ts からエクスポート
 export {
-  fetchAvailableRooms
+  fetchAvailableRooms,subscribeToAvailableRooms
 };
 
 // participationService.ts からエクスポート

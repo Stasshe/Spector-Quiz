@@ -34,7 +34,8 @@ export default function QuizPage() {
   const { currentUser, userProfile } = useAuth();
   const { 
     findOrCreateNewRoom, 
-    fetchRoomList, 
+    fetchRoomList,
+    subscribeToRoomList,
     joinExistingRoom: joinRoom,
     confirmRoomSwitch,
     currentWaitingRoomId,
@@ -83,28 +84,39 @@ export default function QuizPage() {
     }
   }, [selectedClassType, selectedGenre, fetchUnitsForGenre, units]);
 
-  // 選択されたジャンルが変更されたときに待機中のルームを取得
+  // リアルタイムでルーム一覧を監視
   useEffect(() => {
+    let unsubscribe: () => void;
+    
     if (selectedGenre) {
-      fetchWaitingRooms();
+      console.log(`[QuizPage] ルーム一覧のリアルタイム監視を開始: ${selectedGenre}, ${selectedClassType}`);
+      
+      unsubscribe = subscribeToRoomList(
+        selectedGenre,
+        selectedClassType,
+        (rooms) => {
+          console.log(`[QuizPage] リアルタイム更新: ${rooms.length}件のルームを取得`);
+          setWaitingRooms(rooms);
+          setLoading(false);
+        },
+        (error) => {
+          console.error('[QuizPage] ルーム監視エラー:', error);
+          // エラー発生時は通常のフェッチにフォールバック
+          fetchWaitingRooms();
+        }
+      );
     }
-  }, [selectedGenre, selectedClassType]);
-
-  // 定期的なルーム情報更新 (60秒ごと)
-  useEffect(() => {
-    // 初回フェッチはジャンル変更時のuseEffectで行う
     
-    // 60秒ごとに更新
-    const interval = setInterval(() => {
-      if (selectedGenre) {
-        fetchWaitingRooms();
+    // クリーンアップ関数
+    return () => {
+      if (unsubscribe) {
+        console.log('[QuizPage] ルーム一覧のリアルタイム監視を停止');
+        unsubscribe();
       }
-    }, 60000); // 60秒間隔
-    
-    return () => clearInterval(interval);
-  }, [selectedGenre]);
+    };
+  }, [selectedGenre, selectedClassType, subscribeToRoomList]);
 
-  // 待機中のルームを取得
+  // 待機中のルームを取得（リアルタイム監視のバックアップとして）
   const fetchWaitingRooms = async () => {
     if (!selectedGenre) return;
     
@@ -119,6 +131,8 @@ export default function QuizPage() {
     const rooms = await fetchRoomList(selectedGenre, selectedClassType);
     setWaitingRooms(rooms);
     setLoading(false);
+    
+    console.log(`[QuizPage] ルーム一覧を手動更新: ${rooms.length}件のルームを取得`);
   };
 
   // アイコン定義

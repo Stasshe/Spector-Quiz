@@ -1,4 +1,3 @@
-
 import {
   collection,
   deleteDoc,
@@ -7,6 +6,7 @@ import {
   getDocs,
   increment,
   limit,
+  onSnapshot,
   orderBy,
   query,
   runTransaction,
@@ -241,5 +241,83 @@ export async function cleanupRoomAnswersById(roomId: string): Promise<boolean> {
   } catch (err) {
     console.error(`[cleanupRoomAnswers] エラー:`, err);
     return false;
+  }
+}
+
+
+/**
+ * 利用可能なルームを監視するリアルタイムリスナーを設定
+ * onSnapshotを使用して、データの変更があるたびにコールバックが呼び出される
+ */
+export function subscribeToAvailableRooms(
+  genre: string,
+  classType: string = 'ユーザー作成',
+  callback: (rooms: RoomListing[]) => void,
+  onError?: (error: Error) => void
+) {
+  try {
+    let roomsQuery;
+    
+    if (genre === 'all') {
+      // 「すべて」の場合はジャンルフィルタを外す
+      roomsQuery = query(
+        collection(db, 'quiz_rooms'),
+        where('status', '==', 'waiting'),
+        where('classType', '==', classType),
+        orderBy('startedAt', 'desc'),
+        limit(50)
+      );
+    } else {
+      // 特定のジャンルのルームを取得
+      roomsQuery = query(
+        collection(db, 'quiz_rooms'),
+        where('status', '==', 'waiting'),
+        where('genre', '==', genre),
+        where('classType', '==', classType),
+        orderBy('startedAt', 'desc'),
+        limit(50)
+      );
+    }
+    
+    // onSnapshotを使用してリアルタイムリスナーを設定
+    return onSnapshot(
+      roomsQuery,
+      (roomsSnapshot) => {
+        const rooms: RoomListing[] = [];
+        
+        roomsSnapshot.forEach(roomDoc => {
+          const roomData = roomDoc.data() as QuizRoom;
+          
+          // パフォーマンスのためにparticipantsをフルで含めず、数だけカウント
+          const participantCount = roomData.participants ? Object.keys(roomData.participants).length : 0;
+          
+          // FirestoreからのデータにunitNameがあるかもしれないので、asで強制キャストしても取得
+          const roomDataAny = roomDoc.data() as any;
+          
+          rooms.push({
+            roomId: roomDoc.id,
+            unitId: roomData.unitId || 'error',
+            unitName: roomDataAny.unitName, // Firestoreのデータから単元名を取得
+            name: roomData.name || '無名のルーム',
+            genre: roomData.genre,
+            participantCount,
+            totalQuizCount: roomData.totalQuizCount || 0,
+            status: roomData.status,
+          });
+        });
+        
+        // コールバックで結果を返す
+        callback(rooms);
+      },
+      (error) => {
+        console.error('Error listening to available rooms:', error);
+        if (onError) onError(error);
+      }
+    );
+  } catch (err) {
+    console.error('Error setting up room listener:', err);
+    if (onError) onError(err instanceof Error ? err : new Error('リスナー設定中に未知のエラーが発生しました'));
+    // 空のunsubscribe関数を返す
+    return () => {};
   }
 }
