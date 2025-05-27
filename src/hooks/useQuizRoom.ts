@@ -23,6 +23,7 @@ import {
   createRoomWithUnit,
   joinRoom,
   leaveRoom,
+  cleanupRoomAnswers,
   findOrCreateRoom,
   findOrCreateRoomWithUnit,
   updateParticipantReadyStatus,
@@ -467,6 +468,12 @@ export function useQuizRoom() {
         // エラー時はデフォルトのリーダー情報を使用
       }
       
+      // ルームリーダーの場合は、answersサブコレクションのクリーンアップを実行
+      if (isLeaderOfRoom) {
+        console.log(`[exitRoom] リーダーとしてルーム(${actualRoomId})のanswersコレクションをクリーンアップします`);
+        await cleanupRoomAnswers(actualRoomId as string);
+      }
+      
       const success = await leaveRoom(
         actualRoomId as string, // 型アサーション (ここでnullの場合は上の条件でリターンするため安全)
         currentUser.uid, 
@@ -577,6 +584,17 @@ export function useQuizRoom() {
         
         // 退出処理を行う（ルーム情報の取得に失敗した場合はスキップ）
         if (currentRoomData) {
+          // リーダーの場合はanswersコレクションをクリーンアップ
+          if (isLeaderOfCurrentRoom) {
+            try {
+              console.log(`[RoomSwitch] リーダーとしてルーム(${actualCurrentRoomId})のanswersコレクションをクリーンアップします`);
+              await cleanupRoomAnswers(actualCurrentRoomId);
+            } catch (cleanupErr) {
+              console.error('[RoomSwitch] answersクリーンアップ中にエラー:', cleanupErr);
+              // エラーがあっても続行
+            }
+          }
+          
           try {
             console.log(`[RoomSwitch] leaveRoom(${actualCurrentRoomId}, ${currentUser.uid}, ${isLeaderOfCurrentRoom})を呼び出します`);
             const leaveResult = await leaveRoom(

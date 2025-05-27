@@ -7,7 +7,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { useQuiz } from '@/context/QuizContext';
 import { useQuizHook } from '@/hooks/useQuiz';
 import { useQuizRoom } from '@/hooks/useQuizRoom';
-import { getUnitIdByName } from '@/services/quizRoom';
 import { genreClasses } from '@/constants/genres';
 import RoomSwitchConfirmModal from '@/components/layout/RoomSwitchConfirmModal';
 import { 
@@ -183,16 +182,13 @@ export default function QuizPage() {
   };
 
   // 単元でプレイする
-  const playWithUnit = async (genre: string, unit: string) => {
+  const playWithUnit = async (genre: string, unitName: string, unitId: string) => {
     try {
       setLoading(true);
       
       try {
-        // 単元名からUnitIDを取得（選択中のクラスタイプを渡す）
-        const unitId = await getUnitIdByName(genre, unit, selectedClassType);
-        
         if (!unitId) {
-          throw new Error(`単元「${unit}」のIDの取得に失敗しました。管理者に連絡してください。`);
+          throw new Error(`単元「${unitName}」のIDが見つかりません。管理者に連絡してください。`);
         }
         
         // 現在待機中のルームがある場合はfindOrCreateNewRoomに任せて、
@@ -522,73 +518,34 @@ export default function QuizPage() {
                     {Object.entries(units[`${selectedGenre}_${selectedClassType}`] || {}).map(([category, unitList]) => (
                       <div key={category} className="mb-6">
                         <h4 className="font-medium text-gray-700 mb-2">{category}</h4>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">{
-                            Array.isArray(unitList) ? (
-                            // 配列の場合（期待される形式）
-                            unitList.map((unit: string) => {
-                              const waitingRoomCount = getWaitingRoomCountForUnit(unit);
-                              const waitingPlayerCount = getWaitingPlayersForUnit(unit);
-                              
-                              return (
-                              <div 
-                                key={unit} 
-                                className={`border ${waitingRoomCount > 0 ? 'border-green-200 bg-green-50' : 'border-gray-200'} rounded-xl p-4 hover:border-indigo-200 hover:shadow-md transition-all duration-200`}
-                              >
-                                <div className="flex justify-between items-start mb-3">
-                                  <h5 className="font-medium text-gray-800">{unit}</h5>
-                                  {waitingRoomCount > 0 && (
-                                    <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full flex items-center">
-                                      <FaUsers className="mr-1" /> {waitingPlayerCount}人待機中
-                                    </span>
-                                  )}
-                                </div>
-                                <div className="flex justify-center">
-                                  <button
-                                    onClick={() => playWithUnit(selectedGenre, unit)}
-                                    className="w-full flex items-center justify-center p-2 rounded-lg bg-indigo-500 text-white hover:bg-indigo-600 transition-colors"
-                                  >
-                                    <FaPlay className="mr-2" /> {waitingRoomCount > 0 ? '参加する' : 'プレイする'}
-                                  </button>
-                                </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                          {unitList.map((unit) => {
+                            const waitingRoomCount = getWaitingRoomCountForUnit(unit.name);
+                            const waitingPlayerCount = getWaitingPlayersForUnit(unit.name);
+                            
+                            return (
+                            <div 
+                              key={unit.id || unit.name} 
+                              className={`border ${waitingRoomCount > 0 ? 'border-green-200 bg-green-50' : 'border-gray-200'} rounded-xl p-4 hover:border-indigo-200 hover:shadow-md transition-all duration-200`}
+                            >
+                              <div className="flex justify-between items-start mb-3">
+                                <h5 className="font-medium text-gray-800">{unit.name}</h5>
+                                {waitingRoomCount > 0 && (
+                                  <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full flex items-center">
+                                    <FaUsers className="mr-1" /> {waitingPlayerCount}人待機中
+                                  </span>
+                                )}
                               </div>
-                            )})
-                          ) : typeof unitList === 'object' && unitList !== null ? (
-                            // オブジェクトの場合（代替フォーマット）
-                            Object.keys(unitList).map((unitKey) => {
-                              const unit = unitKey;
-                              const waitingRoomCount = getWaitingRoomCountForUnit(unit);
-                              const waitingPlayerCount = getWaitingPlayersForUnit(unit);
-                              
-                              return (
-                              <div 
-                                key={unit} 
-                                className={`border ${waitingRoomCount > 0 ? 'border-green-200 bg-green-50' : 'border-gray-200'} rounded-xl p-4 hover:border-indigo-200 hover:shadow-md transition-all duration-200`}
-                              >
-                                <div className="flex justify-between items-start mb-3">
-                                  <h5 className="font-medium text-gray-800">{unit}</h5>
-                                  {waitingRoomCount > 0 && (
-                                    <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full flex items-center">
-                                      <FaUsers className="mr-1" /> {waitingPlayerCount}人待機中
-                                    </span>
-                                  )}
-                                </div>
-                                <div className="flex justify-center">
-                                  <button
-                                    onClick={() => playWithUnit(selectedGenre, unit)}
-                                    className="w-full flex items-center justify-center p-2 rounded-lg bg-indigo-500 text-white hover:bg-indigo-600 transition-colors"
-                                  >
-                                    <FaPlay className="mr-2" /> {waitingRoomCount > 0 ? '参加する' : 'プレイする'}
-                                  </button>
-                                </div>
+                              <div className="flex justify-center">
+                                <button
+                                  onClick={() => playWithUnit(selectedGenre, unit.name, unit.id)}
+                                  className="w-full flex items-center justify-center p-2 rounded-lg bg-indigo-500 text-white hover:bg-indigo-600 transition-colors"
+                                >
+                                  <FaPlay className="mr-2" /> {waitingRoomCount > 0 ? '参加する' : 'プレイする'}
+                                </button>
                               </div>
-                            )})
-                          ) : (
-                            // どちらでもない場合はエラーメッセージを表示
-                            <div className="col-span-3 p-4 bg-red-50 border border-red-200 rounded-lg">
-                              <p className="text-red-600">単元データが正しく読み込まれませんでした。更新してください。</p>
-                              <p className="text-gray-500 text-sm">受信データ型: {typeof unitList}</p>
                             </div>
-                          )}
+                          )})}
                         </div>
                       </div>
                     ))}

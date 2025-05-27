@@ -26,6 +26,7 @@ import {
   writeBatch
 } from 'firebase/firestore';
 import { useCallback, useEffect } from 'react';
+import { cleanupRoomAnswers } from '@/services/quizRoom';
 
 export function useLeader(roomId: string) {
   const { isLeader, quizRoom, currentQuiz, setCurrentQuiz, setShowChoices } = useQuiz();
@@ -636,23 +637,15 @@ export function useLeader(roomId: string) {
           try {
             // ルーム内の回答データを削除
             const answersRef = collection(db, 'quiz_rooms', roomId, 'answers');
+            const answersSnapshot = await getDocs(answersRef);
             
-            // まず回答数を確認（小さなバッチで取得）
-            const countQuery = query(answersRef, limit(50));
-            const countSnap = await getDocs(countQuery);
-            
-            if (!countSnap.empty) {
-              console.log(`Deleting answers from room ${roomId}`);
+            if (!answersSnapshot.empty) {
+              console.log(`Deleting ${answersSnapshot.size} answers from room ${roomId}`);
               
-              // 一度に少数の回答だけを削除する
-              for (const doc of countSnap.docs) {
-                try {
-                  await deleteDoc(doc.ref);
-                } catch (deleteAnswerError) {
-                  console.warn(`Failed to delete answer ${doc.id}:`, deleteAnswerError);
-                  // 個別の回答削除エラーは無視
-                }
-              }
+              // 並列に削除処理を実行
+              const deletePromises = answersSnapshot.docs.map(doc => deleteDoc(doc.ref));
+              await Promise.allSettled(deletePromises);
+              console.log(`Successfully deleted all answers from room ${roomId}`);
             }
           } catch (answersError) {
             console.warn('Failed to cleanup answers, continuing with room deletion:', answersError);

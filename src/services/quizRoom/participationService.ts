@@ -8,7 +8,9 @@ import {
   deleteField,
   doc,
   getDoc,
+  collection,
   serverTimestamp,
+  getDocs,
   updateDoc
 } from 'firebase/firestore';
 
@@ -206,6 +208,24 @@ export async function leaveRoomService(
       } catch (participantErr) {
         console.error('[leaveRoomService] 参加者の更新中にエラー:', participantErr);
         // エラーが発生しても続行
+      }
+      
+      // まずanswersサブコレクションを削除
+      try {
+        const answersRef = collection(db, 'quiz_rooms', roomId, 'answers');
+        const answersSnapshot = await getDocs(answersRef);
+        
+        if (!answersSnapshot.empty) {
+          console.log(`[leaveRoomService] ルーム(${roomId})の回答データ(${answersSnapshot.size}件)を削除します`);
+          
+          // バッチ処理で回答を削除
+          const deletePromises = answersSnapshot.docs.map(doc => deleteDoc(doc.ref));
+          await Promise.allSettled(deletePromises);
+          console.log(`[leaveRoomService] ルーム(${roomId})の回答データを削除しました`);
+        }
+      } catch (answersErr) {
+        console.warn(`[leaveRoomService] ルーム(${roomId})の回答データ削除中にエラー:`, answersErr);
+        // 回答削除のエラーは無視して続行
       }
       
       // ルームを削除

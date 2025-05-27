@@ -1,5 +1,4 @@
-'use client';
-
+// filepath: /workspaces/Spector-Quiz/src/services/quizRoom/roomService.ts
 import {
   collection,
   doc,
@@ -7,112 +6,101 @@ import {
   getDocs,
   query,
   where,
+  limit,
   orderBy,
-  addDoc,
-  updateDoc,
   deleteDoc,
-  //deleteField,
-  //onSnapshot, 
+  updateDoc,
+  deleteField,
   serverTimestamp,
-  increment,
-  runTransaction,
   Timestamp,
-  limit
+  runTransaction,
+  increment
 } from 'firebase/firestore';
-import { db } from '@/config/firebase';
-import { QuizRoom, RoomListing } from '@/types/room';
-import { TIMING } from '@/config/quizConfig';
+import { TIMING } from '../../config/quizConfig';
+import { db } from '../../config/firebase';
 
-
-// 8分（ミリ秒）- WaitingRoomFloating.tsxと同期を保つ
-
-
-// ------ ルーム取得関連のサービス関数 ------
+import type { RoomListing, QuizRoom } from '../../types/room';
+import type { Quiz } from '../../types/quiz';
 
 /**
- * 利用可能なルーム一覧を取得
+ * 指定されたIDのルームを取得
  */
-export async function fetchAvailableRooms(genre: string, classType: string): Promise<RoomListing[]> {
+export async function getRoomById(roomId: string): Promise<QuizRoom | null> {
   try {
-    // 古いルームを自動解散チェック
-    await checkAndDisbandOldRooms();
+    const roomRef = doc(db, 'quiz_rooms', roomId);
+    const roomSnap = await getDoc(roomRef);
     
-    const roomsQuery = query(
-      collection(db, 'quiz_rooms'),
-      where('status', '==', 'waiting'),
-      where('genre', '==', genre),
-      orderBy('startedAt', 'desc')
-    );
+    if (roomSnap.exists()) {
+      const roomData = roomSnap.data() as QuizRoom;
+      return {
+        ...roomData,
+        roomId: roomSnap.id
+      };
+    }
+    
+    return null;
+  } catch (err) {
+    console.error('Error getting room:', err);
+    throw new Error('ルームの取得中にエラーが発生しました');
+  }
+}
+
+/**
+ * 利用可能なルームを取得
+ */
+export async function fetchAvailableRooms(
+  genre: string,
+  classType: string = 'ユーザー作成'
+): Promise<RoomListing[]> {
+  try {
+    let roomsQuery;
+    
+    if (genre === 'all') {
+      // 「すべて」の場合はジャンルフィルタを外す
+      roomsQuery = query(
+        collection(db, 'quiz_rooms'),
+        where('status', '==', 'waiting'),
+        where('classType', '==', classType),
+        orderBy('startedAt', 'desc'),
+        limit(50)
+      );
+    } else {
+      // 特定のジャンルのルームを取得
+      roomsQuery = query(
+        collection(db, 'quiz_rooms'),
+        where('status', '==', 'waiting'),
+        where('genre', '==', genre),
+        where('classType', '==', classType),
+        orderBy('startedAt', 'desc'),
+        limit(50)
+      );
+    }
     
     const roomsSnapshot = await getDocs(roomsQuery);
     
-    // 事前にすべての単元IDを収集
-    const unitIds = new Set<string>();
-    const unitCache: { [unitId: string]: { title: string } } = {};
-    
-    // まず、必要な単元IDを集める
-    roomsSnapshot.docs.forEach(docSnap => {
-      const data = docSnap.data();
-      if (data.unitId && data.unitId !== '') {
-        unitIds.add(`${data.genre}:${data.unitId}`);
-      }
-    });
-    
-    // 単元情報を一括でフェッチ（必要な場合のみ）
-    if (unitIds.size > 0) {
-      // Promise.allで並列処理
-      const unitPromises = Array.from(unitIds).map(async (combinedId) => {
-        const [genreId, unitId] = combinedId.split(':');
-        const unitRef = doc(db, 'genres', genreId, 'quiz_units', unitId);
-        try {
-          const unitSnap = await getDoc(unitRef);
-          if (unitSnap.exists()) {
-            unitCache[combinedId] = { 
-              title: unitSnap.data().title || '不明な単元'
-            };
-          } else {
-            unitCache[combinedId] = { title: '削除された単元' };
-          }
-        } catch (err) {
-          console.error(`Error fetching unit ${combinedId}:`, err);
-          unitCache[combinedId] = { title: 'エラー' };
-        }
-      });
-      
-      await Promise.all(unitPromises);
-    }
-    
-    // ルーム情報を構築
     const rooms: RoomListing[] = [];
     
-    for (const docSnap of roomsSnapshot.docs) {
-      const data = docSnap.data();
-      const participantCount = data.participants ? Object.keys(data.participants).length : 0;
+    roomsSnapshot.forEach(roomDoc => {
+      const roomData = roomDoc.data() as QuizRoom;
       
-      // 単元情報を取得
-      let unitName = '一般';
-      if (data.unitId && data.unitId !== '') {
-        const cacheKey = `${data.genre}:${data.unitId}`;
-        if (unitCache[cacheKey]) {
-          unitName = unitCache[cacheKey].title;
-        }
-      }
+      // パフォーマンスのためにparticipantsをフルで含めず、数だけカウント
+      const participantCount = roomData.participants ? Object.keys(roomData.participants).length : 0;
       
       rooms.push({
-        roomId: docSnap.id,
-        name: data.name || 'No Name Room',
-        genre: data.genre,
-        unitId: data.unitId || '',
-        unitName, // 単元名をルーム一覧に追加
+        roomId: roomDoc.id,
+        unitId: roomData.unitId || 'error',
+        name: roomData.name || '無名のルーム',
+        genre: roomData.genre,
         participantCount,
-        status: data.status
+        totalQuizCount: roomData.totalQuizCount || 0,
+        status: roomData.status,
       });
-    }
+    });
     
     return rooms;
   } catch (err) {
-    console.error('Error fetching rooms:', err);
-    throw new Error('ルーム一覧の取得中にエラーが発生しました');
+    console.error('Error fetching available rooms:', err);
+    throw new Error('利用可能なルームの取得中にエラーが発生しました');
   }
 }
 
@@ -180,6 +168,24 @@ export async function checkAndDisbandOldRooms(
           }
         }
         
+        // まずanswersサブコレクションを削除
+        try {
+          const answersRef = collection(db, 'quiz_rooms', roomDoc.id, 'answers');
+          const answersSnapshot = await getDocs(answersRef);
+          
+          if (!answersSnapshot.empty) {
+            console.log(`ルーム ${roomDoc.id} の回答データ(${answersSnapshot.size}件)を削除します`);
+            
+            // バッチ処理で回答を削除
+            const deletePromises = answersSnapshot.docs.map(doc => deleteDoc(doc.ref));
+            await Promise.allSettled(deletePromises);
+            console.log(`ルーム ${roomDoc.id} の回答データを削除しました`);
+          }
+        } catch (answersErr) {
+          console.warn(`ルーム ${roomDoc.id} の回答データ削除中にエラー:`, answersErr);
+          // 回答削除のエラーは無視して続行
+        }
+        
         // ルームを削除（リーダーまたは管理者権限がある場合のみ可能）
         try {
           await deleteDoc(roomDoc.ref);
@@ -236,99 +242,6 @@ export async function checkAndDisbandOldRooms(
 }
 
 /**
- * 特定の単元IDを名前から取得する
- */
-export async function getUnitIdByName(genre: string, unitName: string, classType: string = '公式'): Promise<string | null> {
-  try {
-    // クラスタイプに応じてコレクション名を決定
-    // '公式' の場合は official_quiz_units コレクション
-    // それ以外の場合は quiz_units コレクション
-    const collectionName = classType === '公式' ? 'official_quiz_units' : 'quiz_units';
-    console.log(`[getUnitIdByName] ジャンル: ${genre}, 単元名: ${unitName}, クラスタイプ: ${classType}, コレクション: ${collectionName}`);
-    
-    const unitsQuery = query(
-      collection(db, 'genres', genre, collectionName),
-      where('title', '==', unitName),
-      limit(1)
-    );
-    
-    const unitsSnapshot = await getDocs(unitsQuery);
-    
-    if (!unitsSnapshot.empty) {
-      const unitId = unitsSnapshot.docs[0].id;
-      console.log(`[getUnitIdByName] 単元ID取得成功: ${unitId}`);
-      return unitId;
-    }
-    
-    console.error(`[getUnitIdByName] 単元が見つかりません。ジャンル: ${genre}, 単元名: ${unitName}, クラスタイプ: ${classType}`);
-    return null;
-  } catch (err) {
-    console.error(`Error getting unit ID for ${unitName}:`, err);
-    throw new Error('単元IDの取得中にエラーが発生しました');
-  }
-}
-
-/**
- * 単元がなければ作成する
- */
-export async function createUnitIfNotExists(
-  currentUserId: string | null,
-  genreId: string, 
-  unitName: string, 
-  category: string = 'その他'
-): Promise<string> {
-  if (!currentUserId) {
-    throw new Error('この操作にはログインが必要です');
-  }
-  
-  try {
-    // まず、同じ名前の単元が存在するか確認
-    const unitsQuery = query(
-      collection(db, 'genres', genreId, 'quiz_units'),
-      where('title', '==', unitName),
-      limit(1)
-    );
-    
-    const unitsSnapshot = await getDocs(unitsQuery);
-    
-    // 既に存在する場合はそのIDを返す
-    if (!unitsSnapshot.empty) {
-      return unitsSnapshot.docs[0].id;
-    }
-    
-    // 存在しない場合は新規作成
-    const newUnit = {
-      title: unitName,
-      description: `${unitName}に関するクイズ集`,
-      category: category,
-      createdBy: currentUserId,
-      createdAt: serverTimestamp(),
-      quizCount: 0,
-      useCount: 0,
-      isPublic: false
-    };
-    
-    const unitRef = await addDoc(collection(db, 'genres', genreId, 'quiz_units'), newUnit);
-    return unitRef.id;
-  } catch (err) {
-    console.error(`Error creating unit ${unitName}:`, err);
-    throw new Error('単元の作成中にエラーが発生しました');
-  }
-}
-
-/**
- * 経験値からランクを計算する関数
- */
-export function calculateRank(exp: number): string {
-  if (exp < 100) return 'ブロンズ';
-  if (exp < 300) return 'シルバー';
-  if (exp < 600) return 'ゴールド';
-  if (exp < 1000) return 'プラチナ';
-  if (exp < 2000) return 'ダイヤモンド';
-  return 'レジェンド';
-}
-
-/**
  * ルームが完了したとき（全問終了時）に統計を更新する関数
  * @returns {boolean} 統計が更新されたかどうか
  */
@@ -362,24 +275,20 @@ export async function updateUserStatsOnRoomComplete(
     const userPerfomance = roomData.participants[currentUserId];
     const score = userPerfomance.score || 0;
     
-    // ユーザー情報を直接更新（user_statsの代わりにusersコレクションに統計情報を保存）
+    // ユーザーとジャンル情報の参照を取得
     const userRef = doc(db, 'users', currentUserId);
+    const userDoc = await getDoc(userRef);
     
-    // トランザクションで安全に更新
+    let genreRef = null;
+    let genreSnap = null;
+    
+    if (roomData.genre) {
+      genreRef = doc(db, 'genres', roomData.genre);
+      genreSnap = await getDoc(genreRef);
+    }
+    
+    // トランザクションで統計情報を更新
     await runTransaction(db, async (transaction) => {
-      // 1. すべての読み取り操作を先に実行 ----------------------------------------
-      // ユーザー情報を読み取り
-      const userDoc = await transaction.get(userRef);
-      
-      // ジャンルと単元の情報を読み取り（条件付き）
-      let genreRef;
-      let genreSnap;
-      if (roomData.genre) {
-        genreRef = doc(db, 'genres', roomData.genre);
-        genreSnap = await transaction.get(genreRef);
-      }
-      
-      // 2. すべての書き込み操作を後で実行 ----------------------------------------
       // スコアに基づいて加算するEXP計算
       let expToAdd = Math.floor(score / 100);
       
@@ -431,15 +340,68 @@ export async function updateUserStatsOnRoomComplete(
           }
         } else {
           // ジャンルデータが存在しないケース（通常は発生しないはず）
-          console.error('ジャンルが存在しないため統計更新をスキップします');
+          console.error(`ジャンル ${roomData.genre} が存在しないため、統計更新をスキップします`);
         }
       }
+      
+      // ルーム自体に統計更新完了フラグを設定
+      transaction.update(roomRef, {
+        statsUpdated: true,
+        updatedAt: serverTimestamp()
+      });
     });
+    
+    // ルームの統計更新が完了
+    console.log('ルーム統計の更新が完了しました');
+    return true;
   } catch (err) {
-    console.error('Error updating user stats:', err);
-    throw new Error('統計の更新中にエラーが発生しました');
+    console.error('ルーム統計の更新中にエラーが発生しました:', err);
+    return false;
   }
-  
-  // 更新が完了したらtrueを返す
-  return true;
+}
+
+
+/**
+ * ルームのanswersサブコレクションを削除するユーティリティ関数
+ * ルーム削除前に呼び出すことで、サブコレクション残りを防止できる
+ */
+export async function cleanupRoomAnswersById(roomId: string): Promise<boolean> {
+  try {
+    // ルームが存在するか確認
+    const roomRef = doc(db, 'quiz_rooms', roomId);
+    const roomSnap = await getDoc(roomRef);
+    
+    if (!roomSnap.exists()) {
+      console.log(`[cleanupRoomAnswers] ルーム ${roomId} は既に存在しません`);
+      return true; // 既に削除されているなら成功とみなす
+    }
+    
+    // answersサブコレクションの削除
+    const answersRef = collection(db, 'quiz_rooms', roomId, 'answers');
+    const answersSnapshot = await getDocs(answersRef);
+    
+    if (answersSnapshot.empty) {
+      console.log(`[cleanupRoomAnswers] ルーム ${roomId} には回答データがありません`);
+      return true;
+    }
+    
+    console.log(`[cleanupRoomAnswers] ルーム ${roomId} の回答データ(${answersSnapshot.size}件)を削除します`);
+    
+    // バッチ処理で回答を削除
+    const deletePromises = answersSnapshot.docs.map(doc => deleteDoc(doc.ref));
+    const results = await Promise.allSettled(deletePromises);
+    
+    // エラーの数を確認
+    const errors = results.filter(r => r.status === 'rejected');
+    if (errors.length > 0) {
+      console.warn(`[cleanupRoomAnswers] ${errors.length}個の回答の削除に失敗しました`);
+      return false;
+    }
+    
+    console.log(`[cleanupRoomAnswers] ルーム ${roomId} の回答データを全て削除しました`);
+    return true;
+  } catch (err) {
+    console.error(`[cleanupRoomAnswers] エラー:`, err);
+    return false;
+  }
 }

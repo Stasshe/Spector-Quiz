@@ -6,12 +6,15 @@ import { Quiz } from '@/types/quiz';
 import { collection, doc, getDoc, getDocs, increment, setDoc, updateDoc } from 'firebase/firestore';
 import { useCallback, useEffect, useState } from 'react';
 
+// 単元データの型を拡張して単元名とIDを両方保持できるようにする
+type UnitData = { name: string; id: string };
+
 export function useQuizHook() {
   const { currentQuiz, setCurrentQuiz, quizRoom } = useQuizContext();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [genres, setGenres] = useState<string[]>([]);
-  const [units, setUnits] = useState<{ [genre: string]: { [category: string]: string[] } }>({});
+  const [units, setUnits] = useState<{ [genre: string]: { [category: string]: UnitData[] } }>({});
 
   // 特定のジャンルの単元を取得（クラスタイプ別）
   const fetchUnitsForGenre = useCallback(async (genreId: string, classType: string = '公式') => {
@@ -27,17 +30,20 @@ export function useQuizHook() {
         
         // ユーザー作成単元はカテゴリなしでフラットに表示
         // ゆえに、一つのカテゴリに全単元を入れる
-        const unitList: string[] = [];
+        const unitList: {name: string, id: string}[] = [];
         
         unitsSnap.forEach(unitDoc => {
           const unitData = unitDoc.data();
           if (unitData.title) {
-            unitList.push(unitData.title);
+            unitList.push({
+              name: unitData.title,
+              id: unitDoc.id
+            });
           }
         });
         
         // カテゴリマップを作成（カテゴリは「単元」のみで全てフラット）
-        const categoryMap: { [category: string]: string[] } = {
+        const categoryMap: { [category: string]: {name: string, id: string}[] } = {
           '単元': unitList
         };
         
@@ -71,30 +77,69 @@ export function useQuizHook() {
               delete filteredUnits['ユーザー作成'];
             }
             
-            // クラスタイプごとに分けて保存
-            setUnits(prevUnits => ({
-              ...prevUnits,
-              [`${genreId}_${classType}`]: filteredUnits
-            }));
+            // 公式クイズの場合はFirestoreからIDを取得する必要がある
+            // 変換用の関数: string[]をUnitData[]に変換
+            async function convertToUnitDataFormat(categoryMap: { [category: string]: string[] }): Promise<{ [category: string]: UnitData[] }> {
+              const result: { [category: string]: UnitData[] } = {};
+              
+              // カテゴリごとに処理
+              for (const [category, unitNames] of Object.entries(categoryMap)) {
+                result[category] = [];
+                
+                // 単元名から単元IDを取得するためには、公式単元コレクションをクエリする必要がある
+                const unitsRef = collection(db, 'genres', genreId, 'official_quiz_units');
+                const unitsSnap = await getDocs(unitsRef);
+                
+                // 単元名をマップする
+                unitNames.forEach(unitName => {
+                  // Firestoreで一致する単元を検索
+                  const foundUnit = unitsSnap.docs.find(doc => doc.data().title === unitName);
+                  
+                  result[category].push({
+                    name: unitName,
+                    id: foundUnit?.id || '' // IDが見つからない場合は空文字列
+                  });
+                });
+              }
+              
+              return result;
+            }
             
+            // 単元データをUnitData形式に変換して保存
+            const convertAndSaveUnits = async () => {
+              try {
+                const convertedUnits = await convertToUnitDataFormat(filteredUnits);
+                setUnits(prevUnits => ({
+                  ...prevUnits,
+                  [`${genreId}_${classType}`]: convertedUnits
+                }));
+              } catch (convErr) {
+                console.error('Error converting unit data:', convErr);
+              }
+            };
+            
+            // 非同期処理を開始
+            convertAndSaveUnits();
+            
+            // 変換前のデータを一時的に返す（インターフェースの互換性のため）
             return filteredUnits;
           } else {
             // genres.tsに該当ジャンルが見つからない場合は空のマップを返す
-            const emptyMap = { '単元': [] };
+            const emptyUnitDataMap = { '単元': [] as UnitData[] };
             setUnits(prevUnits => ({
               ...prevUnits,
-              [`${genreId}_${classType}`]: emptyMap
+              [`${genreId}_${classType}`]: emptyUnitDataMap
             }));
-            return emptyMap;
+            return emptyUnitDataMap;
           }
         } catch (importErr) {
           console.error('Error importing genres.ts:', importErr);
-          const emptyMap = { '単元': [] };
+          const emptyUnitDataMap = { '単元': [] as UnitData[] };
           setUnits(prevUnits => ({
             ...prevUnits,
-            [`${genreId}_${classType}`]: emptyMap
+            [`${genreId}_${classType}`]: emptyUnitDataMap
           }));
-          return emptyMap;
+          return emptyUnitDataMap;
         }
       }
       
@@ -301,12 +346,22 @@ export function useQuizHook() {
           }
           
           // ローカルデータからユニットを構築
-          const localUnitMap: { [genre: string]: { [category: string]: string[] } } = {};
+          const localUnitMap: { [genre: string]: { [category: string]: UnitData[] } } = {};
           
           for (const genreClass of genreClasses) {
             for (const genreInfo of genreClass.genres) {
               if (genres.includes(genreInfo.name)) {
-                localUnitMap[genreInfo.name] = genreInfo.units;
+                // string[]からUnitData[]に変換
+                const convertedUnits: { [category: string]: UnitData[] } = {};
+                
+                Object.entries(genreInfo.units).forEach(([category, unitNames]) => {
+                  convertedUnits[category] = unitNames.map(name => ({
+                    name: name,
+                    id: '' // ローカルデータにはIDがないので空文字列をセット
+                  }));
+                });
+                
+                localUnitMap[genreInfo.name] = convertedUnits;
               }
             }
           }

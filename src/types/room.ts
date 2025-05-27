@@ -72,6 +72,7 @@ export interface RoomListing {
   unitId: string;
   unitName?: string; // 単元名を追加
   participantCount: number;
+  totalQuizCount: number;
   status: RoomStatus;
 }
 

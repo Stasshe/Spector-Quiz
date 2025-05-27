@@ -2,17 +2,19 @@
 
 import { db } from '@/config/firebase';
 import { getAuth } from 'firebase/auth';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 
 // roomService.ts からのインポート
 import {
-  calculateRank,
+  
   checkAndDisbandOldRooms,
-  createUnitIfNotExists,
+  cleanupRoomAnswersById,
   fetchAvailableRooms,
-  getUnitIdByName,
+  
   updateUserStatsOnRoomComplete as updateRoomStats
 } from './roomService';
+
+
 
 // participationService.ts からのインポート
 import {
@@ -168,7 +170,7 @@ export const findOrCreateRoomWithUnit = async (
 
 // roomService.ts からエクスポート
 export {
-  calculateRank, checkAndDisbandOldRooms, createUnitIfNotExists, fetchAvailableRooms, getRoomById, getUnitIdByName
+  checkAndDisbandOldRooms, fetchAvailableRooms, getRoomById
 };
 
 // ラッパー関数
@@ -272,8 +274,28 @@ export const updateQuizState = async (): Promise<boolean> => {
 };
 
 export const finishQuiz = async (roomId: string): Promise<boolean> => {
-  console.warn('finishQuiz is not implemented in service layer');
-  return true;
+  try {
+    // ルーム存在確認
+    const roomRef = doc(db, 'quiz_rooms', roomId);
+    const roomSnap = await getDoc(roomRef);
+    
+    if (!roomSnap.exists()) {
+      console.error(`[finishQuiz] ルーム ${roomId} が存在しません`);
+      return false;
+    }
+    
+    // ルームステータスを完了に更新
+    await updateDoc(roomRef, {
+      status: 'completed',
+      updatedAt: serverTimestamp()
+    });
+    
+    console.log(`[finishQuiz] ルーム ${roomId} のステータスを完了に更新しました`);
+    return true;
+  } catch (err) {
+    console.error('[finishQuiz] ルーム完了処理中にエラー:', err);
+    return false;
+  }
 };
 
 export const revealAnswer = async (roomId: string): Promise<boolean> => {
@@ -314,4 +336,17 @@ export const moveToNextQuiz = async (roomId: string): Promise<boolean> => {
 export const getResultRanking = async (roomId: string): Promise<any[]> => {
   console.warn('getResultRanking is not implemented in service layer');
   return [];
+};
+
+/**
+ * ルームのanswersサブコレクションをクリーンアップする
+ * ルームを削除する前に呼び出して、サブコレクションが残らないようにする
+ */
+export const cleanupRoomAnswers = async (roomId: string): Promise<boolean> => {
+  try {
+    return await cleanupRoomAnswersById(roomId);
+  } catch (err) {
+    console.error('Error cleaning up room answers:', err);
+    return false;
+  }
 };
