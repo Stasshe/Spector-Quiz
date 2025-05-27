@@ -251,23 +251,6 @@ export const updateUserStatsOnRoomComplete = async (roomId: string): Promise<boo
   }
 };
 
-// useQuizRoom.ts内で実装されている関数をスタブとしてエクスポート
-// これらの関数はuseQuizRoom.ts内で直接定義されており、サービス内には存在しない
-export const updateParticipantReadyStatus = async (
-  roomId: string, 
-  userId: string, 
-  isReady: boolean
-): Promise<boolean> => {
-  console.warn('updateParticipantReadyStatus is not implemented in service layer');
-  return true;
-};
-
-export const startQuiz = async (roomId: string): Promise<boolean> => {
-  console.warn('startQuiz is not implemented in service layer');
-  return true;
-};
-
-
 export const finishQuiz = async (roomId: string): Promise<boolean> => {
   try {
     // ルーム存在確認
@@ -291,42 +274,6 @@ export const finishQuiz = async (roomId: string): Promise<boolean> => {
     console.error('[finishQuiz] ルーム完了処理中にエラー:', err);
     return false;
   }
-};
-
-export const revealAnswer = async (roomId: string): Promise<boolean> => {
-  console.warn('revealAnswer is not implemented in service layer');
-  return true;
-};
-
-
-// クイズ操作関連
-export const registerClickTime = async (
-  roomId: string, 
-  userId: string, 
-  quizId: string
-): Promise<boolean> => {
-  console.warn('registerClickTime is not implemented in service layer');
-  return true;
-};
-
-export const submitAnswer = async (
-  roomId: string, 
-  userId: string, 
-  quizId: string, 
-  answer: string
-): Promise<{isCorrect: boolean, correctAnswer: string, explanation: string} | null> => {
-  console.warn('submitAnswer is not implemented in service layer');
-  return { isCorrect: true, correctAnswer: "", explanation: "" };
-};
-
-export const moveToNextQuiz = async (roomId: string): Promise<boolean> => {
-  console.warn('moveToNextQuiz is not implemented in service layer');
-  return true;
-};
-
-export const getResultRanking = async (roomId: string): Promise<any[]> => {
-  console.warn('getResultRanking is not implemented in service layer');
-  return [];
 };
 
 /**

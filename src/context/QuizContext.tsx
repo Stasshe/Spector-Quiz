@@ -25,7 +25,7 @@ interface QuizContextType {
   setIsWaitingRoomModalOpen: (isOpen: boolean) => void;
 }
 
-export const QuizContext = createContext<QuizContextType | undefined>(undefined);
+const QuizContext = createContext<QuizContextType | undefined>(undefined);
 
 export function QuizProvider({ children }: { children: ReactNode }) {
   const [currentQuiz, setCurrentQuiz] = useState<Quiz | null>(null);
