@@ -1,26 +1,21 @@
-// filepath: /workspaces/Spector-Quiz/src/services/quizRoom/roomService.ts
+
 import {
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
-  query,
-  where,
+  increment,
   limit,
   orderBy,
-  deleteDoc,
-  updateDoc,
-  deleteField,
-  serverTimestamp,
-  Timestamp,
+  query,
   runTransaction,
-  increment
+  serverTimestamp,
+  where
 } from 'firebase/firestore';
-import { TIMING } from '../../config/quizConfig';
 import { db } from '../../config/firebase';
+import type { QuizRoom, RoomListing } from '../../types/room';
 
-import type { RoomListing, QuizRoom } from '../../types/room';
-import type { Quiz } from '../../types/quiz';
 
 // getRoomById関数はparticipationService.tsに統合されました
 

@@ -13,7 +13,7 @@ import {
   updateDoc,
   where
 } from 'firebase/firestore';
-//import { ParticipantInfo } from '@/types/user';
+
 
 // 参加機能をインポート
 import { joinRoomService } from './participationService';
