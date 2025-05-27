@@ -48,15 +48,6 @@ export const SCORING = {
   SESSION_COMPLETION_BONUS: 20
 };
 
-// その他の設定
-export const SETTINGS = {
-  // 一人プレイの場合の経験値倍率
-  //SOLO_MULTIPLIER: 0.1,
-  
-};
-
-
-
 /**
  * ジャンルに応じた制限時間を取得
  * @param genre ジャンル名

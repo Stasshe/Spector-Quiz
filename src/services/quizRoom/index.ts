@@ -31,10 +31,7 @@ import {
 // QuizRoom型のインポート（引数型チェック用）
 import { QuizRoom } from '@/types/room';
 
-// サービス関連の全ての関数をエクスポート
-export * from './creationService';
-export * from './participationService';
-export * from './roomService';
+// 直接エクスポートは削除し、必要に応じてラッパー関数を提供
 
 // useQuizRoomで使用する関数を明示的にエクスポート
 // ルーム作成・管理関連
@@ -167,7 +164,12 @@ export const findOrCreateRoomWithUnit = async (
 
 // roomService.ts からエクスポート
 export {
-  fetchAvailableRooms, getRoomById
+  fetchAvailableRooms
+};
+
+// participationService.ts からエクスポート
+export {
+  getRoomById
 };
 
 // ラッパー関数

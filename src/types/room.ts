@@ -28,7 +28,7 @@ export interface QuizRoom {
 // ルームのステータス
 export type RoomStatus = 'waiting' | 'in_progress' | 'completed';
 
-// ルームの現在の状態
+// ルームの現在の状態（使用中のため残す）
 export interface QuizRoomState {
   quizId: string;
   startTime: Timestamp;
@@ -38,31 +38,8 @@ export interface QuizRoomState {
   isRevealed: boolean;
 }
 
-// 解答状態
+// 解答状態（使用中のため残す）
 export type AnswerStatus = 'waiting' | 'answering' | 'correct' | 'incorrect' | 'timeout';
-
-// ルーム参加者情報（サブコレクション用）
-export interface RoomParticipant {
-  userId: string;
-  username: string;
-  iconId: number;
-  score: number;
-  isReady: boolean;
-  isOnline: boolean;
-  joinedAt: Timestamp;
-}
-
-// 回答データ（サブコレクション用）
-export interface RoomAnswer {
-  answerId: string;
-  userId: string;
-  quizId: string;
-  clickTime: Timestamp;
-  answerTime: number;
-  answer: string;
-  isCorrect: boolean;
-  processingStatus: 'pending' | 'processed';
-}
 
 // ルーム一覧表示用
 export interface RoomListing {
@@ -76,7 +53,7 @@ export interface RoomListing {
   status: RoomStatus;
 }
 
-// 移行期間中の互換性のため
+// 参加者マップ（使用中のため残す）
 export interface ParticipantsMap {
   [userId: string]: ParticipantInfo;
 }

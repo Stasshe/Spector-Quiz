@@ -22,28 +22,7 @@ import { db } from '../../config/firebase';
 import type { RoomListing, QuizRoom } from '../../types/room';
 import type { Quiz } from '../../types/quiz';
 
-/**
- * 指定されたIDのルームを取得
- */
-export async function getRoomById(roomId: string): Promise<QuizRoom | null> {
-  try {
-    const roomRef = doc(db, 'quiz_rooms', roomId);
-    const roomSnap = await getDoc(roomRef);
-    
-    if (roomSnap.exists()) {
-      const roomData = roomSnap.data() as QuizRoom;
-      return {
-        ...roomData,
-        roomId: roomSnap.id
-      };
-    }
-    
-    return null;
-  } catch (err) {
-    console.error('Error getting room:', err);
-    throw new Error('ルームの取得中にエラーが発生しました');
-  }
-}
+// getRoomById関数はparticipationService.tsに統合されました
 
 /**
  * 利用可能なルームを取得

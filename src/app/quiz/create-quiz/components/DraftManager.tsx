@@ -2,23 +2,12 @@
 
 import { FC, useState, useEffect } from 'react';
 import { FaCheckCircle, FaSave, FaSpinner, FaTrash } from 'react-icons/fa';
-import { Quiz } from '@/types/quiz';
+import { DraftUnit, Quiz } from '../create-types';
 
 // IndexedDB用の定数
 const DB_NAME = 'quiz-units-db';
 const STORE_NAME = 'quiz-units';
 const DB_VERSION = 1;
-
-interface DraftUnit {
-  draftId: string;
-  title: string;
-  description: string;
-  genre: string;
-  quizzes: Quiz[];
-  isPublic: boolean;
-  createdBy: string;
-  updatedAt: Date;
-}
 
 interface DraftManagerProps {
   currentUserId: string;

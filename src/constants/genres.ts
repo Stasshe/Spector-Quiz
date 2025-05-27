@@ -49,10 +49,3 @@ export const genreClasses: GenreClass[] = [
     ]
   }
 ];
-
-// ジャンルのアイコン定義（ジャンル名をキーとするマッピング）
-export const genreIcons: { [key: string]: string } = {
-  '日本史': 'FaBookOpen',
-  '世界史': 'FaGlobe',
-  '数学': 'FaCalculator'
-};
