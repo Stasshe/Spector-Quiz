@@ -1,41 +1,35 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { doc, getDoc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
-import { onSnapshot, doc, getDoc, updateDoc } from 'firebase/firestore';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { db } from '../config/firebase';
 //import { TIMING } from '../config/quizConfig';
 import { useAuth } from '../context/AuthContext';
-import { QuizRoom, RoomListing, RoomStatus, QuizRoomState, AnswerStatus } from '../types/room';
 import { useQuiz } from '../context/QuizContext';
 import { Quiz } from '../types/quiz';
+import { QuizRoom, RoomListing, RoomStatus } from '../types/room';
 
 // サービス関数をインポート
 import {
-  fetchAvailableRooms,
-  //checkAndDisbandOldRooms,
-  //getUnitIdByName,
-  //createUnitIfNotExists,
-  updateUserStatsOnRoomComplete,
-  //calculateRank,
-  getRoomById,
+  cleanupRoomAnswers,
   createRoom,
   createRoomWithUnit,
-  joinRoom,
-  leaveRoom,
-  cleanupRoomAnswers,
+  fetchAvailableRooms,
   findOrCreateRoom,
   findOrCreateRoomWithUnit,
-  updateParticipantReadyStatus,
-  startQuiz,
-  //updateQuizState,
   finishQuiz,
-  revealAnswer,
-  //processAnswer,
-  registerClickTime,
-  submitAnswer,
+  getResultRanking,
+  getRoomById,
+  joinRoom,
+  leaveRoom,
   moveToNextQuiz,
-  getResultRanking
+  registerClickTime,
+  revealAnswer,
+  startQuiz,
+  submitAnswer,
+  updateParticipantReadyStatus,
+  updateUserStatsOnRoomComplete
 } from '../services/quizRoom';
 
 export function useQuizRoom() {

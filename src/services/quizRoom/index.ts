@@ -6,11 +6,8 @@ import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 
 // roomService.ts からのインポート
 import {
-  
-  checkAndDisbandOldRooms,
   cleanupRoomAnswersById,
   fetchAvailableRooms,
-  
   updateUserStatsOnRoomComplete as updateRoomStats
 } from './roomService';
 
@@ -170,7 +167,7 @@ export const findOrCreateRoomWithUnit = async (
 
 // roomService.ts からエクスポート
 export {
-  checkAndDisbandOldRooms, fetchAvailableRooms, getRoomById
+  fetchAvailableRooms, getRoomById
 };
 
 // ラッパー関数
@@ -268,10 +265,6 @@ export const startQuiz = async (roomId: string): Promise<boolean> => {
   return true;
 };
 
-export const updateQuizState = async (): Promise<boolean> => {
-  console.warn('updateQuizState is not implemented in service layer');
-  return true;
-};
 
 export const finishQuiz = async (roomId: string): Promise<boolean> => {
   try {
@@ -303,10 +296,6 @@ export const revealAnswer = async (roomId: string): Promise<boolean> => {
   return true;
 };
 
-export const processAnswer = async (): Promise<boolean> => {
-  console.warn('processAnswer is not implemented in service layer');
-  return true;
-};
 
 // クイズ操作関連
 export const registerClickTime = async (
