@@ -10,6 +10,9 @@ export const TIMING = {
   // 正解後、次の問題に進むまでの待機時間
   NEXT_QUESTION_DELAY: 4000,
   
+  // 解答制限時間（早押し後の制限時間）
+  ANSWER_TIMEOUT: 8000, // 8秒
+  
   // 問題の制限時間（デフォルト）
   QUESTION_TIMEOUT: 30000,
   // ジャンル別制限時間（ミリ秒）

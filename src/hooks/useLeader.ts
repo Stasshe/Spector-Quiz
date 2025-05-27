@@ -251,6 +251,105 @@ export function useLeader(roomId: string) {
     }
   }, [isLeader, quizRoom, roomId, fetchCurrentQuiz]);
 
+  // ゲーム進行状況をチェックして自動進行を決定
+  const checkAndProgressGame = useCallback(async () => {
+    if (!isLeader || !quizRoom) return;
+    
+    try {
+      // 現在のルーム状態を取得
+      const roomRef = doc(db, 'quiz_rooms', roomId);
+      const roomSnap = await getDoc(roomRef);
+      
+      if (!roomSnap.exists()) {
+        console.log('ルームが存在しません');
+        return;
+      }
+      
+      const roomData = roomSnap.data() as QuizRoom;
+      
+      // ルームが進行中でない場合は処理しない
+      if (roomData.status !== 'in_progress') {
+        console.log('ルームが進行中ではありません');
+        return;
+      }
+      
+      // 正解者がいる場合は既に処理済み
+      if (roomData.currentState?.answerStatus === 'correct') {
+        console.log('正解者がいるため、自動進行はスキップします');
+        return;
+      }
+      
+      // 現在のクイズの全解答を取得
+      const quizIds = roomData.quizIds || [];
+      if (quizIds.length === 0) {
+        console.log('クイズIDが設定されていません');
+        return;
+      }
+      
+      const currentQuizId = quizIds[roomData.currentQuizIndex];
+      if (!currentQuizId) {
+        console.log('現在のクイズIDが見つかりません');
+        return;
+      }
+      
+      const answersRef = collection(db, 'quiz_rooms', roomId, 'answers');
+      const currentQuizAnswers = query(
+        answersRef,
+        where('quizId', '==', currentQuizId)
+      );
+      
+      const answersSnap = await getDocs(currentQuizAnswers);
+      
+      // 解答したプレイヤーのリスト
+      const answeredPlayers = new Set();
+      let hasCorrectAnswer = false;
+      
+      answersSnap.docs.forEach(doc => {
+        const answerData = doc.data();
+        answeredPlayers.add(answerData.userId);
+        if (answerData.isCorrect) {
+          hasCorrectAnswer = true;
+        }
+      });
+      
+      // 正解者がいる場合は何もしない
+      if (hasCorrectAnswer) {
+        console.log('正解者がいます');
+        return;
+      }
+      
+      // 全員が解答したかチェック
+      const totalParticipants = Object.keys(roomData.participants).length;
+      const answeredCount = answeredPlayers.size;
+      
+      console.log(`解答状況: ${answeredCount}/${totalParticipants}人が解答済み`);
+      
+      // 全員が解答した場合、または時間切れの場合（タイムアウトの状態）
+      const isTimeout = roomData.currentState?.answerStatus === 'timeout';
+      const allAnswered = answeredCount >= totalParticipants;
+      
+      // 全員が解答した場合、または時間切れの場合
+      if (allAnswered || isTimeout) {
+        console.log(isTimeout ? '時間切れです。' : '全員が解答し、全員不正解です。');
+        console.log('正解と解説を表示して、一定時間後に次の問題に進みます');
+        
+        // ルーム状態を更新
+        await updateDoc(roomRef, {
+          'currentState.answerStatus': isTimeout ? 'timeout' : 'all_incorrect',
+          'currentState.isRevealed': true // 正解と解説を表示するためにtrueに設定
+        });
+        
+        // 一定時間後に次の問題へ
+        setTimeout(() => {
+          moveToNextQuestion();
+        }, TIMING.NEXT_QUESTION_DELAY);
+      }
+      
+    } catch (error) {
+      console.error('ゲーム進行チェックでエラーが発生しました:', error);
+    }
+  }, [isLeader, quizRoom, roomId, moveToNextQuestion]);
+
   // 問題のタイマーを開始（ジャンル別制限時間）
   const startQuestionTimer = useCallback(() => {
     if (!isLeader || !quizRoom || !roomId) return;
@@ -290,7 +389,7 @@ export function useLeader(roomId: string) {
         console.error('タイマー処理中にエラーが発生しました:', error);
       }
     }, timeout); // ジャンル別制限時間
-  }, [isLeader, quizRoom, roomId, moveToNextQuestion]);
+  }, [isLeader, quizRoom, roomId, checkAndProgressGame]);
 
   // 早押し監視
   const handleBuzzerUpdates = useCallback(() => {
@@ -344,6 +443,34 @@ export function useLeader(roomId: string) {
             'currentState.answerStatus': 'answering'
           });
           console.log(`解答権をユーザー ${fastestUserId} に付与しました`);
+          
+          // 8秒の解答制限時間を設定
+          console.log(`解答制限時間を開始します (${TIMING.ANSWER_TIMEOUT/1000}秒)`);
+          setTimeout(async () => {
+            try {
+              // 最新のルーム状態を確認
+              const currentRoomSnap = await getDoc(roomRef);
+              if (!currentRoomSnap.exists()) return;
+              
+              const currentRoomData = currentRoomSnap.data() as QuizRoom;
+              
+              // まだ同じユーザーが解答権を持っていて、解答していない場合
+              if (currentRoomData.currentState?.currentAnswerer === fastestUserId && 
+                  currentRoomData.currentState?.answerStatus === 'answering') {
+                console.log(`ユーザー ${fastestUserId} の解答時間切れです`);
+                
+                // 解答権をリセットして他の人が解答できるようにする
+                await updateDoc(roomRef, {
+                  'currentState.currentAnswerer': null,
+                  'currentState.answerStatus': 'waiting'
+                });
+                
+                console.log('解答権をリセットしました。他の参加者が早押しできます');
+              }
+            } catch (timeoutError) {
+              console.error('解答タイムアウト処理中にエラーが発生しました:', timeoutError);
+            }
+          }, TIMING.ANSWER_TIMEOUT);
         } catch (roomUpdateError: any) {
           console.error('ルーム状態の更新に失敗しました:', roomUpdateError);
           if (roomUpdateError?.code === 'permission-denied') {
@@ -395,7 +522,7 @@ export function useLeader(roomId: string) {
     }, (error) => {
       console.error('早押し監視のリスナーでエラーが発生しました:', error);
     });
-  }, [isLeader, roomId]);
+  }, [isLeader, roomId, checkAndProgressGame]);
 
   // 解答判定
   const judgeAnswer = useCallback(async (answerId: string) => {
@@ -1071,105 +1198,6 @@ export function useLeader(roomId: string) {
       console.error('不正解時の自動進行処理でエラーが発生しました:', error);
     }
   }, [isLeader, quizRoom, moveToNextQuestion]);
-
-  // ゲーム進行状況をチェックして自動進行を決定
-  const checkAndProgressGame = useCallback(async () => {
-    if (!isLeader || !quizRoom) return;
-    
-    try {
-      // 現在のルーム状態を取得
-      const roomRef = doc(db, 'quiz_rooms', roomId);
-      const roomSnap = await getDoc(roomRef);
-      
-      if (!roomSnap.exists()) {
-        console.log('ルームが存在しません');
-        return;
-      }
-      
-      const roomData = roomSnap.data() as QuizRoom;
-      
-      // ルームが進行中でない場合は処理しない
-      if (roomData.status !== 'in_progress') {
-        console.log('ルームが進行中ではありません');
-        return;
-      }
-      
-      // 正解者がいる場合は既に処理済み
-      if (roomData.currentState?.answerStatus === 'correct') {
-        console.log('正解者がいるため、自動進行はスキップします');
-        return;
-      }
-      
-      // 現在のクイズの全解答を取得
-      const quizIds = roomData.quizIds || [];
-      if (quizIds.length === 0) {
-        console.log('クイズIDが設定されていません');
-        return;
-      }
-      
-      const currentQuizId = quizIds[roomData.currentQuizIndex];
-      if (!currentQuizId) {
-        console.log('現在のクイズIDが見つかりません');
-        return;
-      }
-      
-      const answersRef = collection(db, 'quiz_rooms', roomId, 'answers');
-      const currentQuizAnswers = query(
-        answersRef,
-        where('quizId', '==', currentQuizId)
-      );
-      
-      const answersSnap = await getDocs(currentQuizAnswers);
-      
-      // 解答したプレイヤーのリスト
-      const answeredPlayers = new Set();
-      let hasCorrectAnswer = false;
-      
-      answersSnap.docs.forEach(doc => {
-        const answerData = doc.data();
-        answeredPlayers.add(answerData.userId);
-        if (answerData.isCorrect) {
-          hasCorrectAnswer = true;
-        }
-      });
-      
-      // 正解者がいる場合は何もしない
-      if (hasCorrectAnswer) {
-        console.log('正解者がいます');
-        return;
-      }
-      
-      // 全員が解答したかチェック
-      const totalParticipants = Object.keys(roomData.participants).length;
-      const answeredCount = answeredPlayers.size;
-      
-      console.log(`解答状況: ${answeredCount}/${totalParticipants}人が解答済み`);
-      
-      // 全員が解答した場合、または時間切れの場合（タイムアウトの状態）
-      const isTimeout = roomData.currentState?.answerStatus === 'timeout';
-      const allAnswered = answeredCount >= totalParticipants;
-      
-      // 全員が解答した場合、または時間切れの場合
-      if (allAnswered || isTimeout) {
-        console.log(isTimeout ? '時間切れです。' : '全員が解答し、全員不正解です。');
-        console.log('正解と解説を表示して、一定時間後に次の問題に進みます');
-        
-        // ルーム状態を更新
-        await updateDoc(roomRef, {
-          'currentState.answerStatus': isTimeout ? 'timeout' : 'all_incorrect',
-          'currentState.isRevealed': true // 正解と解説を表示するためにtrueに設定
-        });
-        
-        // 一定時間後に次の問題へ
-        setTimeout(() => {
-          moveToNextQuestion();
-        }, TIMING.NEXT_QUESTION_DELAY);
-      }
-      
-    } catch (error) {
-      console.error('ゲーム進行チェックでエラーが発生しました:', error);
-    }
-  }, [isLeader, quizRoom, roomId, moveToNextQuestion]);
 
   return {
     startQuizGame,

@@ -3,6 +3,7 @@ import { Quiz } from '@/types/quiz';
 import { useQuiz } from '@/context/QuizContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import QuizTimer from '@/components/quiz/QuizTimer';
+import { useLeader } from '@/hooks/useLeader';
 
 interface QuizQuestionProps {
   quiz: Quiz;
@@ -10,6 +11,7 @@ interface QuizQuestionProps {
 
 export default function QuizQuestion({ quiz }: QuizQuestionProps) {
   const { setAnimationInProgress, quizRoom } = useQuiz();
+  const { startQuestionTimer } = useLeader(quizRoom?.roomId || '');
   const [showQuestion, setShowQuestion] = useState(false);
   const [timerActive, setTimerActive] = useState(false);
   const [timerResetKey, setTimerResetKey] = useState<string>('');
@@ -38,17 +40,22 @@ export default function QuizQuestion({ quiz }: QuizQuestionProps) {
           setTimerResetKey(quiz.quizId);
         }
         setIsInitialized(true);
+        
+        // リーダーの場合はサーバー側でもタイマーを開始
+        if (quizRoom?.roomId) {
+          startQuestionTimer();
+        }
       }, 500);
     }, 250);
     
     return () => clearTimeout(questionTimer);
-  }, [quiz.quizId, setAnimationInProgress, timerResetKey, isInitialized]);
+  }, [quiz.quizId, setAnimationInProgress, timerResetKey, isInitialized, startQuestionTimer, quizRoom?.roomId]);
 
   // タイマーが終了した時の処理
   const handleTimeUp = () => {
-    console.log('時間切れです！');
+    console.log('QuizQuestion: 時間切れです！');
     setTimerActive(false);
-    // 必要に応じて他の処理を追加
+    // サーバー側のタイムアウト処理は useLeader の startQuestionTimer で実行される
   };
   
   return (
