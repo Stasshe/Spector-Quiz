@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaClock, FaExclamationTriangle } from 'react-icons/fa';
 import { getQuestionTimeout } from '@/config/quizConfig';
@@ -16,23 +16,38 @@ export default function QuizTimer({ genre, isActive, onTimeUp, resetKey }: QuizT
   const totalTime = getQuestionTimeout(genre); // ジャンル別の制限時間（ミリ秒）
   const [timeLeft, setTimeLeft] = useState(totalTime);
   const [isVisible, setIsVisible] = useState(false);
+  const lastResetKeyRef = useRef<string>(''); // 前回のresetKeyを記録
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // タイマーをリセット
+  // タイマーをリセット（resetKeyが変わった時のみ）
   useEffect(() => {
-    setTimeLeft(totalTime);
+    if (resetKey && resetKey !== lastResetKeyRef.current) {
+      console.log('タイマーリセット:', resetKey);
+      setTimeLeft(totalTime);
+      lastResetKeyRef.current = resetKey;
+    }
     setIsVisible(isActive);
   }, [resetKey, totalTime, isActive]);
 
   // カウントダウン処理
   useEffect(() => {
+    // 既存のインターバルをクリア
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+
     if (!isActive) return;
 
-    const interval = setInterval(() => {
+    intervalRef.current = setInterval(() => {
       setTimeLeft(prev => {
         const newTime = prev - 100; // 100msごとに更新
         
         if (newTime <= 0) {
-          clearInterval(interval);
+          if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+            intervalRef.current = null;
+          }
           onTimeUp?.();
           return 0;
         }
@@ -41,7 +56,12 @@ export default function QuizTimer({ genre, isActive, onTimeUp, resetKey }: QuizT
       });
     }, 100);
 
-    return () => clearInterval(interval);
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
   }, [isActive, onTimeUp]);
 
   // 時間の表示形式を変換
@@ -90,20 +110,20 @@ export default function QuizTimer({ genre, isActive, onTimeUp, resetKey }: QuizT
   return (
     <AnimatePresence>
       <motion.div
-        initial={{ opacity: 0, scale: 0.9, y: -20 }}
+        initial={{ opacity: 0, scale: 0.9 }}
         animate={{ 
           opacity: 1, 
           scale: isDangerous ? (isCritical ? 1.1 : 1.05) : 1, 
           y: 0 
         }}
-        exit={{ opacity: 0, scale: 0.9, y: -20 }}
+        exit={{ opacity: 0, scale: 0.9 }}
         transition={{ 
           duration: 0.3,
           scale: { duration: 0.2 }
         }}
-        className={`fixed top-4 right-4 z-50 ${getTimerColor()}`}
+        className={`relative w-full ${getTimerColor()}`}
       >
-        <div className={`relative bg-white rounded-lg shadow-lg border-2 p-4 min-w-[120px] ${getTimerColor().split(' ')[1]}`}>
+        <div className={`relative bg-white rounded-lg shadow-lg border-2 p-4 w-full ${getTimerColor().split(' ')[1]}`}>
           {/* 危険時の警告アイコン */}
           {isDangerous && (
             <motion.div

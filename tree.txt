@@ -4,6 +4,8 @@
 ├── DB-structure.md
 ├── LICENSE
 ├── README.md
+├── Release
+│   └── 1.0.0.md
 ├── firebase.rules
 ├── next-env.d.ts
 ├── next.config.ts
@@ -65,7 +67,6 @@
 │   ├── sample.yaml
 │   ├── vercel.svg
 │   └── window.svg
-├── re.txt
 ├── src
 │   ├── app
 │   │   ├── admin
@@ -126,6 +127,8 @@
 │   │       │   └── index.tsx
 │   │       ├── QuizResult
 │   │       │   └── index.tsx
+│   │       ├── QuizTimer
+│   │       │   └── index.tsx
 │   │       └── ScoreBoard
 │   │           └── index.tsx
 │   ├── config
@@ -140,8 +143,7 @@
 │   │   ├── useAuth.ts
 │   │   ├── useLeader.ts
 │   │   ├── useQuiz.ts
-│   │   ├── useQuizRoom.ts
-│   │   └── useQuizUnit.ts
+│   │   └── useQuizRoom.ts
 │   ├── services
 │   │   └── quizRoom
 │   │       ├── creationService.ts
@@ -158,6 +160,7 @@
 ├── tree.sh
 ├── tree.txt
 ├── tsconfig.json
+├── tsconfig.tsbuildinfo
 └── version
 
-46 directories, 114 files
+48 directories, 115 files

@@ -12,11 +12,16 @@ export default function QuizQuestion({ quiz }: QuizQuestionProps) {
   const { setAnimationInProgress, quizRoom } = useQuiz();
   const [showQuestion, setShowQuestion] = useState(false);
   const [timerActive, setTimerActive] = useState(false);
-  
-  
+  const [timerResetKey, setTimerResetKey] = useState<string>('');
+  const [isInitialized, setIsInitialized] = useState(false);
   
   // 問題を表示するアニメーション効果（アニメーションは縮小）
   useEffect(() => {
+    // 既に同じ問題が表示されている場合はアニメーションを実行しない
+    if (timerResetKey === quiz.quizId && isInitialized) {
+      return;
+    }
+
     setAnimationInProgress(true);
     setShowQuestion(false);
     setTimerActive(false);
@@ -28,11 +33,16 @@ export default function QuizQuestion({ quiz }: QuizQuestionProps) {
       // 問題表示後、少し遅れてタイマーを開始
       setTimeout(() => {
         setTimerActive(true);
+        // タイマーリセットキーを設定（問題変更時のみ）
+        if (timerResetKey !== quiz.quizId) {
+          setTimerResetKey(quiz.quizId);
+        }
+        setIsInitialized(true);
       }, 500);
     }, 250);
     
     return () => clearTimeout(questionTimer);
-  }, [quiz.quizId, setAnimationInProgress]);
+  }, [quiz.quizId, setAnimationInProgress, timerResetKey, isInitialized]);
 
   // タイマーが終了した時の処理
   const handleTimeUp = () => {
@@ -44,14 +54,16 @@ export default function QuizQuestion({ quiz }: QuizQuestionProps) {
   return (
     <div className="quiz-question relative">
       
-      {/* タイマーコンポーネント */}
+      {/* タイマーコンポーネント - 埋め込み形式 */}
       {quiz.genre && (
-        <QuizTimer
-          genre={quiz.genre}
-          isActive={timerActive && quizRoom?.status === 'in_progress'}
-          onTimeUp={handleTimeUp}
-          resetKey={quiz.quizId} // 問題が変わるたびにタイマーをリセット
-        />
+        <div className="mb-4">
+          <QuizTimer
+            genre={quiz.genre}
+            isActive={timerActive && quizRoom?.status === 'in_progress'}
+            onTimeUp={handleTimeUp}
+            resetKey={timerResetKey} // 問題が変わるたびにタイマーをリセット
+          />
+        </div>
       )}
       
       <motion.h2 
