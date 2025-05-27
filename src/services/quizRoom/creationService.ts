@@ -14,6 +14,8 @@ import {
   where
 } from 'firebase/firestore';
 
+import { QUIZ_UNIT } from '@/config/quizConfig';
+
 
 // 参加機能をインポート
 import { joinRoomService } from './participationService';
@@ -36,6 +38,28 @@ export async function createRoomService(
   try {
     if (selectedQuizIds.length === 0) {
       throw new Error('選択されたクイズがありません');
+    }
+    
+    // クイズIDsをシャッフル（10問以上の場合は10問選択、10問未満は全て使用）
+    let finalQuizIds: string[] = [];
+    if (selectedQuizIds.length >= QUIZ_UNIT.MAX_QUIZES_PER_ROOM) {
+      // Fisher-Yatesアルゴリズムでシャッフル
+      const shuffled = [...selectedQuizIds];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      // 最初の10問を選択
+      finalQuizIds = shuffled.slice(0, QUIZ_UNIT.MAX_QUIZES_PER_ROOM);
+      console.log(`[createRoomService] 10問以上あるため、ランダムに10問選択しました`);
+    } else {
+      // 10問未満の場合は全てのクイズをシャッフル
+      finalQuizIds = [...selectedQuizIds];
+      for (let i = finalQuizIds.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [finalQuizIds[i], finalQuizIds[j]] = [finalQuizIds[j], finalQuizIds[i]];
+      }
+      console.log(`[createRoomService] ${selectedQuizIds.length}問全てを使用し、順番をシャッフルしました`);
     }
     
     // ユーザーが既に別のルームに参加しているか確認
@@ -74,8 +98,8 @@ export async function createRoomService(
         }
       },
       currentQuizIndex: 0,
-      quizIds: selectedQuizIds,
-      totalQuizCount: selectedQuizIds.length,
+      quizIds: finalQuizIds,
+      totalQuizCount: finalQuizIds.length,
       startedAt: serverTimestamp() as any,
       updatedAt: serverTimestamp() as any,
       status: 'waiting',
@@ -167,17 +191,39 @@ export async function createRoomWithUnitService(
     const quizzesQuery = collection(db, 'genres', genreId, collectionName, unitId, 'quizzes');
     const quizzesSnapshot = await getDocs(quizzesQuery);
     
-    const quizIds: string[] = [];
+    const allQuizIds: string[] = [];
     quizzesSnapshot.forEach(doc => {
-      quizIds.push(doc.id);
+      allQuizIds.push(doc.id);
     });
     
-    if (quizIds.length === 0) {
+    if (allQuizIds.length === 0) {
       console.error(`[createRoomWithUnitService] クイズが見つかりません: ジャンル=${genreId}, 単元ID=${unitId}, クラスタイプ=${classType}`);
       throw new Error(`この単元にはクイズがありません (${unitData.title})`);
     }
     
-    console.log(`[createRoomWithUnitService] 取得したクイズ数: ${quizIds.length}`);
+    console.log(`[createRoomWithUnitService] 取得したクイズ数: ${allQuizIds.length}`);
+    
+    // クイズが10問以上ある場合はランダムに10問選択、10問未満の場合は全て使用
+    let quizIds: string[] = [];
+    if (allQuizIds.length >= QUIZ_UNIT.MAX_QUIZES_PER_ROOM) {
+      // Fisher-Yatesアルゴリズムでシャッフル
+      const shuffled = [...allQuizIds];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      // 最初の10問を選択
+      quizIds = shuffled.slice(0, QUIZ_UNIT.MAX_QUIZES_PER_ROOM);
+      console.log(`[createRoomWithUnitService] 10問以上あるため、ランダムに10問選択しました`);
+    } else {
+      // 10問未満の場合は全てのクイズをシャッフル
+      quizIds = [...allQuizIds];
+      for (let i = quizIds.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [quizIds[i], quizIds[j]] = [quizIds[j], quizIds[i]];
+      }
+      console.log(`[createRoomWithUnitService] ${allQuizIds.length}問全てを使用し、順番をシャッフルしました`);
+    }
     
     // ジャンル名（表示用）
     const genreRef = doc(db, 'genres', genreId);
