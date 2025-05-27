@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
+import { getPerformance } from 'firebase/performance';
 
 // Firebaseの設定
 // 注: 本番環境では環境変数を使用することをお勧めします
@@ -19,3 +20,6 @@ const app = initializeApp(firebaseConfig);
 // 認証とFirestoreのインスタンスをエクスポート
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+
+// Performance Monitoringを初期化（クライアントサイドのみで実行）
+export const perf = typeof window !== 'undefined' ? getPerformance(app) : null;
