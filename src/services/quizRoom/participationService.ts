@@ -173,7 +173,7 @@ export async function leaveRoomService(
         `users/${userId}`,
         'ルーム退出時のユーザー情報クリア'
       );
-      await updateDoc(doc(db, 'users', userId), {
+      await updateDoc(doc(usersDb, 'users', userId), {
         currentRoomId: null
       });
       console.log(`[leaveRoomService] ユーザー(${userId})のルーム情報をクリアしました`);
@@ -209,7 +209,7 @@ export async function leaveRoomService(
               `users/${pid}`,
               'リーダー退出時の参加者情報クリア'
             );
-            await updateDoc(doc(db, 'users', pid), {
+            await updateDoc(doc(usersDb, 'users', pid), {
               currentRoomId: null
             });
           } catch (err) {

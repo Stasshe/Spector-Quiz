@@ -28,7 +28,7 @@ const mainApp = initializeApp(mainFirebaseConfig, 'main');
 const usersApp = initializeApp(usersFirebaseConfig, 'users');
 
 // メインプロジェクトのインスタンス（quiz_rooms, genres用）
-export const auth = getAuth(mainApp);
+// メインプロジェクトではauthを使用しない
 export const db = getFirestore(mainApp);
 
 // Usersプロジェクトのインスタンス（users用）

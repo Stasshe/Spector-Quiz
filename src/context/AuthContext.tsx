@@ -1,6 +1,6 @@
 'use client';
 
-import { auth, db, usersAuth, usersDb } from '@/config/firebase';
+import { usersAuth, usersDb } from '@/config/firebase';
 import { User, UserProfile } from '@/types/user';
 import {
   createUserWithEmailAndPassword,
@@ -30,26 +30,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [initialized, setInitialized] = useState(false); // 初期化状態を追加
 
-  // Firebase認証の状態変更監視（両方のプロジェクトを監視）
+  // Firebase認証の状態変更監視（usersプロジェクトのみ）
   useEffect(() => {
-    console.log('Setting up auth state listeners for both projects');
+    console.log('Setting up auth state listener for users project only');
     let isMounted = true;
     
-    // メインプロジェクトとUsersプロジェクトの両方の認証状態を監視
-    const unsubscribeMain = onAuthStateChanged(auth, async (user) => {
-      console.log('Main auth state changed:', user ? `User: ${user.uid}` : 'No user');
-      
-      if (!isMounted) {
-        console.log('Component unmounted, skipping main auth state update');
-        return;
-      }
-      
-      if (user) {
-        setCurrentUser(user);
-        await handleUserProfile(user.uid);
-      }
-    });
-
+    // Usersプロジェクトの認証状態のみを監視
     const unsubscribeUsers = onAuthStateChanged(usersAuth, async (user) => {
       console.log('Users auth state changed:', user ? `User: ${user.uid}` : 'No user');
       
@@ -59,17 +45,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       
       if (user) {
-        // メインプロジェクトにユーザーがいない場合のみUsersプロジェクトのユーザーを使用
-        if (!auth.currentUser) {
-          setCurrentUser(user);
-          await handleUserProfile(user.uid);
-        }
+        setCurrentUser(user);
+        await handleUserProfile(user.uid);
       } else {
-        // Users認証がなくなった場合
-        if (!auth.currentUser) {
-          setCurrentUser(null);
-          setUserProfile(null);
-        }
+        setCurrentUser(null);
+        setUserProfile(null);
       }
       
       setLoading(false);
@@ -113,8 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // コンポーネントのアンマウント時にFirebase認証の監視を解除
     return () => {
       isMounted = false;
-      console.log('Cleaning up auth state listeners');
-      unsubscribeMain();
+      console.log('Cleaning up auth state listener');
       unsubscribeUsers();
     };
   }, []);
@@ -122,18 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // アプリケーション終了時にユーザーをオフラインに設定
   useEffect(() => {
     const handleBeforeUnload = async () => {
-      // 両方のプロジェクトでユーザーをオフラインに設定
-      if (auth.currentUser) {
-        try {
-          const userRef = doc(usersDb, 'users', auth.currentUser.uid);
-          await setDoc(userRef, {
-            isOnline: false
-          }, { merge: true });
-        } catch (error) {
-          console.error('Error setting main user offline:', error);
-        }
-      }
-      
+      // usersプロジェクトでのみユーザーをオフラインに設定
       if (usersAuth.currentUser) {
         try {
           const userRef = doc(usersDb, 'users', usersAuth.currentUser.uid);
@@ -141,7 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             isOnline: false
           }, { merge: true });
         } catch (error) {
-          console.error('Error setting users user offline:', error);
+          console.error('Error setting user offline:', error);
         }
       }
     };
@@ -193,21 +161,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Firebase Authはメールアドレスを必要とするため、ダミーのメールアドレスを作成
       const email = `${userId}@zap-quiz.app`;
       
-      // 両方のプロジェクトでログインを試行
-      try {
-        await signInWithEmailAndPassword(auth, email, password);
-        console.log('Successfully logged in to main project');
-      } catch (mainError) {
-        console.log('Main project login failed, trying users project');
-      }
-      
-      try {
-        await signInWithEmailAndPassword(usersAuth, email, password);
-        console.log('Successfully logged in to users project');
-      } catch (usersError) {
-        console.log('Users project login failed');
-        throw usersError; // ユーザープロジェクトの認証が重要なのでエラーを投げる
-      }
+      // usersプロジェクトでのみログイン
+      await signInWithEmailAndPassword(usersAuth, email, password);
+      console.log('Successfully logged in to users project');
       
       // ユーザープロファイルの更新はonAuthStateChangedで行われるので、ここでは不要
       return;
@@ -230,11 +186,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Firebase Authはメールアドレスを必要とするため、ダミーのメールアドレスを作成
       const email = `${nextUserId}@zap-quiz.app`;
       
-      // 両方のプロジェクトでユーザーを作成
-      const mainUserCredential = await createUserWithEmailAndPassword(auth, email, password);
+      // usersプロジェクトでのみユーザーを作成
       const usersUserCredential = await createUserWithEmailAndPassword(usersAuth, email, password);
       
-      const user = usersUserCredential.user; // usersプロジェクトのユーザーを主として使用
+      const user = usersUserCredential.user;
       
       // Firestoreにユーザー情報を保存（usersDbに保存）
       const newUser: User = {
@@ -268,15 +223,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       setLoading(true);
       // ログアウト時間を記録
-      if (auth.currentUser) {
-        const userRef = doc(usersDb, 'users', auth.currentUser.uid);
-        await setDoc(userRef, {
-          isOnline: false,
-          currentRoomId: null,
-          lastLoginAt: serverTimestamp()
-        }, { merge: true });
-      }
-      
       if (usersAuth.currentUser) {
         const userRef = doc(usersDb, 'users', usersAuth.currentUser.uid);
         await setDoc(userRef, {
@@ -286,8 +232,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }, { merge: true });
       }
       
-      // 両方のプロジェクトからログアウト
-      await signOut(auth);
+      // usersプロジェクトからのみログアウト
       await signOut(usersAuth);
     } catch (error) {
       console.error('Logout error:', error);
