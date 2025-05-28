@@ -50,12 +50,57 @@ export default function QuizTimer({ genre, isActive, onTimeUp, resetKey, isAnswe
       
       // 初期化完了後に表示状態を更新
       setIsVisible(true);
+      
+      // 新しい問題の場合は、isActiveならすぐにタイマーを開始
+      if (isActive) {
+        console.log('[QuizTimer] 新しい問題でタイマー即座開始');
+        setTimeout(() => {
+          if (!intervalRef.current && isInitializedRef.current && isActive) {
+            intervalRef.current = setInterval(() => {
+              setTimeLeft(prev => {
+                if (prev <= 100) {
+                  if (intervalRef.current) {
+                    clearInterval(intervalRef.current);
+                    intervalRef.current = null;
+                  }
+                  onTimeUp?.();
+                  return 0;
+                }
+                return prev - 100;
+              });
+            }, 100);
+          }
+        }, 50); // 短い遅延で確実に開始
+      }
     }
-  }, [resetKey, totalTime]);
+  }, [resetKey, totalTime, isActive, onTimeUp]);
 
-  // 表示状態の決定（resetKeyまたは答え表示状態が変わった時）
+  // 答え表示状態が変わった時にタイマーを停止/再開
   useEffect(() => {
-    // resetKeyが存在する場合は表示
+    if (isAnswerRevealed && intervalRef.current) {
+      console.log('[QuizTimer] 答え表示のためタイマーを停止');
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    } else if (!isAnswerRevealed && !intervalRef.current && isActive && isInitializedRef.current) {
+      console.log('[QuizTimer] 答え非表示のためタイマーを再開');
+      intervalRef.current = setInterval(() => {
+        setTimeLeft(prev => {
+          if (prev <= 100) {
+            if (intervalRef.current) {
+              clearInterval(intervalRef.current);
+              intervalRef.current = null;
+            }
+            onTimeUp?.();
+            return 0;
+          }
+          return prev - 100;
+        });
+      }, 100);
+    }
+  }, [isAnswerRevealed, isActive, onTimeUp]);
+
+  // 表示状態の決定
+  useEffect(() => {
     const shouldBeVisible = !!resetKey;
     
     console.log('[QuizTimer] 表示状態チェック:', {
@@ -72,17 +117,22 @@ export default function QuizTimer({ genre, isActive, onTimeUp, resetKey, isAnswe
 
   // カウントダウン処理（isActiveが変わった時のみ）
   useEffect(() => {
-    // 既存のインターバルをクリア
+    // リセット処理で既にタイマーが開始されている場合はスキップ
     if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-
-    // 答えが表示されている場合はタイマーを停止
-    if (isAnswerRevealed || !isActive || !isInitializedRef.current) {
       return;
     }
 
+    // 答えが表示されている場合、またはアクティブでない場合、または初期化されていない場合は停止
+    if (isAnswerRevealed || !isActive || !isInitializedRef.current) {
+      console.log('[QuizTimer] タイマー開始をスキップ:', {
+        isAnswerRevealed,
+        isActive,
+        isInitialized: isInitializedRef.current
+      });
+      return;
+    }
+
+    console.log('[QuizTimer] タイマー開始');
     intervalRef.current = setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 100) { // 100ms以下になったら終了
@@ -104,7 +154,7 @@ export default function QuizTimer({ genre, isActive, onTimeUp, resetKey, isAnswe
         intervalRef.current = null;
       }
     };
-  }, [isActive, onTimeUp, isInitializedRef.current, isAnswerRevealed]); // isAnswerRevealedを依存に追加
+  }, [isActive, onTimeUp, isAnswerRevealed]); // 依存配列を簡素化
 
   // 時間の表示形式を変換
   const formatTime = (milliseconds: number) => {
