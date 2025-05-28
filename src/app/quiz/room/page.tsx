@@ -254,7 +254,7 @@ function QuizRoomContent() {
             {displayRoom.status === 'in_progress' && (
               <div>
                 {/* 問題表示（常に表示） */}
-                {currentQuiz && <QuizQuestion quiz={currentQuiz} />}
+                {currentQuiz && <QuizQuestion quiz={currentQuiz} isAnswerRevealed={isRevealed} />}
 
                 {/* 早押しボタン（解答者がいない場合、かつ選択肢が表示されていない場合、かつ正答が表示されていない場合） */}
                 {!displayRoom.currentState?.currentAnswerer && 

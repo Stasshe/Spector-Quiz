@@ -10,9 +10,10 @@ interface QuizTimerProps {
   isActive: boolean;
   onTimeUp?: () => void;
   resetKey?: string; // タイマーをリセットするためのキー
+  isAnswerRevealed?: boolean; // 正答が表示されているかどうか
 }
 
-export default function QuizTimer({ genre, isActive, onTimeUp, resetKey }: QuizTimerProps) {
+export default function QuizTimer({ genre, isActive, onTimeUp, resetKey, isAnswerRevealed }: QuizTimerProps) {
   const totalTime = getQuestionTimeout(genre); // ジャンル別の制限時間（ミリ秒）
   const [timeLeft, setTimeLeft] = useState(totalTime);
   const [isVisible, setIsVisible] = useState(false);
@@ -43,9 +44,10 @@ export default function QuizTimer({ genre, isActive, onTimeUp, resetKey }: QuizT
   // 表示状態の決定（resetKeyが存在する場合は常に表示）
   useEffect(() => {
     // resetKeyが存在する場合は常に表示
-    // resetKeyがない場合はisActiveに依存
-    setIsVisible(!!resetKey || isActive);
-  }, [resetKey, isActive]);
+    const shouldBeVisible = !!resetKey;
+    
+    setIsVisible(shouldBeVisible);
+  }, [resetKey, isAnswerRevealed]);
 
   // カウントダウン処理（isActiveが変わった時のみ）
   useEffect(() => {
@@ -55,7 +57,8 @@ export default function QuizTimer({ genre, isActive, onTimeUp, resetKey }: QuizT
       intervalRef.current = null;
     }
 
-    if (!isActive || !isInitializedRef.current) {
+    // 答えが表示されている場合はタイマーを停止
+    if (isAnswerRevealed || !isActive || !isInitializedRef.current) {
       return;
     }
 
@@ -80,7 +83,7 @@ export default function QuizTimer({ genre, isActive, onTimeUp, resetKey }: QuizT
         intervalRef.current = null;
       }
     };
-  }, [isActive, onTimeUp, isInitializedRef.current]); // resetKeyの依存を削除
+  }, [isActive, onTimeUp, isInitializedRef.current, isAnswerRevealed]); // isAnswerRevealedを依存に追加
 
   // 時間の表示形式を変換
   const formatTime = (milliseconds: number) => {
@@ -124,12 +127,20 @@ export default function QuizTimer({ genre, isActive, onTimeUp, resetKey }: QuizT
   const isCritical = timeLeft <= 3000;
 
   if (!isVisible) {
-    // resetKeyがある場合は停止状態でも表示
-    return resetKey ? (
-      <div className="relative bg-gray-100 rounded-lg shadow-lg border-2 border-gray-300 p-4 w-full opacity-60">
+    return null;
+  }
+
+  // 答え表示中または停止中の状態を示すかどうか
+  const isTimerPaused = isAnswerRevealed || !isActive;
+
+  // 答え表示中または停止中の場合は特別な表示
+  if (isTimerPaused && resetKey) {
+    const statusText = isAnswerRevealed ? '正答表示中' : '時間切れ / 停止中';
+    return (
+      <div className="relative bg-gray-100 rounded-lg shadow-lg border-2 border-gray-300 p-4 w-full opacity-80">
         <div className="flex items-center mb-2">
           <FaClock className="mr-2 text-gray-500" />
-          <span className="text-sm font-medium text-gray-500">時間切れ / 停止中</span>
+          <span className="text-sm font-medium text-gray-500">{statusText}</span>
         </div>
         <div className="text-center">
           <div className="text-2xl font-bold text-gray-500">
@@ -141,7 +152,7 @@ export default function QuizTimer({ genre, isActive, onTimeUp, resetKey }: QuizT
           {genre}
         </div>
       </div>
-    ) : null;
+    );
   }
 
   return (

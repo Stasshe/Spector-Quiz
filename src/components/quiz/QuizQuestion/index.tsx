@@ -7,9 +7,10 @@ import { useEffect, useState, useRef } from 'react';
 
 interface QuizQuestionProps {
   quiz: Quiz;
+  isAnswerRevealed?: boolean; // 正答が表示されているかどうか
 }
 
-export default function QuizQuestion({ quiz }: QuizQuestionProps) {
+export default function QuizQuestion({ quiz, isAnswerRevealed }: QuizQuestionProps) {
   const { setAnimationInProgress, quizRoom } = useQuiz();
   const { startQuestionTimer } = useLeader(quizRoom?.roomId || '');
   const [timerActive, setTimerActive] = useState(true); // 初期値をtrueに変更
@@ -58,27 +59,18 @@ export default function QuizQuestion({ quiz }: QuizQuestionProps) {
     return () => {
       clearTimeout(questionTimer);
     };
-  }, [quiz.quizId, quizRoom?.currentQuizIndex, setAnimationInProgress, startQuestionTimer, quizRoom?.roomId, quizRoom?.status, isInitialized, timerResetKey]);  // タイマーが終了した時の処理
+  }, [quiz.quizId, quizRoom?.currentQuizIndex, setAnimationInProgress, startQuestionTimer, quizRoom?.roomId, quizRoom?.status, isInitialized, timerResetKey]);  
+  
+  // タイマーが終了した時の処理
   const handleTimeUp = () => {
     setTimerActive(false);
     // サーバー側のタイムアウト処理は useLeader の startQuestionTimer で実行される
   };
   
-  // デバッグログを削除（必要時のみ有効化）
-  // useEffect(() => {
-  //   console.log('Timer状態変化:', {
-  //     timerActive,
-  //     quizRoomStatus: quizRoom?.status,
-  //     isRevealed: quizRoom?.currentState?.isRevealed,
-  //     resetKey: timerResetKey,
-  //     finalIsActive: timerActive && quizRoom?.status === 'in_progress'
-  //   });
-  // }, [timerActive, quizRoom?.status, quizRoom?.currentState?.isRevealed, timerResetKey]);
-  
   return (
     <div className="quiz-question relative">
       
-      {/* タイマーコンポーネント - 回答表示中でも表示するが停止状態 */}
+      {/* タイマーコンポーネント - 常に表示、答え表示中は停止 */}
       {quiz.genre && (
         <div className="mb-4">
           <QuizTimer
@@ -86,6 +78,7 @@ export default function QuizQuestion({ quiz }: QuizQuestionProps) {
             isActive={timerActive && quizRoom?.status === 'in_progress'}
             onTimeUp={handleTimeUp}
             resetKey={`${quiz.quizId}-${quizRoom?.currentQuizIndex || 0}`} // クイズIDとインデックスを組み合わせてユニークなキーを作成
+            isAnswerRevealed={isAnswerRevealed}
           />
         </div>
       )}
