@@ -92,7 +92,7 @@ export default function QuizRoomRedirectManager() {
             }
           }
         } catch (err) {
-          console.error('[QuizRoomRedirectManager] ルーム情報取得エラー:', err);
+          // console.error('[QuizRoomRedirectManager] ルーム情報取得エラー:', err);
         }
       };
       
@@ -234,18 +234,18 @@ export default function QuizRoomRedirectManager() {
             try {
               if (typeof window !== 'undefined') {
                 // バックアップとして直接リダイレクト
-                console.log('[QuizRoomRedirectManager] router.replaceに失敗。バックアップリダイレクト試行...');
+                // console.log('[QuizRoomRedirectManager] router.replaceに失敗。バックアップリダイレクト試行...');
                 window.location.replace(`/quiz/room?id=${activeRoomId}`);
               }
             } catch (locationError) {
-              console.error('[QuizRoomRedirectManager] バックアップリダイレクトでもエラー:', locationError);
+              // console.error('[QuizRoomRedirectManager] バックアップリダイレクトでもエラー:', locationError);
             }
           }
           
           // リダイレクト完了後のフラグリセット用タイマー
           const resetTimer = setTimeout(() => {
             redirectInProgressRef.current = false;
-            console.log('[QuizRoomRedirectManager] リダイレクトフラグリセット');
+            // console.log('[QuizRoomRedirectManager] リダイレクトフラグリセット');
           }, 3000);
           
           cleanupTimers.push(resetTimer);
@@ -253,7 +253,7 @@ export default function QuizRoomRedirectManager() {
       }
     } else if (quizRoom && quizRoom.status === 'in_progress') {
       // roomIdがない場合
-      console.error('[QuizRoomRedirectManager] クイズルームにroomIdがありません:', quizRoom);
+      // console.error('[QuizRoomRedirectManager] クイズルームにroomIdがありません:', quizRoom);
     }
     
     // クリーンアップ関数

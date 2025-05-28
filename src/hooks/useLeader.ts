@@ -80,18 +80,19 @@ export function useLeader(roomId: string) {
         const isOfficial = quizRoom.quizType === 'official' || 
                           (quizRoom.quizType === undefined && quizRoom.classType === '公式');
         
-        console.log(`[useLeader] クイズ取得: genre=${quizRoom.genre}, unitId=${quizRoom.unitId}, quizId=${currentQuizId}, quizType=${quizRoom.quizType}, classType=${quizRoom.classType}, isOfficial=${isOfficial}`);
+        // デバッグ時のみログ出力
+        // console.log(`[useLeader] クイズ取得: genre=${quizRoom.genre}, unitId=${quizRoom.unitId}, quizId=${currentQuizId}, quizType=${quizRoom.quizType}, classType=${quizRoom.classType}, isOfficial=${isOfficial}`);
         
         // 公式クイズかユーザー作成クイズかに応じてパスを構築
         let quizRef;
         if (isOfficial) {
           // 公式クイズの場合: genres/genre/official_quiz_units/unit/quizzes/quizId
           quizRef = doc(db, 'genres', quizRoom.genre, 'official_quiz_units', quizRoom.unitId, 'quizzes', currentQuizId);
-          console.log(`[useLeader] 公式クイズパス: genres/${quizRoom.genre}/official_quiz_units/${quizRoom.unitId}/quizzes/${currentQuizId}`);
+          // console.log(`[useLeader] 公式クイズパス: genres/${quizRoom.genre}/official_quiz_units/${quizRoom.unitId}/quizzes/${currentQuizId}`);
         } else {
           // ユーザー作成クイズの場合: genres/genre/quiz_units/unit/quizzes/quizId
           quizRef = doc(db, 'genres', quizRoom.genre, 'quiz_units', quizRoom.unitId, 'quizzes', currentQuizId);
-          console.log(`[useLeader] ユーザークイズパス: genres/${quizRoom.genre}/quiz_units/${quizRoom.unitId}/quizzes/${currentQuizId}`);
+          // console.log(`[useLeader] ユーザークイズパス: genres/${quizRoom.genre}/quiz_units/${quizRoom.unitId}/quizzes/${currentQuizId}`);
         }
         
         const quizSnap = await getDoc(quizRef);

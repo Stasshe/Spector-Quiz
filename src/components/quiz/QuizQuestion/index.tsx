@@ -27,8 +27,9 @@ export default function QuizQuestion({ quiz }: QuizQuestionProps) {
     if (quiz.quizId !== currentQuizIdRef.current) {
       currentQuizIdRef.current = quiz.quizId;
       setIsInitialized(false);
-      setTimerActive(false);
-      setTimerResetKey('');
+      // タイマーはリセットキーの変更で制御されるため、ここでは停止しない
+      // setTimerActive(false); を削除
+      // setTimerResetKey(''); を削除 - リセットキーは次のuseEffectで設定される
     }
   }, [quiz.quizId]);
    // タイマーを開始する処理（問題は常に表示）
@@ -36,24 +37,23 @@ export default function QuizQuestion({ quiz }: QuizQuestionProps) {
     // 現在のリセットキーを生成
     const currentResetKey = `${quiz.quizId}-${quizRoom?.currentQuizIndex || 0}`;
     const shouldInitialize = !isInitialized || 
-                           timerResetKey !== currentResetKey ||
-                           !timerActive;
+                           timerResetKey !== currentResetKey;
     
     if (!shouldInitialize) {
       return;
     }
 
     setAnimationInProgress(true);
-    setTimerActive(false);
+    // タイマーを一度無効にするのではなく、リセットキーを即座に設定
+    setTimerResetKey(currentResetKey);
     
     // 問題が切り替わった時の遅延を最小限にする
     const questionTimer = setTimeout(() => {
       setAnimationInProgress(false);
       
-      // 問題表示後、タイマーを開始
+      // 問題表示後、タイマーをアクティブにする
       setTimeout(() => {
         setTimerActive(true);
-        setTimerResetKey(currentResetKey);
         setIsInitialized(true);
         
         // リーダーの場合はサーバー側でもタイマーを開始

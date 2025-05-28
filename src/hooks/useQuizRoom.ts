@@ -1256,17 +1256,16 @@ export function useQuizRoom() {
               router.push('/quiz');
             }
             
-            // クイズインデックスの変更を検知
+            // クイズインデックスの変更を検知（必要時のみログ出力）
             if (prevQuizIndex !== -1 && prevQuizIndex !== roomData.currentQuizIndex) {
-              console.log(`問題が更新されました: ${prevQuizIndex} → ${roomData.currentQuizIndex}`);
+              // デバッグ時のみ有効化
+              // console.log(`問題が更新されました: ${prevQuizIndex} → ${roomData.currentQuizIndex}`);
             }
           
           // readyForNextQuestionフラグの検出 - リーダーでない場合に使用
           if (roomData.readyForNextQuestion === true && previousReadyForNext !== true && 
               roomData.status === 'in_progress' && currentUser && 
               roomData.roomLeaderId === currentUser.uid) {
-            
-            console.log('次の問題に進むフラグが検出されました。次の問題に進みます');
             
             // フラグは自動的にfalseになるので、明示的なリセットは不要（書き込み回数削減）
             // goToNextQuizを呼び出す
@@ -1295,7 +1294,6 @@ export function useQuizRoom() {
             
             // 参加者数の計算を追加
             const participantCount = Object.keys(roomData.participants).length;
-            console.log(`Room ${docSnap.id} updated: ${participantCount} participants`);
             
             setWaitingRoom(roomWithId);
           } else {

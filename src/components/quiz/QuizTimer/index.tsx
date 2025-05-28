@@ -38,10 +38,14 @@ export default function QuizTimer({ genre, isActive, onTimeUp, resetKey }: QuizT
       lastResetKeyRef.current = resetKey;
       isInitializedRef.current = true;
     }
-    
-    // 表示状態の決定
-    setIsVisible(resetKey ? true : isActive);
-  }, [resetKey, totalTime, isActive]);
+  }, [resetKey, totalTime]);
+
+  // 表示状態の決定（resetKeyが存在する場合は常に表示）
+  useEffect(() => {
+    // resetKeyが存在する場合は常に表示
+    // resetKeyがない場合はisActiveに依存
+    setIsVisible(!!resetKey || isActive);
+  }, [resetKey, isActive]);
 
   // カウントダウン処理（isActiveが変わった時のみ）
   useEffect(() => {
