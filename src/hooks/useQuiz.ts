@@ -264,52 +264,6 @@ export function useQuizHook() {
     }
   }, [quizRoom]);
 
-  // ジャンルと単元の利用回数を更新
-  const updateGenreStats = useCallback(async (genre: string, unitId?: string) => {
-    try {
-      // ジャンル統計のドキュメントを取得または作成
-      const genreStatsRef = doc(db, 'genreStats', genre);
-      const genreStatsSnap = await getDoc(genreStatsRef);
-      
-      if (genreStatsSnap.exists()) {
-        // 既存のジャンル統計を更新
-        const genreData = genreStatsSnap.data();
-        const unitsMap = genreData.units || {};
-        
-        if (unitId && unitsMap[unitId]) {
-          // 既存の単元の利用回数を増加
-          await updateDoc(genreStatsRef, {
-            useCount: increment(1),
-            [`units.${unitId}.useCount`]: increment(1)
-          });
-        } else if (unitId) {
-          // 新しい単元を追加して利用回数を1に設定
-          const updatedUnits = { ...unitsMap };
-          updatedUnits[unitId] = { useCount: 1 };
-          await updateDoc(genreStatsRef, {
-            useCount: increment(1),
-            units: updatedUnits
-          });
-        } else {
-          // 単元が指定されていない場合はジャンルのカウントのみアップ
-          await updateDoc(genreStatsRef, {
-            useCount: increment(1)
-          });
-        }
-      } else {
-        // ジャンル統計を新規作成
-        await setDoc(genreStatsRef, {
-          useCount: 1,
-          units: unitId ? {
-            [unitId]: { useCount: 1 }
-          } : {}
-        });
-      }
-    } catch (err) {
-      console.error('Error updating genre stats:', err);
-    }
-  }, []);
-
   // クイズルームでの現在のクイズ状態を監視
   useEffect(() => {
     if (!quizRoom) return;
@@ -388,8 +342,7 @@ export function useQuizHook() {
     fetchGenres,
     fetchUnitsForGenre,
     fetchQuiz,
-    searchQuizzes,
-    updateGenreStats
+    searchQuizzes
   };
 }
 

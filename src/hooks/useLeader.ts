@@ -4,7 +4,6 @@ import { db } from '@/config/firebase';
 import { SCORING, TIMING, getQuestionTimeout } from '@/config/quizConfig';
 import { useAuth } from '@/context/AuthContext';
 import { useQuiz } from '@/context/QuizContext';
-import { useQuizHook } from '@/hooks/useQuiz';
 import { cleanupRoomAnswers, updateUserStatsOnRoomComplete, updateAllQuizStats } from '@/services/quizRoom';
 import { Quiz } from '@/types/quiz';
 import { QuizRoom } from '@/types/room';
@@ -31,7 +30,6 @@ import { writeMonitor } from '../utils/firestoreWriteMonitor';
 export function useLeader(roomId: string) {
   const { isLeader, quizRoom, currentQuiz, setCurrentQuiz, setShowChoices } = useQuiz();
   const { currentUser } = useAuth();
-  const { updateGenreStats } = useQuizHook();
 
   // 現在の問題を取得してセット
   const fetchCurrentQuiz = useCallback(async () => {
@@ -109,17 +107,49 @@ export function useLeader(roomId: string) {
           const roomRef = doc(db, 'quiz_rooms', roomId);
           
           try {
-            // ルームの現在のクイズ状態を更新
-            await updateDoc(roomRef, {
-              'currentState.quizId': currentQuizId,
-              'currentState.startTime': serverTimestamp(),
-              'currentState.endTime': null,
-              'currentState.currentAnswerer': null,
-              'currentState.answerStatus': 'waiting',
-              'currentState.isRevealed': false
-            });
+            // 現在のルーム状態を取得して比較
+            const roomSnap = await getDoc(roomRef);
+            if (!roomSnap.exists()) {
+              console.error('ルームが存在しません');
+              return;
+            }
             
-            console.log('ルーム状態を更新しました（統計更新は全クイズ終了時に実行）');
+            const currentRoomData = roomSnap.data();
+            const currentState = currentRoomData.currentState || {};
+            
+            // 変更が必要な項目のみを更新データに含める
+            const updateData: any = {};
+            
+            if (currentState.quizId !== currentQuizId) {
+              updateData['currentState.quizId'] = currentQuizId;
+            }
+            if (currentState.currentAnswerer !== null) {
+              updateData['currentState.currentAnswerer'] = null;
+            }
+            if (currentState.answerStatus !== 'waiting') {
+              updateData['currentState.answerStatus'] = 'waiting';
+            }
+            if (currentState.isRevealed !== false) {
+              updateData['currentState.isRevealed'] = false;
+            }
+            
+            // 常に更新が必要なタイムスタンプ
+            updateData['currentState.startTime'] = serverTimestamp();
+            updateData['currentState.endTime'] = null;
+            
+            // 実際に変更がある場合のみ書き込み
+            if (Object.keys(updateData).length > 2) { // タイムスタンプ以外に変更がある場合
+              writeMonitor.logOperation('updateDoc', `quiz_rooms/${roomId}`, 'ルーム状態更新（変更検出後）');
+              await updateDoc(roomRef, updateData);
+              console.log('ルーム状態を更新しました（変更検出後）');
+            } else if (Object.keys(updateData).length > 0) {
+              // タイムスタンプのみの更新
+              writeMonitor.logOperation('updateDoc', `quiz_rooms/${roomId}`, 'タイムスタンプのみ更新');
+              await updateDoc(roomRef, updateData);
+              console.log('タイムスタンプのみ更新しました');
+            } else {
+              console.log('ルーム状態に変更がないため、書き込みをスキップしました');
+            }
             
           } catch (batchError: any) {
             console.error('バッチ処理中にエラーが発生しました:', batchError);
@@ -189,19 +219,34 @@ export function useLeader(roomId: string) {
     } catch (error) {
       console.error('Error in fetchCurrentQuiz:', error);
     }
-  }, [quizRoom, isLeader, roomId, setCurrentQuiz, updateGenreStats, setShowChoices, currentUser]);
+  }, [quizRoom, isLeader, roomId, setCurrentQuiz, setShowChoices, currentUser]);
 
   // クイズゲームを開始する
   const startQuizGame = useCallback(async () => {
     if (!isLeader || !quizRoom) return;
     
     try {
-      // ルームのステータスを更新（重要な状態変更のみupdatedAtを更新）
-      await updateDoc(doc(db, 'quiz_rooms', roomId), {
-        status: 'in_progress',
-        startedAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      });
+      // 現在のルーム状態をチェック
+      const roomRef = doc(db, 'quiz_rooms', roomId);
+      const roomSnap = await getDoc(roomRef);
+      
+      if (roomSnap.exists()) {
+        const currentData = roomSnap.data();
+        
+        // 既に進行中の場合は更新をスキップ
+        if (currentData.status === 'in_progress') {
+          console.log('ルームは既に進行中です。書き込みをスキップしました');
+        } else {
+          // ルームのステータスを更新（重要な状態変更のみupdatedAtを更新）
+          writeMonitor.logOperation('updateDoc', `quiz_rooms/${roomId}`, 'ゲーム開始状態更新');
+          await updateDoc(roomRef, {
+            status: 'in_progress',
+            startedAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
+          });
+          console.log('ルームを進行中状態に更新しました');
+        }
+      }
       
       // 最初の問題を取得
       await fetchCurrentQuiz();
@@ -231,10 +276,16 @@ export function useLeader(roomId: string) {
         return;
       }
       
-      // 次の問題インデックスに更新（頻繁な更新はupdatedAtを省略）
-      await updateDoc(doc(db, 'quiz_rooms', roomId), {
-        currentQuizIndex: nextIndex
-      });
+      // 次の問題インデックスに更新（変更がある場合のみ書き込み）
+      if (quizRoom.currentQuizIndex !== nextIndex) {
+        writeMonitor.logOperation('updateDoc', `quiz_rooms/${roomId}`, 'クイズインデックス更新（変更検出後）');
+        await updateDoc(doc(db, 'quiz_rooms', roomId), {
+          currentQuizIndex: nextIndex
+        });
+        console.log(`クイズインデックスを更新しました: ${quizRoom.currentQuizIndex} → ${nextIndex}`);
+      } else {
+        console.log('クイズインデックスに変更がないため、書き込みをスキップしました');
+      }
       
       // 次の問題を取得
       await fetchCurrentQuiz();
@@ -325,11 +376,26 @@ export function useLeader(roomId: string) {
         console.log(isTimeout ? '時間切れです。' : '全員が解答し、全員不正解です。');
         console.log('正解と解説を表示して、一定時間後に次の問題に進みます');
         
-        // ルーム状態を更新（頻繁な状態変更はupdatedAtを省略）
-        await updateDoc(roomRef, {
-          'currentState.answerStatus': isTimeout ? 'timeout' : 'all_incorrect',
-          'currentState.isRevealed': true // 正解と解説を表示するためにtrueに設定
-        });
+        // 現在の状態をチェックして、変更が必要な場合のみ更新
+        const currentState = roomData.currentState || {};
+        const targetStatus = isTimeout ? 'timeout' : 'all_incorrect';
+        const updateData: any = {};
+        
+        if (currentState.answerStatus !== targetStatus) {
+          updateData['currentState.answerStatus'] = targetStatus;
+        }
+        if (currentState.isRevealed !== true) {
+          updateData['currentState.isRevealed'] = true;
+        }
+        
+        // 実際に変更がある場合のみ書き込み
+        if (Object.keys(updateData).length > 0) {
+          writeMonitor.logOperation('updateDoc', `quiz_rooms/${roomId}`, '全員解答完了/タイムアウト状態更新');
+          await updateDoc(roomRef, updateData);
+          console.log('ルーム状態を更新しました（全員解答完了/タイムアウト）');
+        } else {
+          console.log('ルーム状態に変更がないため、書き込みをスキップしました');
+        }
         
         // 一定時間後に次の問題へ
         setTimeout(() => {
@@ -429,11 +495,26 @@ export function useLeader(roomId: string) {
         }
         
         try {
-          // 解答権をDBに記録（頻繁な状態変更はupdatedAtを省略）
-          await updateDoc(roomRef, {
-            'currentState.currentAnswerer': fastestUserId,
-            'currentState.answerStatus': 'answering'
-          });
+          // 現在の状態をチェックして、実際に変更が必要かを確認
+          const currentState = roomSnap.data().currentState || {};
+          const updateData: any = {};
+          
+          if (currentState.currentAnswerer !== fastestUserId) {
+            updateData['currentState.currentAnswerer'] = fastestUserId;
+          }
+          if (currentState.answerStatus !== 'answering') {
+            updateData['currentState.answerStatus'] = 'answering';
+          }
+          
+          // 実際に変更がある場合のみ書き込み
+          if (Object.keys(updateData).length > 0) {
+            writeMonitor.logOperation('updateDoc', `quiz_rooms/${roomId}`, '解答権割り当て（変更検出後）');
+            await updateDoc(roomRef, updateData);
+            console.log(`解答権を ${fastestUserId} に割り当てました`);
+          } else {
+            console.log('解答権の状態に変更がないため、書き込みをスキップしました');
+          }
+          
           console.log(`解答権をユーザー ${fastestUserId} に付与しました`);
           
           // 8秒の解答制限時間を設定
