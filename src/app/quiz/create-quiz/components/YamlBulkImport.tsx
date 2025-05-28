@@ -130,8 +130,11 @@ const YamlBulkImport: FC<YamlBulkImportProps> = ({
         }
 
         // 選択肢の重複チェック
-        const uniqueChoices = new Set(yamlQuiz.choices.filter((choice: string) => choice && choice.trim()));
-        if (uniqueChoices.size !== yamlQuiz.choices.length) {
+        const trimmedChoices = yamlQuiz.choices
+          .map((choice: any) => typeof choice === 'string' ? choice.trim().toLowerCase() : '')
+          .filter((choice: string) => choice !== '');
+        const uniqueChoices = new Set(trimmedChoices);
+        if (uniqueChoices.size !== trimmedChoices.length) {
           errors.push(String(index),'番目のクイズでエラー,選択肢に重複があります');
         }
       }

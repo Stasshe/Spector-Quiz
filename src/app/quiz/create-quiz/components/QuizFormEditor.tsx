@@ -44,6 +44,19 @@ const QuizFormEditor: FC<QuizFormEditorProps> = ({
     const newChoices = [...choices];
     newChoices[index] = value;
     setChoices(newChoices);
+    
+    // エラーメッセージが重複に関するものの場合、リアルタイムでクリア
+    if (errorMessage.includes('重複')) {
+      setErrorMessage('');
+    }
+  };
+  
+  // 選択肢の重複チェック（リアルタイム用）
+  const isDuplicateChoice = (index: number, value: string) => {
+    if (!value.trim()) return false;
+    return choices.some((choice, i) => 
+      i !== index && choice.trim().toLowerCase() === value.trim().toLowerCase()
+    );
   };
   
   // 選択肢を追加
@@ -116,6 +129,14 @@ const QuizFormEditor: FC<QuizFormEditorProps> = ({
       // 選択肢が全て入力されているか確認
       if (choices.some(choice => !choice.trim())) {
         setErrorMessage('全ての選択肢を入力してください');
+        return false;
+      }
+      
+      // 選択肢の重複チェック
+      const trimmedChoices = choices.map(choice => choice.trim());
+      const uniqueChoices = new Set(trimmedChoices);
+      if (uniqueChoices.size !== trimmedChoices.length) {
+        setErrorMessage('選択肢に重複があります。全ての選択肢は異なる内容にしてください');
         return false;
       }
       
@@ -264,14 +285,19 @@ const QuizFormEditor: FC<QuizFormEditorProps> = ({
                     {String.fromCharCode(65 + index)}
                   </span>
                 </label>
-                <input
-                  type="text"
-                  value={choice}
-                  onChange={(e) => updateChoice(index, e.target.value)}
-                  className="form-input mr-2"
-                  placeholder={`選択肢 ${String.fromCharCode(65 + index)}`}
-                  required
-                />
+                <div className="flex-1 mr-2">
+                  <input
+                    type="text"
+                    value={choice}
+                    onChange={(e) => updateChoice(index, e.target.value)}
+                    className={`form-input ${isDuplicateChoice(index, choice) ? 'border-red-500 focus:border-red-500' : ''}`}
+                    placeholder={`選択肢 ${String.fromCharCode(65 + index)}`}
+                    required
+                  />
+                  {isDuplicateChoice(index, choice) && (
+                    <p className="text-xs text-red-500 mt-1">この選択肢は重複しています</p>
+                  )}
+                </div>
                 {choices.length > 3 && (
                   <button
                     type="button"
