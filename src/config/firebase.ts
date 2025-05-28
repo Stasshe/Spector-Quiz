@@ -1,7 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
-import { getPerformance } from 'firebase/performance';
+//import { getPerformance } from 'firebase/performance';
 
 // メインプロジェクトの設定（quiz_rooms, genresコレクション用）
 const mainFirebaseConfig = {
@@ -36,5 +36,5 @@ export const usersAuth = getAuth(usersApp);
 export const usersDb = getFirestore(usersApp);
 
 // Performance Monitoringを初期化（クライアントサイドのみで実行）
-export const perf = typeof window !== 'undefined' ? getPerformance(mainApp) : null;
-export const usersPerf = typeof window !== 'undefined' ? getPerformance(usersApp) : null;
+//export const perf = typeof window !== 'undefined' ? getPerformance(mainApp) : null;
+//export const usersPerf = typeof window !== 'undefined' ? getPerformance(usersApp) : null;
