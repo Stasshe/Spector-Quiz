@@ -1,3 +1,4 @@
+import React from 'react';
 import { InlineMath, BlockMath } from 'react-katex';
 import 'katex/dist/katex.min.css';
 
@@ -27,8 +28,8 @@ export default function LatexRenderer({ text, inline = false }: LatexRendererPro
   }
 
   // テキストをLaTeX部分とプレーンテキスト部分に分割
-  const renderMixedContent = (content: string) => {
-    const parts: JSX.Element[] = [];
+  const renderMixedContent = (content: string): React.ReactElement[] => {
+    const parts: React.ReactElement[] = [];
     let currentIndex = 0;
     let partKey = 0;
 
@@ -72,7 +73,10 @@ export default function LatexRenderer({ text, inline = false }: LatexRendererPro
     allMatches.sort((a, b) => a.match.index! - b.match.index!);
 
     // 重複を除去（長いマッチを優先）
-    const filteredMatches = [];
+    const filteredMatches: Array<{
+      match: RegExpExecArray;
+      type: 'block' | 'inline' | 'latexBlock' | 'latexInline';
+    }> = [];
     for (const current of allMatches) {
       const overlaps = filteredMatches.some(existing => {
         const currentStart = current.match.index!;
