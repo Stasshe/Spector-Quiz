@@ -16,6 +16,7 @@ import {
 import { db, usersDb } from '../../config/firebase';
 import type { QuizRoom, RoomListing } from '../../types/room';
 import { writeMonitor } from '@/utils/firestoreWriteMonitor';
+import { updateAllQuizStats } from './index';
 
 
 // getRoomById関数はparticipationService.tsに統合されました
@@ -106,99 +107,19 @@ export async function updateUserStatsOnRoomComplete(
     
     const roomData = roomSnap.data() as QuizRoom;
     
+    // 既に統計が更新済みの場合はスキップ
+    if (roomData.statsUpdated) {
+      console.log('このルームの統計は既に更新済みです');
+      return true;
+    }
+    
     // ユーザーの参加情報を確認
     if (!roomData.participants || !roomData.participants[currentUserId]) {
       throw new Error('このルームに参加していません');
     }
     
-    const userPerfomance = roomData.participants[currentUserId];
-    const score = userPerfomance.score || 0;
-    
-    // ユーザーとジャンル情報の参照を取得
-    const userRef = doc(usersDb, 'users', currentUserId);
-    const userDoc = await getDoc(userRef);
-    
-    let genreRef = null;
-    let genreSnap = null;
-    
-    if (roomData.genre) {
-      genreRef = doc(db, 'genres', roomData.genre);
-      genreSnap = await getDoc(genreRef);
-    }
-    
-    // トランザクションで統計情報を更新（書き込み監視）
-    writeMonitor.logOperation(
-      'batch',
-      `users/${currentUserId}`,
-      `ルーム完了時統計更新 - ルーム${roomId}`,
-      3 // user + genre + room の更新
-    );
-    await runTransaction(db, async (transaction) => {
-      // スコアに基づいて加算するEXP計算
-      let expToAdd = Math.floor(score / 100);
-      
-      if (expToAdd < 1 && score > 0) expToAdd = 1; // 最低1EXP
-      if (userPerfomance.missCount === 0 && score > 0) expToAdd++; // ミスがない場合ボーナス
-      if (roomData.totalQuizCount > 10 && score > 0) expToAdd++; // 長いクイズセッションのボーナス
-      
-      
-      // ユーザー統計情報の更新（usersコレクションに直接保存）
-      if (userDoc.exists()) {
-        // ユーザーが存在する場合
-        const userData = userDoc.data();
-        const currentStats = userData.stats || {
-          totalQuizzes: 0,
-          correctAnswers: 0,
-          experience: 0,
-          genre: {}
-        };
-        
-        const genreStats = currentStats.genre?.[roomData.genre] || { count: 0, score: 0 };
-        
-        transaction.update(userRef, {
-          'stats.totalQuizzes': increment(roomData.totalQuizCount),
-          'stats.correctAnswers': increment(userPerfomance.score || 0),
-          'stats.experience': increment(expToAdd),
-          'stats.lastActivity': serverTimestamp(),
-          [`stats.genre.${roomData.genre}`]: {
-            count: (genreStats.count || 0) + 1,
-            score: (genreStats.score || 0) + score
-          }
-        });
-      } else {
-        // 想定外のケース：ユーザーが存在しないが、統計を更新しようとしている
-        console.error('ユーザーが存在しないため統計更新をスキップします');
-      }
-      
-      // ジャンルと単元の使用統計の更新（genre_statsの代わりにgenresコレクションに統計情報を保存）
-      if (roomData.genre && genreRef && genreSnap) {
-        if (genreSnap.exists()) {
-          transaction.update(genreRef, {
-            'stats.useCount': increment(1)
-          });
-          
-          // 単元情報があれば、その統計も更新
-          if (roomData.unitId) {
-            transaction.update(genreRef, {
-              [`stats.units.${roomData.unitId}.useCount`]: increment(1)
-            });
-          }
-        } else {
-          // ジャンルデータが存在しないケース（通常は発生しないはず）
-          console.error(`ジャンル ${roomData.genre} が存在しないため、統計更新をスキップします`);
-        }
-      }
-      
-      // ルーム自体に統計更新完了フラグを設定
-      transaction.update(roomRef, {
-        statsUpdated: true,
-        updatedAt: serverTimestamp()
-      });
-    });
-    
-    // ルームの統計更新が完了
-    console.log('ルーム統計の更新が完了しました');
-    return true;
+    // 最適化された統計更新を使用
+    return await updateAllQuizStats(roomId, roomData, { uid: currentUserId });
   } catch (err) {
     console.error('ルーム統計の更新中にエラーが発生しました:', err);
     return false;

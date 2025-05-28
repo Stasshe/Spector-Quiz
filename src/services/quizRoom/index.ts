@@ -242,6 +242,7 @@ export const finishQuiz = async (roomId: string): Promise<boolean> => {
 /**
  * クイズ完了時に全ての統計を一括更新する関数
  * 書き込み回数を最小限に抑えるための最適化済み関数
+ * 異なるFirebaseプロジェクト間では個別のバッチを使用
  */
 export const updateAllQuizStats = async (
   roomId: string,
@@ -251,8 +252,11 @@ export const updateAllQuizStats = async (
   try {
     console.log('[updateAllQuizStats] クイズ統計の一括更新を開始');
     
-    const batch = writeBatch(db);
-    let batchCount = 0;
+    // 各プロジェクト用の個別バッチを作成
+    const mainBatch = writeBatch(db); // メインプロジェクト用（quiz_rooms, genres）
+    const usersBatch = writeBatch(usersDb); // usersプロジェクト用（users）
+    let mainBatchCount = 0;
+    let usersBatchCount = 0;
     const MAX_BATCH_SIZE = 500; // Firestoreの制限
     
     // 自分の統計のみ更新（セキュリティルールの制限により）
@@ -271,8 +275,8 @@ export const updateAllQuizStats = async (
         expToAdd = Math.round(expToAdd * SCORING.SOLO_MULTIPLIER);
       }
       
-      // ユーザー統計を更新
-      batch.update(userRef, {
+      // ユーザー統計を更新（usersプロジェクト）
+      usersBatch.update(userRef, {
         exp: increment(expToAdd),
         'stats.totalAnswered': increment(roomData.totalQuizCount || 1),
         'stats.correctAnswers': increment(userPerformance.score || 0),
@@ -280,44 +284,61 @@ export const updateAllQuizStats = async (
         [`stats.genres.${roomData.genre}.correctAnswers`]: increment(userPerformance.score || 0),
         'stats.lastActivity': serverTimestamp()
       });
-      batchCount++;
+      usersBatchCount++;
       
-      // ジャンル統計を更新（あれば）
+      // ジャンル統計を更新（メインプロジェクト）
       if (roomData.genre) {
         const genreRef = doc(db, 'genres', roomData.genre);
-        batch.update(genreRef, {
+        mainBatch.update(genreRef, {
           'stats.useCount': increment(1),
           'stats.lastUpdated': serverTimestamp()
         });
-        batchCount++;
+        mainBatchCount++;
         
         // 単元統計も更新（あれば）
         if (roomData.unitId) {
-          batch.update(genreRef, {
+          mainBatch.update(genreRef, {
             [`stats.units.${roomData.unitId}.useCount`]: increment(1)
           });
         }
       }
     }
     
-    // ルームに統計更新完了フラグを設定
+    // ルームに統計更新完了フラグを設定（メインプロジェクト）
     if (user.uid === roomData.roomLeaderId && !roomData.statsUpdated) {
       const roomRef = doc(db, 'quiz_rooms', roomId);
-      batch.update(roomRef, {
+      mainBatch.update(roomRef, {
         statsUpdated: true,
         updatedAt: serverTimestamp()
       });
-      batchCount++;
+      mainBatchCount++;
     }
     
     // バッチサイズの制限チェック
-    if (batchCount > MAX_BATCH_SIZE) {
-      console.warn(`[updateAllQuizStats] バッチサイズが制限を超えています: ${batchCount}`);
+    if (mainBatchCount > MAX_BATCH_SIZE) {
+      console.warn(`[updateAllQuizStats] メインバッチサイズが制限を超えています: ${mainBatchCount}`);
+    }
+    if (usersBatchCount > MAX_BATCH_SIZE) {
+      console.warn(`[updateAllQuizStats] usersバッチサイズが制限を超えています: ${usersBatchCount}`);
     }
     
-    // バッチをコミット
-    await batch.commit();
-    console.log(`[updateAllQuizStats] 統計更新完了 (${batchCount}件の書き込み)`);
+    // 各バッチを個別にコミット
+    const commitPromises = [];
+    
+    if (mainBatchCount > 0) {
+      console.log(`[updateAllQuizStats] メインプロジェクトのバッチをコミット中 (${mainBatchCount}件)`);
+      commitPromises.push(mainBatch.commit());
+    }
+    
+    if (usersBatchCount > 0) {
+      console.log(`[updateAllQuizStats] usersプロジェクトのバッチをコミット中 (${usersBatchCount}件)`);
+      commitPromises.push(usersBatch.commit());
+    }
+    
+    // 全てのバッチを並行実行
+    await Promise.all(commitPromises);
+    
+    console.log(`[updateAllQuizStats] 統計更新完了 (メイン: ${mainBatchCount}件, users: ${usersBatchCount}件)`);
     
     return true;
   } catch (error) {
