@@ -251,9 +251,15 @@ export function useLeader(roomId: string) {
           await updateDoc(roomRef, {
             status: 'in_progress',
             startedAt: serverTimestamp(),
-            updatedAt: serverTimestamp()
+            updatedAt: serverTimestamp(),
+            // ゲーム開始時に状態をリセット
+            currentState: {
+              answerStatus: 'waiting',
+              currentAnswerer: null,
+              isRevealed: false
+            }
           });
-          console.log('ルームを進行中状態に更新しました');
+          console.log('ルームを進行中状態に更新し、状態をリセットしました');
         }
       }
       
@@ -294,11 +300,17 @@ export function useLeader(roomId: string) {
         console.log(`[moveToNextQuestion] クイズインデックス更新: ${quizRoom.currentQuizIndex} → ${nextIndex}`);
         console.log(`[moveToNextQuestion] 次の問題ID: ${quizIds[nextIndex]}`);
         
-        writeMonitor.logOperation('updateDoc', `quiz_rooms/${roomId}`, 'クイズインデックス更新（変更検出後）');
+        writeMonitor.logOperation('updateDoc', `quiz_rooms/${roomId}`, 'クイズインデックス更新と状態リセット');
         await updateDoc(doc(db, 'quiz_rooms', roomId), {
-          currentQuizIndex: nextIndex
+          currentQuizIndex: nextIndex,
+          // 新しい問題開始時に状態をリセット
+          currentState: {
+            answerStatus: 'waiting',
+            currentAnswerer: null,
+            isRevealed: false // 重要: 答え表示状態をリセット
+          }
         });
-        console.log(`クイズインデックスを更新しました: ${quizRoom.currentQuizIndex} → ${nextIndex}`);
+        console.log(`クイズインデックスを更新し、状態をリセットしました: ${quizRoom.currentQuizIndex} → ${nextIndex}`);
       } else {
         console.log('[moveToNextQuestion] クイズインデックスに変更がないため、書き込みをスキップしました');
       }

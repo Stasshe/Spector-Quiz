@@ -17,6 +17,7 @@ export default function QuizQuestion({ quiz, isAnswerRevealed }: QuizQuestionPro
   const [timerResetKey, setTimerResetKey] = useState<string>('');
   const [isInitialized, setIsInitialized] = useState(false);
   const currentQuizIdRef = useRef<string>('');
+  const [isNewQuestion, setIsNewQuestion] = useState(false); // 新しい問題フラグ
   
   // quizがnullの場合は何も表示しない
   if (!quiz) {
@@ -66,19 +67,6 @@ export default function QuizQuestion({ quiz, isAnswerRevealed }: QuizQuestionPro
     setTimerActive(false);
     // サーバー側のタイムアウト処理は useLeader の startQuestionTimer で実行される
   };
-  
-  // デバッグログを追加
-  useEffect(() => {
-    const resetKey = `${quiz.quizId}-${quizRoom?.currentQuizIndex || 0}`;
-    console.log('[QuizQuestion] タイマー状態確認:', {
-      quizId: quiz.quizId,
-      currentQuizIndex: quizRoom?.currentQuizIndex,
-      resetKey,
-      timerActive,
-      quizRoomStatus: quizRoom?.status,
-      isAnswerRevealed
-    });
-  }, [quiz.quizId, quizRoom?.currentQuizIndex, timerActive, quizRoom?.status, isAnswerRevealed]);
   
   return (
     <div className="quiz-question relative">
