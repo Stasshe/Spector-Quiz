@@ -34,7 +34,7 @@ function QuizRoomContent() {
   const router = useRouter();
   const { quizRoom, isLeader, currentQuiz, hasAnsweringRight } = useQuiz();
   const { useRoomListener, exitRoom, updateUserStatsOnRoomComplete } = useQuizRoom();
-  const { startQuizGame, handleBuzzer, submitAnswer } = useLeader(roomId);
+  const { startQuizGame, handleBuzzer, submitAnswer, fetchCurrentQuiz } = useLeader(roomId);
   
   // 統計更新のステータスを追跡
   const [statsUpdated, setStatsUpdated] = useState(false);
@@ -44,6 +44,29 @@ function QuizRoomContent() {
   
   // ルームデータをリアルタイム監視
   const room = useRoomListener(roomId);
+
+  // 途中復帰時の現在クイズ復旧処理
+  useEffect(() => {
+    // ルーム情報とユーザー情報が揃った時のみ実行
+    if (!room || !currentUser || room.status !== 'in_progress') {
+      return;
+    }
+    
+    // currentQuizが設定されていない（途中復帰）かつ、進行中のクイズがある場合
+    if (!currentQuiz && room.currentState?.quizId) {
+      console.log('[QuizRoomPage] 途中復帰を検出 - 現在のクイズを復旧します');
+      console.log(`[QuizRoomPage] 復旧対象: QuizID=${room.currentState.quizId}, QuizIndex=${room.currentQuizIndex}`);
+      
+      // 現在のクイズを取得
+      if (fetchCurrentQuiz) {
+        fetchCurrentQuiz(room.currentQuizIndex).then(() => {
+          console.log('[QuizRoomPage] 現在のクイズの復旧が完了しました');
+        }).catch((error: any) => {
+          console.error('[QuizRoomPage] 現在のクイズの復旧に失敗しました:', error);
+        });
+      }
+    }
+  }, [room, currentUser, currentQuiz, fetchCurrentQuiz]);
 
   // リダイレクトループ防止
   useEffect(() => {
@@ -82,13 +105,6 @@ function QuizRoomContent() {
         return false;
       };
       
-      // 確実に設定されるようにタイマーも使用（非同期処理対策）
-      const confirmTimer = setTimeout(() => {
-        if (typeof window !== 'undefined' && !window.inQuizRoomPage) {
-          console.log('[QuizRoomPage] フラグ設定の確認 - 再設定');
-          window.inQuizRoomPage = true;
-        }
-      }, 500);
     }
     
     console.log('[QuizRoomPage] クイズルームページにロード/マウント完了');
@@ -163,9 +179,13 @@ function QuizRoomContent() {
       currentQuiz: currentQuiz ? `${currentQuiz.quizId}` : 'null',
       isRevealed: displayRoom.currentState?.isRevealed,
       roomStatus: displayRoom.status,
-      currentQuizIndex: displayRoom.currentQuizIndex
+      currentQuizIndex: displayRoom.currentQuizIndex,
+      answerStatus: displayRoom.currentState?.answerStatus,
+      currentAnswerer: displayRoom.currentState?.currentAnswerer,
+      hasAnsweringRight: hasAnsweringRight,
+      isRestoredFromMidway: !currentQuiz && displayRoom.status === 'in_progress' && displayRoom.currentState?.quizId
     });
-  }, [currentQuiz, displayRoom?.currentState?.isRevealed, displayRoom?.status, displayRoom?.currentQuizIndex]);
+  }, [currentQuiz, displayRoom?.currentState?.isRevealed, displayRoom?.status, displayRoom?.currentQuizIndex, displayRoom?.currentState?.answerStatus, displayRoom?.currentState?.currentAnswerer, hasAnsweringRight]);
 
   // 認証とルーム情報のチェック（すべてのフック呼び出しの後）
   useEffect(() => {
@@ -276,27 +296,70 @@ function QuizRoomContent() {
             {displayRoom.status === 'in_progress' && (
               <div>
                 {/* 問題表示（常に表示） */}
-                {currentQuiz && <QuizQuestion quiz={currentQuiz} isAnswerRevealed={isRevealed} />}
-
-                {/* 早押しボタン（解答者がいない場合、かつ選択肢が表示されていない場合、かつ正答が表示されていない場合） */}
-                {!displayRoom.currentState?.currentAnswerer && 
-                 !hasAnsweringRight && 
-                 currentUser && 
-                 !isRevealed && // 正答が表示されている場合はボタンを非表示
-                 currentQuiz && // currentQuizが存在する場合のみ
-                 displayRoom.currentState?.answerStatus !== 'correct' && // 正解状態でない場合のみ
-                 // ユーザーがこの問題で間違えていない場合のみボタンを表示
-                 (!(displayRoom.participants?.[currentUser.uid]?.missCount) || 
-                  !(displayRoom.participants?.[currentUser.uid]?.wrongQuizIds?.includes(currentQuiz?.quizId || ''))) && (
-                  <div className="mt-6 text-center">
-                    <button
-                      onClick={handleBuzzer}
-                      className="bg-yellow-500 hover:bg-yellow-600 text-white text-xl px-8 py-4 rounded-full shadow-lg transform transition-transform active:scale-95"
-                    >
-                      押す！
-                    </button>
+                {currentQuiz ? (
+                  <QuizQuestion quiz={currentQuiz} isAnswerRevealed={isRevealed} />
+                ) : (
+                  <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-md text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                    <p className="text-blue-700">問題を読み込み中...</p>
+                    <p className="text-blue-500 text-sm mt-2">
+                      {displayRoom.currentState?.quizId ? 
+                        `クイズID: ${displayRoom.currentState.quizId}` : 
+                        '問題情報を取得しています'
+                      }
+                    </p>
                   </div>
                 )}
+
+                {/* 早押しボタンの表示条件を簡潔に */}
+                {(() => {
+                  // 基本条件チェック
+                  if (!currentUser || !currentQuiz || !displayRoom.currentState) {
+                    return null;
+                  }
+                  
+                  // 正答が表示されている場合は非表示
+                  if (isRevealed) {
+                    return null;
+                  }
+                  
+                  // 既に正解者がいる場合は非表示
+                  if (displayRoom.currentState.answerStatus === 'correct') {
+                    return null;
+                  }
+                  
+                  // 現在解答権を持っている場合は非表示
+                  if (hasAnsweringRight || displayRoom.currentState.currentAnswerer === currentUser.uid) {
+                    return null;
+                  }
+                  
+                  // 他の人が解答中の場合は非表示
+                  if (displayRoom.currentState.currentAnswerer && displayRoom.currentState.answerStatus === 'answering') {
+                    return null;
+                  }
+                  
+                  // このユーザーが既にこの問題で間違えている場合は非表示
+                  const userParticipant = displayRoom.participants?.[currentUser.uid];
+                  if (userParticipant?.wrongQuizIds?.includes(currentQuiz.quizId)) {
+                    return null;
+                  }
+                  
+                  // 待機状態の場合のみボタンを表示
+                  if (displayRoom.currentState.answerStatus === 'waiting') {
+                    return (
+                      <div className="mt-6 text-center">
+                        <button
+                          onClick={handleBuzzer}
+                          className="bg-yellow-500 hover:bg-yellow-600 text-white text-xl px-8 py-4 rounded-full shadow-lg transform transition-transform active:scale-95"
+                        >
+                          押す！
+                        </button>
+                      </div>
+                    );
+                  }
+                  
+                  return null;
+                })()}
 
                 {/* 解答入力（解答権を持っている場合） */}
                 {hasAnsweringRight && displayRoom.currentState?.answerStatus === 'answering' && (

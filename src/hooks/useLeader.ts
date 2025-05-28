@@ -212,12 +212,13 @@ export function useLeader(roomId: string) {
           setCurrentQuiz({
             quizId: currentQuizId,
             title: "問題の読み込みに失敗しました",
-            question: "権限エラーにより問題を取得できませんでした。ルームからいったん退出して再度参加してください。",
+            question: "一時的な問題により問題を取得できませんでした。しばらくお待ちください。",
             type: "multiple_choice",
-            choices: ["選択肢1", "選択肢2", "選択肢3", "選択肢4"],
-            correctAnswer: "選択肢1",
+            genre: quizRoom.genre || '',
+            choices: ["読み込み中...", "読み込み中...", "読み込み中...", "読み込み中..."],
+            correctAnswer: "読み込み中...",
             acceptableAnswers: [],
-            explanation: "システムエラーが発生しました",
+            explanation: "問題データが取得できませんでした。",
             createdBy: "",
             createdAt: null as any,
             useCount: 0,
@@ -1237,7 +1238,8 @@ export function useLeader(roomId: string) {
     submitAnswer,
     judgeAnswer,
     handleIncorrectAnswer,
-    checkAndProgressGame
+    checkAndProgressGame,
+    fetchCurrentQuiz
   };
 }
 

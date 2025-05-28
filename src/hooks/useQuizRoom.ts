@@ -1313,6 +1313,8 @@ export function useQuizRoom() {
             
             // 現在のクイズデータを取得
             if (roomData.status === 'in_progress' && roomData.currentState) {
+              // 途中復帰の場合を考慮して、常にクイズデータを取得
+              console.log('[useQuizRoom] 進行中ルームでクイズデータを取得します');
               fetchCurrentQuizData(roomWithId);
             }
           }
@@ -1349,13 +1351,28 @@ export function useQuizRoom() {
         return;
       }
       
-      const quizRef = doc(db, 'genres', roomData.genre, 'quiz_units', unitId, 'quizzes', quizId);
+      // クイズタイプによってコレクションを決定
+      const isOfficial = roomData.quizType === 'official' || 
+                        (roomData.quizType === undefined && roomData.classType === '公式');
+      
+      let quizRef;
+      if (isOfficial) {
+        // 公式クイズの場合
+        quizRef = doc(db, 'genres', roomData.genre, 'official_quiz_units', unitId, 'quizzes', quizId);
+      } else {
+        // ユーザー作成クイズの場合
+        quizRef = doc(db, 'genres', roomData.genre, 'quiz_units', unitId, 'quizzes', quizId);
+      }
+      
       const quizDoc = await getDoc(quizRef);
       
       if (quizDoc.exists()) {
         const quizData = quizDoc.data() as Quiz;
-        setCurrentQuizData(quizData);
-        setCurrentQuiz(quizData);
+        setCurrentQuizData({ ...quizData, quizId: quizDoc.id });
+        setCurrentQuiz({ ...quizData, quizId: quizDoc.id });
+        console.log(`[useQuizRoom] クイズデータ復旧成功: ${quizDoc.id} (${isOfficial ? '公式' : 'ユーザー作成'})`);
+      } else {
+        console.error(`[useQuizRoom] クイズが見つかりません: ${quizId} (${isOfficial ? '公式' : 'ユーザー作成'})`);
       }
     } catch (err) {
       console.error('クイズデータの取得に失敗しました', err);
