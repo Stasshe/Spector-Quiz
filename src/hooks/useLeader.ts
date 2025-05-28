@@ -264,8 +264,12 @@ export function useLeader(roomId: string) {
       // quizIdsがundefinedの可能性を考慮
       const quizIds = quizRoom.quizIds || [];
       
+      console.log(`[moveToNextQuestion] 現在のインデックス: ${quizRoom.currentQuizIndex}, 次のインデックス: ${nextIndex}, 総問題数: ${quizIds.length}`);
+      console.log(`[moveToNextQuestion] クイズIDs: ${JSON.stringify(quizIds)}`);
+      
       if (nextIndex >= quizIds.length) {
         // 全問題が終了した場合（重要な状態変更のみupdatedAtを更新）
+        console.log('[moveToNextQuestion] 全問題終了 - ルームを完了状態に変更');
         await updateDoc(doc(db, 'quiz_rooms', roomId), {
           status: 'completed',
           updatedAt: serverTimestamp()
@@ -278,13 +282,16 @@ export function useLeader(roomId: string) {
       
       // 次の問題インデックスに更新（変更がある場合のみ書き込み）
       if (quizRoom.currentQuizIndex !== nextIndex) {
+        console.log(`[moveToNextQuestion] クイズインデックス更新: ${quizRoom.currentQuizIndex} → ${nextIndex}`);
+        console.log(`[moveToNextQuestion] 次の問題ID: ${quizIds[nextIndex]}`);
+        
         writeMonitor.logOperation('updateDoc', `quiz_rooms/${roomId}`, 'クイズインデックス更新（変更検出後）');
         await updateDoc(doc(db, 'quiz_rooms', roomId), {
           currentQuizIndex: nextIndex
         });
         console.log(`クイズインデックスを更新しました: ${quizRoom.currentQuizIndex} → ${nextIndex}`);
       } else {
-        console.log('クイズインデックスに変更がないため、書き込みをスキップしました');
+        console.log('[moveToNextQuestion] クイズインデックスに変更がないため、書き込みをスキップしました');
       }
       
       // 次の問題を取得

@@ -257,11 +257,15 @@ function QuizRoomContent() {
                 {currentQuiz && <QuizQuestion quiz={currentQuiz} />}
 
                 {/* 早押しボタン（解答者がいない場合、かつ選択肢が表示されていない場合、かつ正答が表示されていない場合） */}
-                {!displayRoom.currentState?.currentAnswerer && !hasAnsweringRight && currentUser && 
-                  !isRevealed && // 正答が表示されている場合はボタンを非表示
-                  // ユーザーがこの問題で間違えていない場合のみボタンを表示
-                  (!(displayRoom.participants?.[currentUser.uid]?.missCount) || 
-                   !(displayRoom.participants?.[currentUser.uid]?.wrongQuizIds?.includes(currentQuiz?.quizId || ''))) && (
+                {!displayRoom.currentState?.currentAnswerer && 
+                 !hasAnsweringRight && 
+                 currentUser && 
+                 !isRevealed && // 正答が表示されている場合はボタンを非表示
+                 currentQuiz && // currentQuizが存在する場合のみ
+                 displayRoom.currentState?.answerStatus !== 'correct' && // 正解状態でない場合のみ
+                 // ユーザーがこの問題で間違えていない場合のみボタンを表示
+                 (!(displayRoom.participants?.[currentUser.uid]?.missCount) || 
+                  !(displayRoom.participants?.[currentUser.uid]?.wrongQuizIds?.includes(currentQuiz?.quizId || ''))) && (
                   <div className="mt-6 text-center">
                     <button
                       onClick={handleBuzzer}

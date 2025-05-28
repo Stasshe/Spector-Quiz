@@ -24,12 +24,13 @@ export default function QuizTimer({ genre, isActive, onTimeUp, resetKey }: QuizT
     return null;
   }
 
-  // タイマーをリセット（resetKeyが変わった時のみ）
+  // タイマーをリセット（resetKeyが変わった時、または強制リセットが必要な時）
   useEffect(() => {
     console.log('Timer effect:', { resetKey, lastResetKey: lastResetKeyRef.current, isActive, totalTime });
     
-    if (resetKey && resetKey !== lastResetKeyRef.current) {
-      console.log('タイマーリセット:', resetKey);
+    // resetKeyが存在し、前回と異なる場合、または初回の場合はリセット
+    if (resetKey && (resetKey !== lastResetKeyRef.current || lastResetKeyRef.current === '')) {
+      console.log('タイマーリセット:', resetKey, '前回:', lastResetKeyRef.current);
       // 既存のインターバルをクリア
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
@@ -86,7 +87,7 @@ export default function QuizTimer({ genre, isActive, onTimeUp, resetKey }: QuizT
         intervalRef.current = null;
       }
     };
-  }, [isActive, onTimeUp]); // timeLeftを依存配列から除去
+  }, [isActive, onTimeUp, resetKey]); // resetKeyを依存配列に追加して、リセット時も確実にタイマーが再開される
 
   // 時間の表示形式を変換
   const formatTime = (milliseconds: number) => {

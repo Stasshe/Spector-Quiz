@@ -20,6 +20,14 @@ export default function QuizQuestion({ quiz }: QuizQuestionProps) {
   if (!quiz) {
     return null;
   }
+
+  // 問題が変わった時の初期化処理
+  useEffect(() => {
+    console.log('Quiz changed, resetting state:', quiz.quizId);
+    setIsInitialized(false);
+    setTimerActive(false);
+    setTimerResetKey('');
+  }, [quiz.quizId]);
   
   // タイマーを開始する処理（問題は常に表示）
   useEffect(() => {
@@ -28,15 +36,23 @@ export default function QuizQuestion({ quiz }: QuizQuestionProps) {
       timerResetKey, 
       isInitialized,
       quizRoomId: quizRoom?.roomId,
-      status: quizRoom?.status 
+      status: quizRoom?.status,
+      currentQuizIndex: quizRoom?.currentQuizIndex
     });
     
-    // 既に同じ問題が表示されている場合はアニメーションを実行しない
-    if (timerResetKey === quiz.quizId && isInitialized) {
-      console.log('Same quiz already initialized, skipping');
+    // 問題IDが変わった場合、または初期化されていない場合は必ずタイマーを初期化
+    // currentQuizIndexも考慮して、同じ問題でも異なるタイミングで表示される場合を検出
+    const currentResetKey = `${quiz.quizId}-${quizRoom?.currentQuizIndex || 0}`;
+    const shouldInitialize = !isInitialized || 
+                           timerResetKey !== currentResetKey ||
+                           !timerActive;
+    
+    if (!shouldInitialize) {
+      console.log('Quiz already properly initialized, skipping');
       return;
     }
 
+    console.log('Initializing quiz timer for:', quiz.quizId);
     setAnimationInProgress(true);
     setTimerActive(false);
     
@@ -49,7 +65,7 @@ export default function QuizQuestion({ quiz }: QuizQuestionProps) {
       setTimeout(() => {
         console.log('Starting timer for quiz:', quiz.quizId);
         setTimerActive(true);
-        setTimerResetKey(quiz.quizId);
+        setTimerResetKey(currentResetKey);
         setIsInitialized(true);
         
         // リーダーの場合はサーバー側でもタイマーを開始
@@ -64,7 +80,7 @@ export default function QuizQuestion({ quiz }: QuizQuestionProps) {
       console.log('Cleaning up question timer');
       clearTimeout(questionTimer);
     };
-  }, [quiz.quizId, setAnimationInProgress, startQuestionTimer, quizRoom?.roomId, quizRoom?.status]);
+  }, [quiz.quizId, quizRoom?.currentQuizIndex, setAnimationInProgress, startQuestionTimer, quizRoom?.roomId, quizRoom?.status]);
 
   // タイマーが終了した時の処理
   const handleTimeUp = () => {
@@ -94,7 +110,7 @@ export default function QuizQuestion({ quiz }: QuizQuestionProps) {
             genre={quiz.genre}
             isActive={timerActive && quizRoom?.status === 'in_progress'}
             onTimeUp={handleTimeUp}
-            resetKey={timerResetKey} // 問題が変わるたびにタイマーをリセット
+            resetKey={`${quiz.quizId}-${quizRoom?.currentQuizIndex || 0}`} // クイズIDとインデックスを組み合わせてユニークなキーを作成
           />
         </div>
       )}
