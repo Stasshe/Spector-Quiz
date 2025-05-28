@@ -34,13 +34,27 @@ export default function QuizQuestion({ quiz, isAnswerRevealed }: QuizQuestionPro
       setLocalAnswerRevealed(false); // 新しい問題では答え非表示
       // タイマーは常にアクティブに保つ
       setTimerActive(true);
+      
+      // 新しい問題では一定時間（2秒）はFirestoreの状態を無視
+      const ignoreFirestoreTimer = setTimeout(() => {
+        console.log('[QuizQuestion] Firestoreの状態を反映開始:', isAnswerRevealed);
+        // 2秒後にFirestoreの状態を反映
+        setLocalAnswerRevealed(isAnswerRevealed || false);
+      }, 2000);
+      
+      return () => {
+        clearTimeout(ignoreFirestoreTimer);
+      };
     }
-  }, [quiz.quizId]);
+  }, [quiz.quizId, isAnswerRevealed]);
 
-  // isAnswerRevealedの変更を監視してローカル状態を更新
+  // isAnswerRevealedの変更を監視してローカル状態を更新（新しい問題でない場合のみ）
   useEffect(() => {
-    setLocalAnswerRevealed(isAnswerRevealed || false);
-  }, [isAnswerRevealed]);
+    // 問題が変わった直後（初期化されていない）は無視
+    if (isInitialized) {
+      setLocalAnswerRevealed(isAnswerRevealed || false);
+    }
+  }, [isAnswerRevealed, isInitialized]);
    // タイマーを開始する処理（問題は常に表示）
   useEffect(() => {
     // 現在のリセットキーを生成

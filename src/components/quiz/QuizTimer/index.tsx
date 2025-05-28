@@ -137,12 +137,6 @@ export default function QuizTimer({ genre, isActive, onTimeUp, resetKey, localAn
   // 非常に危険状態（残り3秒以下）の判定
   const isCritical = timeLeft <= 3000;
 
-  // resetKeyがない場合のみ非表示
-  if (!resetKey) {
-    console.log('[QuizTimer] resetKeyがないため非表示');
-    return null;
-  }
-
   // 答え表示中または停止中の状態を示すかどうか
   const isTimerPaused = localAnswerRevealed || !isActive;
 
