@@ -17,14 +17,23 @@ interface QuizTimerProps {
 export default function QuizTimer({ genre, isActive, onTimeUp, resetKey, localAnswerRevealed, forceStart }: QuizTimerProps) {
   // ジャンルまたは制限時間が無効な場合はデフォルト値を使用
   const effectiveGenre = genre || 'general';
-  const totalTime = getQuestionTimeout(effectiveGenre); // ジャンル別の制限時間（ミリ秒）
-  const [timeLeft, setTimeLeft] = useState(totalTime);
+  
+  // totalTimeをuseRefで保持し、最初の有効な値をキャッシュする
+  const totalTimeRef = useRef<number>(0);
+  // 初回のみジャンル別の制限時間を計算し、以降は同じ値を使用
+  if (totalTimeRef.current === 0) {
+    totalTimeRef.current = getQuestionTimeout(effectiveGenre);
+    console.log(`[QuizTimer] ${effectiveGenre}のタイムアウト時間を設定:`, totalTimeRef.current);
+  }
+  
+  const [timeLeft, setTimeLeft] = useState(totalTimeRef.current);
   const lastResetKeyRef = useRef<string>(''); // 前回のresetKeyを記録
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const isInitializedRef = useRef(false);
 
-  if (totalTime <= 0) {
-    console.log('[QuizTimer] 制限時間が無効のため非表示:', { genre, effectiveGenre, totalTime });
+  // 制限時間が無効な場合は処理しない
+  if (totalTimeRef.current <= 0) {
+    console.log('[QuizTimer] 制限時間が無効のため非表示:', { genre, effectiveGenre, totalTime: totalTimeRef.current });
     return null;
   }
 
@@ -32,7 +41,9 @@ export default function QuizTimer({ genre, isActive, onTimeUp, resetKey, localAn
   if (!resetKey) {
     console.log('[QuizTimer] resetKeyがないため非表示');
     return null;
-  }  // タイマーをリセット（resetKeyが変わった時のみ）
+  }
+
+  // タイマーをリセット（resetKeyが変わった時のみ）
   useEffect(() => {
     // resetKeyが存在し、前回と異なる場合のみリセット
     if (resetKey && resetKey !== lastResetKeyRef.current) {
@@ -44,11 +55,11 @@ export default function QuizTimer({ genre, isActive, onTimeUp, resetKey, localAn
         intervalRef.current = null;
       }
       
-      setTimeLeft(totalTime);
+      setTimeLeft(totalTimeRef.current);
       lastResetKeyRef.current = resetKey;
       isInitializedRef.current = true;
       
-      console.log('[QuizTimer] タイマーリセット完了');
+      console.log('[QuizTimer] タイマーリセット完了:', { genre: effectiveGenre, totalTime: totalTimeRef.current });
       
       // 新しい問題では即座にタイマーを開始（localAnswerRevealedの初期値はfalseなので）
       if (isActive) {
@@ -68,7 +79,7 @@ export default function QuizTimer({ genre, isActive, onTimeUp, resetKey, localAn
         }, 100);
       }
     }
-  }, [resetKey, totalTime, isActive, onTimeUp]);
+  }, [resetKey, isActive, onTimeUp, effectiveGenre]);
 
   // 答え表示状態が変わった時にタイマーを停止/再開
   useEffect(() => {
@@ -103,11 +114,11 @@ export default function QuizTimer({ genre, isActive, onTimeUp, resetKey, localAn
   };
 
   // 進行率を計算（0-1）
-  const progress = 1 - (timeLeft / totalTime);
+  const progress = 1 - (timeLeft / totalTimeRef.current);
   
   // 時間に基づく色の計算
   const getTimerColor = () => {
-    const remainingRatio = timeLeft / totalTime;
+    const remainingRatio = timeLeft / totalTimeRef.current;
     
     if (remainingRatio > 0.5) {
       return 'text-green-600 border-green-500';
@@ -120,7 +131,7 @@ export default function QuizTimer({ genre, isActive, onTimeUp, resetKey, localAn
 
   // 背景色の計算
   const getProgressColor = () => {
-    const remainingRatio = timeLeft / totalTime;
+    const remainingRatio = timeLeft / totalTimeRef.current;
     
     if (remainingRatio > 0.5) {
       return 'bg-green-500';
