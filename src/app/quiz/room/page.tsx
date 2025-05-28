@@ -103,19 +103,6 @@ function QuizRoomContent() {
     };
   }, []);
 
-  useEffect(() => {
-    // ユーザーがログインしていない場合は、ログインページにリダイレクト
-    if (!currentUser) {
-      router.push('/auth/login');
-      return;
-    }
-    
-    // roomIdがない場合はクイズホームにリダイレクト
-    if (!roomId) {
-      router.push('/quiz');
-    }
-  }, [currentUser, roomId, router]);
-
   // ルームからの退出処理
   const handleLeaveRoom = async () => {
     if (roomId) {
@@ -165,6 +152,35 @@ function QuizRoomContent() {
     prevStatusRef.current = room.status;
   }, [room, currentUser, roomId, updateUserStatsOnRoomComplete, statsUpdated, handleLeaveRoom]);
 
+  // displayRoomの計算（roomが存在する場合のみ）
+  const displayRoom = room ? (quizRoom || room) : null;
+
+  // デバッグ: currentQuizとisRevealedの状態を監視
+  useEffect(() => {
+    if (!displayRoom) return;
+    
+    console.log('[QuizRoomPage] 状態変更:', {
+      currentQuiz: currentQuiz ? `${currentQuiz.quizId}` : 'null',
+      isRevealed: displayRoom.currentState?.isRevealed,
+      roomStatus: displayRoom.status,
+      currentQuizIndex: displayRoom.currentQuizIndex
+    });
+  }, [currentQuiz, displayRoom?.currentState?.isRevealed, displayRoom?.status, displayRoom?.currentQuizIndex]);
+
+  // 認証とルーム情報のチェック（すべてのフック呼び出しの後）
+  useEffect(() => {
+    // ユーザーがログインしていない場合は、ログインページにリダイレクト
+    if (!currentUser) {
+      router.push('/auth/login');
+      return;
+    }
+    
+    // roomIdがない場合はクイズホームにリダイレクト
+    if (!roomId) {
+      router.push('/quiz');
+    }
+  }, [currentUser, roomId, router]);
+
   // ルーム情報が読み込まれていない場合のローディング表示
   if (!room) {
     return (
@@ -174,18 +190,14 @@ function QuizRoomContent() {
     );
   }
 
-  // roomが存在するがquizRoomがない場合は、roomをquizRoomとして使用
-  const displayRoom = quizRoom || room;
-
-  // デバッグ: currentQuizとisRevealedの状態を監視
-  useEffect(() => {
-    console.log('[QuizRoomPage] 状態変更:', {
-      currentQuiz: currentQuiz ? `${currentQuiz.quizId}` : 'null',
-      isRevealed: displayRoom.currentState?.isRevealed,
-      roomStatus: displayRoom.status,
-      currentQuizIndex: displayRoom.currentQuizIndex
-    });
-  }, [currentQuiz, displayRoom.currentState?.isRevealed, displayRoom.status, displayRoom.currentQuizIndex]);
+  // displayRoomが存在しない場合は早期リターン
+  if (!displayRoom) {
+    return (
+      <div className="flex justify-center items-center min-h-[calc(100vh-64px)]">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+      </div>
+    );
+  }
 
   // 正解/不正解の状態
   const isCorrect = displayRoom.currentState?.answerStatus === 'correct';

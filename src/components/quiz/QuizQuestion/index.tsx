@@ -3,7 +3,7 @@ import { useQuiz } from '@/context/QuizContext';
 import { useLeader } from '@/hooks/useLeader';
 import { Quiz } from '@/types/quiz';
 import { motion } from 'framer-motion';
-import { useEffect, useState, useRef } from 'react';
+import { useRef, useEffect } from 'react';
 
 interface QuizQuestionProps {
   quiz: Quiz;
@@ -13,92 +13,61 @@ interface QuizQuestionProps {
 export default function QuizQuestion({ quiz, isAnswerRevealed }: QuizQuestionProps) {
   const { setAnimationInProgress, quizRoom } = useQuiz();
   const { startQuestionTimer } = useLeader(quizRoom?.roomId || '');
-  const [timerActive, setTimerActive] = useState(true); // 初期値をtrueに変更
-  const [timerResetKey, setTimerResetKey] = useState<string>('');
-  const [isInitialized, setIsInitialized] = useState(false);
   const currentQuizIdRef = useRef<string>('');
-  const [isNewQuestion, setIsNewQuestion] = useState(false); // 新しい問題フラグ
-  const [localAnswerRevealed, setLocalAnswerRevealed] = useState(false); // ローカル状態
+  const initTimerRef = useRef<NodeJS.Timeout | null>(null);
   
-  // quizがnullの場合は何も表示しない
+  // 新しい問題の検出とリーダーのタイマー開始処理
+  useEffect(() => {
+    if (!quiz) return;
+    
+    const isNewQuestion = quiz.quizId !== currentQuizIdRef.current;
+    
+    if (isNewQuestion) {
+      console.log('[QuizQuestion] 新しい問題検出:', quiz.quizId);
+      currentQuizIdRef.current = quiz.quizId;
+      
+      // アニメーション状態を設定
+      setAnimationInProgress(true);
+      
+      // 既存のタイマーをクリア
+      if (initTimerRef.current) {
+        clearTimeout(initTimerRef.current);
+      }
+      
+      // アニメーション終了後にリーダーのタイマーを開始
+      initTimerRef.current = setTimeout(() => {
+        setAnimationInProgress(false);
+        if (quizRoom?.roomId && quizRoom.status === 'in_progress') {
+          startQuestionTimer();
+        }
+      }, 100);
+    }
+  }, [quiz, setAnimationInProgress, startQuestionTimer, quizRoom?.roomId, quizRoom?.status]);
+  
+  // quizがnullの場合は何も表示しない（フック呼び出し後に配置）
   if (!quiz) {
     return null;
   }
 
-  // 問題が変わった時の初期化処理（最小限のログ）
-  useEffect(() => {
-    if (quiz.quizId !== currentQuizIdRef.current) {
-      console.log('[QuizQuestion] 新しい問題検出 - 答え表示状態をリセット');
-      currentQuizIdRef.current = quiz.quizId;
-      setIsInitialized(false);
-      setLocalAnswerRevealed(false); // 新しい問題では答え非表示
-      // タイマーは常にアクティブに保つ
-      setTimerActive(true);
-      
-      // 新しい問題では一定時間（2秒）はFirestoreの状態を無視
-      const ignoreFirestoreTimer = setTimeout(() => {
-        console.log('[QuizQuestion] Firestoreの状態を反映開始:', isAnswerRevealed);
-        // 2秒後にFirestoreの状態を反映
-        setLocalAnswerRevealed(isAnswerRevealed || false);
-      }, 2000);
-      
-      return () => {
-        clearTimeout(ignoreFirestoreTimer);
-      };
-    }
-  }, [quiz.quizId, isAnswerRevealed]);
-
-  // isAnswerRevealedの変更を監視してローカル状態を更新（新しい問題でない場合のみ）
-  useEffect(() => {
-    // 問題が変わった直後（初期化されていない）は無視
-    if (isInitialized) {
-      setLocalAnswerRevealed(isAnswerRevealed || false);
-    }
-  }, [isAnswerRevealed, isInitialized]);
-   // タイマーを開始する処理（問題は常に表示）
-  useEffect(() => {
-    // 現在のリセットキーを生成
-    const currentResetKey = `${quiz.quizId}-${quizRoom?.currentQuizIndex || 0}`;
-    
-    // 既に初期化済みで、同じリセットキーの場合はスキップ
-    if (isInitialized && timerResetKey === currentResetKey) {
-      return;
-    }
-
-    setAnimationInProgress(true);
-    setTimerResetKey(currentResetKey);
-    
-    // 短い遅延でアニメーション終了
-    const questionTimer = setTimeout(() => {
-      setAnimationInProgress(false);
-      setIsInitialized(true);
-      
-      // リーダーの場合はサーバー側でもタイマーを開始
-      if (quizRoom?.roomId && quizRoom.status === 'in_progress') {
-        startQuestionTimer();
-      }
-    }, 100); // 遅延を短縮
-    
-    return () => {
-      clearTimeout(questionTimer);
-    };
-  }, [quiz.quizId, quizRoom?.currentQuizIndex, setAnimationInProgress, startQuestionTimer, quizRoom?.roomId, quizRoom?.status, isInitialized, timerResetKey]);  
+  // シンプルなreset keyとローカル答え表示状態の計算
+  const resetKey = `${quiz.quizId}-${quizRoom?.currentQuizIndex || 0}`;
+  const isNewQuestion = quiz.quizId !== currentQuizIdRef.current;
+  
+  // 新しい問題の場合は答え表示を無視、それ以外は反映
+  const localAnswerRevealed = isNewQuestion ? false : (isAnswerRevealed || false);
   
   // タイマーが終了した時の処理
   const handleTimeUp = () => {
-    setTimerActive(false);
     // サーバー側のタイムアウト処理は useLeader の startQuestionTimer で実行される
   };
   
-  // デバッグ: quiz.genreの状態を確認
-  console.log('[QuizQuestion] タイマー表示チェック:', {
+  // デバッグログ
+  console.log('[QuizQuestion] レンダリング状態:', {
     quizId: quiz.quizId,
-    genre: quiz.genre,
-    hasGenre: !!quiz.genre,
-    timerActive,
-    roomStatus: quizRoom?.status,
-    currentQuizIndex: quizRoom?.currentQuizIndex,
-    localAnswerRevealed
+    resetKey,
+    isNewQuestion,
+    localAnswerRevealed,
+    roomStatus: quizRoom?.status
   });
 
   return (
@@ -107,11 +76,11 @@ export default function QuizQuestion({ quiz, isAnswerRevealed }: QuizQuestionPro
       {/* タイマーコンポーネント - 常に表示、答え表示中は停止 */}
       <div className="mb-4">
         <QuizTimer
-          genre={quiz.genre || 'general'} // genreがない場合はデフォルト値を使用
-          isActive={timerActive && quizRoom?.status === 'in_progress'}
+          genre={quiz.genre || 'general'}
+          isActive={quizRoom?.status === 'in_progress'}
           onTimeUp={handleTimeUp}
-          resetKey={`${quiz.quizId}-${quizRoom?.currentQuizIndex || 0}`} // クイズIDとインデックスを組み合わせてユニークなキーを作成
-          localAnswerRevealed={localAnswerRevealed} // ローカル状態を使用
+          resetKey={resetKey}
+          localAnswerRevealed={localAnswerRevealed}
         />
       </div>
       
