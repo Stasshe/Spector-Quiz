@@ -5,6 +5,7 @@ import { SCORING } from '@/config/quizConfig';
 import { QuizRoom } from '@/types/room';
 import { getAuth } from 'firebase/auth';
 import { doc, getDoc, updateDoc, serverTimestamp, writeBatch, increment } from 'firebase/firestore';
+import { hasRankUp, calculateUserRankInfo, generateRankUpMessage } from '@/utils/rankCalculator';
 
 // roomService.ts からのインポート
 import {
@@ -264,6 +265,10 @@ export const updateAllQuizStats = async (
       const userPerformance = roomData.participants[user.uid];
       const userRef = doc(usersDb, 'users', user.uid);
       
+      // 現在のユーザー情報を取得してランクアップをチェック
+      const userDoc = await getDoc(userRef);
+      const currentExp = userDoc.exists() ? (userDoc.data().exp || 0) : 0;
+      
       // 経験値計算
       let expToAdd = Math.floor((userPerformance.score || 0) / 100);
       if (expToAdd < 1 && (userPerformance.score || 0) > 0) expToAdd = 1;
@@ -275,15 +280,39 @@ export const updateAllQuizStats = async (
         expToAdd = Math.round(expToAdd * SCORING.SOLO_MULTIPLIER);
       }
       
+      const newExp = currentExp + expToAdd;
+      
+      // ランクアップしたかチェック
+      const didRankUp = hasRankUp(currentExp, newExp);
+      const newRankInfo = calculateUserRankInfo(newExp);
+      
       // ユーザー統計を更新（usersプロジェクト）
-      usersBatch.update(userRef, {
+      const updateData: any = {
         exp: increment(expToAdd),
         'stats.totalAnswered': increment(roomData.totalQuizCount || 1),
         'stats.correctAnswers': increment(userPerformance.score || 0),
         [`stats.genres.${roomData.genre}.totalAnswered`]: increment(roomData.totalQuizCount || 1),
         [`stats.genres.${roomData.genre}.correctAnswers`]: increment(userPerformance.score || 0),
         'stats.lastActivity': serverTimestamp()
-      });
+      };
+      
+      // ランクアップした場合は新しいランクも更新
+      if (didRankUp) {
+        updateData.rank = newRankInfo.rank.name;
+        console.log(`🎉 ランクアップ！ ${newRankInfo.rank.name} にランクアップしました！`);
+        
+        // ランクアップ通知をローカルストレージに保存（UI表示用）
+        if (typeof window !== 'undefined') {
+          const rankUpMessage = generateRankUpMessage(newRankInfo.rank);
+          localStorage.setItem('rankUpNotification', JSON.stringify({
+            message: rankUpMessage,
+            newRank: newRankInfo.rank,
+            timestamp: Date.now()
+          }));
+        }
+      }
+      
+      usersBatch.update(userRef, updateData);
       usersBatchCount++;
       
       // ジャンル統計を更新（メインプロジェクト）

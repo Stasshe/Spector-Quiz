@@ -8,6 +8,7 @@ import { usersDb } from '@/config/firebase';
 import { User, UserProfile } from '@/types/user';
 import { FaUser, FaTrophy, FaGamepad, FaCheck, FaArrowLeft } from 'react-icons/fa';
 import Link from 'next/link';
+import { calculateUserRankInfo } from '@/utils/rankCalculator';
 
 // ローディングフォールバックコンポーネント
 function ProfileLoading() {
@@ -42,13 +43,17 @@ function ProfileContent() {
         
         if (userSnap.exists()) {
           const userData = userSnap.data() as User;
+          // 動的にランク情報を計算
+          const rankInfo = calculateUserRankInfo(userData.exp || 0);
+          
           setUserProfile({
             userId: userData.userId,
             username: userData.username,
             iconId: userData.iconId,
             exp: userData.exp,
-            rank: userData.rank,
-            stats: userData.stats
+            rank: rankInfo.rank.name, // 計算されたランクを使用
+            stats: userData.stats,
+            rankInfo // 詳細なランク情報も含める
           });
         } else {
           setError('ユーザーが見つかりません');
@@ -89,8 +94,8 @@ function ProfileContent() {
     );
   }
 
-  const level = Math.floor(userProfile.exp / 100) + 1;
-  const levelProgress = userProfile.exp % 100;
+  // ランク情報を取得
+  const rankInfo = userProfile.rankInfo || calculateUserRankInfo(userProfile.exp || 0);
   const isOwnProfile = currentUser && currentUser.uid === userId;
 
   // 正解率の計算
@@ -113,7 +118,7 @@ function ProfileContent() {
             </div>
             <div>
               <h1 className="text-3xl font-bold">{userProfile.username}</h1>
-              <p className="text-indigo-200">レベル {level}</p>
+              <p className="text-indigo-200">レベル {rankInfo.level}</p>
             </div>
           </div>
         </div>
@@ -133,16 +138,23 @@ function ProfileContent() {
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">ランク</p>
-                  <p className="text-xl font-semibold">{userProfile.rank}</p>
+                  <div className="flex items-center space-x-2">
+                    <span className={`px-2 py-1 rounded-full text-sm font-semibold ${rankInfo.rank.color} ${rankInfo.rank.bgColor}`}>
+                      {userProfile.rank}
+                    </span>
+                  </div>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">次のレベルまで</p>
+                  <p className="text-sm text-gray-600">次のランクまで</p>
                   <div className="w-full bg-gray-200 rounded-full h-2.5 mt-2">
                     <div
                       className="bg-indigo-600 h-2.5 rounded-full"
-                      style={{ width: `${levelProgress}%` }}
+                      style={{ width: `${rankInfo.progress}%` }}
                     />
                   </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    あと {rankInfo.expToNextRank} EXP
+                  </p>
                 </div>
               </div>
             </div>

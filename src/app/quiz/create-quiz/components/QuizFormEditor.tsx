@@ -3,8 +3,8 @@
 import { FC, useState } from 'react';
 import { FaCheck, FaPlus, FaTrash, FaEye, FaEyeSlash } from 'react-icons/fa';
 import { Quiz, QuizType } from '@/types/quiz';
-import LatexRenderer from '@/components/common/LatexRenderer';
-import LatexGuide from '@/components/common/LatexGuide';
+import LatexRenderer from '@/components/latex/LatexRenderer';
+import LatexGuide from '@/components/latex/LatexGuide';
 
 
 interface QuizFormEditorProps {

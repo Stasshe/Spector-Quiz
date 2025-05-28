@@ -1,5 +1,5 @@
 import QuizTimer from '@/components/quiz/QuizTimer';
-import LatexRenderer from '@/components/common/LatexRenderer';
+import LatexRenderer from '@/components/latex/LatexRenderer';
 import { useQuiz } from '@/context/QuizContext';
 import { useLeader } from '@/hooks/useLeader';
 import { Quiz } from '@/types/quiz';

@@ -8,6 +8,7 @@ import { db, usersDb } from '@/config/firebase';
 import { User, UserProfile } from '@/types/user';
 import { FaUser, FaTrophy, FaGamepad, FaCheck, FaArrowLeft, FaFileAlt } from 'react-icons/fa';
 import Link from 'next/link';
+import { calculateUserRankInfo } from '@/utils/rankCalculator';
 
 // ローディングフォールバックコンポーネント
 function ProfileLoading() {
@@ -82,18 +83,22 @@ function UserProfileContent() {
             username: userData.username
           });
           
+          // 動的にランク情報を計算
+          const rankInfo = calculateUserRankInfo(userData.exp || 0);
+          
           // データの安全性を確保
           setUserProfile({
             userId: userSnap.id, // Firestoreドキュメントのid（Firebase Auth UID）
             username: userData.username || '名前なし',
             iconId: userData.iconId || 1,
             exp: userData.exp || 0,
-            rank: userData.rank || 'ビギナー',
+            rank: rankInfo.rank.name, // 計算されたランクを使用
             stats: userData.stats || {
               totalAnswered: 0,
               correctAnswers: 0,
               genres: {}
-            }
+            },
+            rankInfo // 詳細なランク情報も含める
           });
         } else {
           const idType = /^\d+$/.test(userId) ? '数値形式ID' : 'Firebase UID';
@@ -153,10 +158,8 @@ function UserProfileContent() {
     );
   }
 
-  // 統計情報の計算
-  // nullやundefinedのチェックを含む安全な計算
-  const level = userProfile ? Math.floor((userProfile.exp || 0) / 100) + 1 : 1;
-  const levelProgress = userProfile ? (userProfile.exp || 0) % 100 : 0;
+  // ランク情報を取得
+  const rankInfo = userProfile.rankInfo || calculateUserRankInfo(userProfile.exp || 0);
   const isOwnProfile = currentUser && currentUser.uid === userId;
 
   // 正解率の計算（nullチェック含む）
@@ -180,7 +183,7 @@ function UserProfileContent() {
             <div>
               <h1 className="text-3xl font-bold">{userProfile.username}</h1>
               <p className="text-indigo-200">
-                ランク: {userProfile.rank} • レベル {level}
+                ランク: {userProfile.rank} • レベル {rankInfo.level}
               </p>
             </div>
           </div>
@@ -189,17 +192,17 @@ function UserProfileContent() {
         {/* 経験値バー */}
         <div className="px-6 py-4 border-b border-gray-200">
           <div className="flex justify-between text-sm text-gray-600 mb-1">
-            <span>レベル {level}</span>
-            <span>レベル {level + 1}</span>
+            <span>レベル {rankInfo.level}</span>
+            <span>レベル {rankInfo.level + 1}</span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2.5">
             <div
               className="bg-indigo-600 h-2.5 rounded-full"
-              style={{ width: `${levelProgress}%` }}
+              style={{ width: `${rankInfo.progress}%` }}
             ></div>
           </div>
           <div className="mt-2 text-center text-sm text-gray-600">
-            次のレベルまであと {100 - levelProgress} EXP
+            次のランクまであと {rankInfo.expToNextRank} EXP
           </div>
         </div>
 

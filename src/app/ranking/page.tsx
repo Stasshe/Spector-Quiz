@@ -6,6 +6,7 @@ import { FaTrophy, FaMedal, FaUser, FaCrown, FaChartLine, FaCheck, FaBolt, FaFir
 import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import { usersDb } from '@/config/firebase';
 import { User, UserProfile } from '@/types/user';
+import { calculateUserRankInfo } from '@/utils/rankCalculator';
 
 export default function RankingPage() {
   const [users, setUsers] = useState<UserProfile[]>([]);
@@ -31,13 +32,17 @@ export default function RankingPage() {
         
         querySnapshot.forEach((doc) => {
           const userData = doc.data() as User;
+          // 動的にランク情報を計算
+          const rankInfo = calculateUserRankInfo(userData.exp || 0);
+          
           fetchedUsers.push({
             userId: userData.userId,
             username: userData.username,
             iconId: userData.iconId,
             exp: userData.exp,
-            rank: userData.rank,
-            stats: userData.stats
+            rank: rankInfo.rank.name, // 計算されたランクを使用
+            stats: userData.stats,
+            rankInfo // 詳細なランク情報も含める
           });
         });
         
@@ -168,11 +173,11 @@ export default function RankingPage() {
                   <h3 className="font-bold text-lg text-center mb-1">{user.username}</h3>
                   
                   <div className="flex items-center justify-center space-x-1 mb-3">
-                    <div className="bg-indigo-100 text-indigo-800 text-xs font-semibold px-2 py-1 rounded-full">
+                    <div className={`text-xs font-semibold px-2 py-1 rounded-full ${user.rankInfo?.rank.color || 'text-gray-600'} ${user.rankInfo?.rank.bgColor || 'bg-gray-100'}`}>
                       ランク: {user.rank}
                     </div>
                     <div className="bg-purple-100 text-purple-800 text-xs font-semibold px-2 py-1 rounded-full">
-                      Lv. {Math.floor(user.exp / 100) + 1}
+                      Lv. {user.rankInfo?.level || Math.floor(user.exp / 100) + 1}
                     </div>
                   </div>
                   
@@ -224,9 +229,11 @@ export default function RankingPage() {
                         <div>
                           <h3 className="font-medium text-gray-800">{user.username}</h3>
                           <div className="flex text-xs space-x-2">
-                            <span className="text-gray-500">ランク: {user.rank}</span>
+                            <span className={`px-2 py-0.5 rounded ${user.rankInfo?.rank.color || 'text-gray-500'} ${user.rankInfo?.rank.bgColor || 'bg-gray-100'}`}>
+                              ランク: {user.rank}
+                            </span>
                             <span className="text-gray-500">•</span>
-                            <span className="text-gray-500">Lv. {Math.floor(user.exp / 100) + 1}</span>
+                            <span className="text-gray-500">Lv. {user.rankInfo?.level || Math.floor(user.exp / 100) + 1}</span>
                           </div>
                         </div>
                       </div>

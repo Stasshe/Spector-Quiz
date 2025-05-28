@@ -282,9 +282,11 @@ export default function UserManagement() {
                       className="border border-gray-300 rounded px-2 py-1 text-sm"
                     >
                       <option value="ビギナー">ビギナー</option>
-                      <option value="アドバンスド">アドバンスド</option>
+                      <option value="アマチュア">アマチュア</option>
                       <option value="エキスパート">エキスパート</option>
                       <option value="マスター">マスター</option>
+                      <option value="グランドマスター">グランドマスター</option>
+                      <option value="レジェンド">レジェンド</option>
                       <option value="管理者">管理者</option>
                     </select>
                   </div>

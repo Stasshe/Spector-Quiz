@@ -12,6 +12,9 @@ const config: Config = {
         sans: ["var(--font-geist-sans)"],
         mono: ["var(--font-geist-mono)"],
       },
+      animation: {
+        'pulse-slow': 'pulse 2s ease-in-out infinite',
+      },
     },
   },
   plugins: [],

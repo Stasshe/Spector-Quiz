@@ -28,6 +28,17 @@ export interface UserProfile {
   rank: string;
   stats: UserStats;
   isAdmin?: boolean; // 管理者フラグ（オプション）
+  rankInfo?: {
+    rank: {
+      name: string;
+      color: string;
+      bgColor: string;
+    };
+    level: number;
+    exp: number;
+    expToNextRank: number;
+    progress: number;
+  }; // 動的ランク情報（オプション）
 }
 
 export interface ParticipantInfo {

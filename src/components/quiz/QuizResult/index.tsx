@@ -1,6 +1,6 @@
 import { Quiz } from '@/types/quiz';
 import { ParticipantInfo } from '@/types/user';
-import LatexRenderer from '@/components/common/LatexRenderer';
+import LatexRenderer from '@/components/latex/LatexRenderer';
 import { FaCheck, FaTimes } from 'react-icons/fa';
 
 interface QuizResultProps {

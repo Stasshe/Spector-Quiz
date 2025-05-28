@@ -7,55 +7,57 @@
 │   │   ├── OPTIMIZATION_SUMMARY.md
 │   │   ├── QUOTA_OPTIMIZATION_REPORT.md
 │   │   └── firebase.quota.md
-│   └── official-quiz
-│       ├── 世界史
-│       │   ├── 中世
-│       │   │   ├── イスラーム世界.yaml
-│       │   │   ├── ビザンツ帝国.yaml
-│       │   │   └── 十字軍.yaml
-│       │   ├── 古代
-│       │   │   ├── エジプト文明.yaml
-│       │   │   ├── ギリシャ.yaml
-│       │   │   ├── メソポタミア文明.yaml
-│       │   │   └── ローマ.yaml
-│       │   ├── 現代
-│       │   │   ├── グローバル化.yaml
-│       │   │   └── 冷戦.yaml
-│       │   ├── 近世
-│       │   │   ├── ルネサンス.yaml
-│       │   │   ├── 大航海時代.yaml
-│       │   │   └── 宗教改革.yaml
-│       │   └── 近代
-│       │       ├── 世界大戦.yaml
-│       │       ├── 市民革命.yaml
-│       │       ├── 帝国主義.yaml
-│       │       └── 産業革命.yaml
-│       └── 日本史
-│           ├── 中世
-│           │   ├── 室町時代.yaml
-│           │   ├── 戦国時代.yaml
-│           │   └── 鎌倉時代.yaml
-│           ├── 古代
-│           │   ├── 古墳時代.yaml
-│           │   ├── 奈良時代.yaml
-│           │   ├── 平安時代.yaml
-│           │   ├── 弥生時代.yaml
-│           │   ├── 縄文時代.yaml
-│           │   └── 飛鳥時代.yaml
-│           ├── 現代
-│           │   ├── 令和.yaml
-│           │   ├── 平成.yaml
-│           │   └── 昭和後期.yaml
-│           ├── 近世
-│           │   ├── 安土桃山時代.yaml
-│           │   └── 江戸時代.yaml
-│           └── 近代
-│               ├── 大正時代.yaml
-│               ├── 明治時代.yaml
-│               └── 昭和前期.yaml
+│   ├── official-quiz
+│   │   ├── 世界史
+│   │   │   ├── 中世
+│   │   │   │   ├── イスラーム世界.yaml
+│   │   │   │   ├── ビザンツ帝国.yaml
+│   │   │   │   └── 十字軍.yaml
+│   │   │   ├── 古代
+│   │   │   │   ├── エジプト文明.yaml
+│   │   │   │   ├── ギリシャ.yaml
+│   │   │   │   ├── メソポタミア文明.yaml
+│   │   │   │   └── ローマ.yaml
+│   │   │   ├── 現代
+│   │   │   │   ├── グローバル化.yaml
+│   │   │   │   └── 冷戦.yaml
+│   │   │   ├── 近世
+│   │   │   │   ├── ルネサンス.yaml
+│   │   │   │   ├── 大航海時代.yaml
+│   │   │   │   └── 宗教改革.yaml
+│   │   │   └── 近代
+│   │   │       ├── 世界大戦.yaml
+│   │   │       ├── 市民革命.yaml
+│   │   │       ├── 帝国主義.yaml
+│   │   │       └── 産業革命.yaml
+│   │   └── 日本史
+│   │       ├── 中世
+│   │       │   ├── 室町時代.yaml
+│   │       │   ├── 戦国時代.yaml
+│   │       │   └── 鎌倉時代.yaml
+│   │       ├── 古代
+│   │       │   ├── 古墳時代.yaml
+│   │       │   ├── 奈良時代.yaml
+│   │       │   ├── 平安時代.yaml
+│   │       │   ├── 弥生時代.yaml
+│   │       │   ├── 縄文時代.yaml
+│   │       │   └── 飛鳥時代.yaml
+│   │       ├── 現代
+│   │       │   ├── 令和.yaml
+│   │       │   ├── 平成.yaml
+│   │       │   └── 昭和後期.yaml
+│   │       ├── 近世
+│   │       │   ├── 安土桃山時代.yaml
+│   │       │   └── 江戸時代.yaml
+│   │       └── 近代
+│   │           ├── 大正時代.yaml
+│   │           ├── 明治時代.yaml
+│   │           └── 昭和前期.yaml
+│   └── test-output.md
 ├── LICENSE
 ├── README.md
 ├── firebase.rules
+├── firebase.users.rules
 ├── next-env.d.ts
 ├── next.config.ts
 ├── package-lock.json
@@ -114,6 +116,9 @@
 │   │   └── ranking
 │   │       └── page.tsx
 │   ├── components
+│   │   ├── latex
+│   │   │   ├── LatexGuide.tsx
+│   │   │   └── LatexRenderer.tsx
 │   │   ├── layout
 │   │   │   ├── ActiveQuizAlertModal.tsx
 │   │   │   ├── Footer.tsx
@@ -159,18 +164,18 @@
 │   │   ├── room.ts
 │   │   └── user.ts
 │   └── utils
-│       └── firestoreWriteMonitor.ts
+│       ├── firestoreWriteMonitor.ts
+│       └── rankCalculator.ts
 ├── tailwind.config.ts
-├── test-output.txt
 ├── tree.sh
 ├── tree.txt
 ├── tsconfig.json
 ├── tsconfig.tsbuildinfo
 └── version
 
-50 directories, 118 files
+51 directories, 122 files
 
 src/*.ts, *.tsx の統計:
-合計行数: 13706
-合計文字数: 455823
-合計ファイルサイズ(bytes): 528908
+合計行数: 14418
+合計文字数: 479643
+合計ファイルサイズ(bytes): 556651
