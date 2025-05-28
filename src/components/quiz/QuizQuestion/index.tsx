@@ -87,7 +87,7 @@ export default function QuizQuestion({ quiz, isAnswerRevealed }: QuizQuestionPro
             isActive={timerActive && quizRoom?.status === 'in_progress'}
             onTimeUp={handleTimeUp}
             resetKey={`${quiz.quizId}-${quizRoom?.currentQuizIndex || 0}`} // クイズIDとインデックスを組み合わせてユニークなキーを作成
-            isAnswerRevealed={localAnswerRevealed} // ローカル状態を使用
+            localAnswerRevealed={localAnswerRevealed} // ローカル状態を使用
           />
         </div>
       )}
