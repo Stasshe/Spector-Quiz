@@ -35,8 +35,8 @@ const QuizFormEditor: FC<QuizFormEditorProps> = ({
   // プレビュー表示の状態
   const [showTitlePreview, setShowTitlePreview] = useState(false);
   const [showQuestionPreview, setShowQuestionPreview] = useState(false);
-  const [showAnswerPreview, setShowAnswerPreview] = useState(false);
   const [showExplanationPreview, setShowExplanationPreview] = useState(false);
+  const [showChoicesPreview, setShowChoicesPreview] = useState(false);
   
   // 問題タイプが変更されたときに正解をリセット
   const handleTypeChange = (newType: QuizType) => {
@@ -306,53 +306,73 @@ const QuizFormEditor: FC<QuizFormEditorProps> = ({
           <div className="space-y-3">
             <div className="flex justify-between items-center">
               <p className="form-label">選択肢（3〜5択）</p>
-              <button
-                type="button"
-                onClick={addChoice}
-                disabled={choices.length >= 5}
-                className={`text-sm flex items-center ${choices.length >= 5 ? 'text-gray-400 cursor-not-allowed' : 'text-indigo-600 hover:text-indigo-800'}`}
-              >
-                <FaPlus className="mr-1" size={12} /> 選択肢を追加
-              </button>
+              <div className="flex space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setShowChoicesPreview(!showChoicesPreview)}
+                  className="text-sm text-blue-600 hover:text-blue-800 flex items-center"
+                >
+                  {showChoicesPreview ? <FaEyeSlash className="mr-1" /> : <FaEye className="mr-1" />}
+                  {showChoicesPreview ? 'プレビューを隠す' : 'LaTeXプレビュー'}
+                </button>
+                <button
+                  type="button"
+                  onClick={addChoice}
+                  disabled={choices.length >= 5}
+                  className={`text-sm flex items-center ${choices.length >= 5 ? 'text-gray-400 cursor-not-allowed' : 'text-indigo-600 hover:text-indigo-800'}`}
+                >
+                  <FaPlus className="mr-1" size={12} /> 選択肢を追加
+                </button>
+              </div>
             </div>
             
             {choices.map((choice, index) => (
-              <div key={index} className="flex items-center">
-                <label className="inline-flex items-center mr-4">
-                  <input
-                    type="radio"
-                    name="correctAnswer"
-                    value={choice}
-                    checked={correctAnswer === choice}
-                    onChange={() => setCorrectAnswer(choice)}
-                    className="mr-2"
-                    disabled={!choice.trim()}
-                  />
-                  <span className="w-6 h-6 flex items-center justify-center bg-indigo-100 text-indigo-800 rounded-full mr-2">
-                    {String.fromCharCode(65 + index)}
-                  </span>
-                </label>
-                <div className="flex-1 mr-2">
-                  <input
-                    type="text"
-                    value={choice}
-                    onChange={(e) => updateChoice(index, e.target.value)}
-                    className={`form-input ${isDuplicateChoice(index, choice) ? 'border-red-500 focus:border-red-500' : ''}`}
-                    placeholder={`選択肢 ${String.fromCharCode(65 + index)}`}
-                    required
-                  />
-                  {isDuplicateChoice(index, choice) && (
-                    <p className="text-xs text-red-500 mt-1">この選択肢は重複しています</p>
+              <div key={index} className="space-y-2">
+                <div className="flex items-center">
+                  <label className="inline-flex items-center mr-4">
+                    <input
+                      type="radio"
+                      name="correctAnswer"
+                      value={choice}
+                      checked={correctAnswer === choice}
+                      onChange={() => setCorrectAnswer(choice)}
+                      className="mr-2"
+                      disabled={!choice.trim()}
+                    />
+                    <span className="w-6 h-6 flex items-center justify-center bg-indigo-100 text-indigo-800 rounded-full mr-2">
+                      {String.fromCharCode(65 + index)}
+                    </span>
+                  </label>
+                  <div className="flex-1 mr-2">
+                    <input
+                      type="text"
+                      value={choice}
+                      onChange={(e) => updateChoice(index, e.target.value)}
+                      className={`form-input ${isDuplicateChoice(index, choice) ? 'border-red-500 focus:border-red-500' : ''}`}
+                      placeholder={`選択肢 ${String.fromCharCode(65 + index)} (LaTeX記法対応: $x^2$, $$\\frac{1}{2}$$)`}
+                      required
+                    />
+                    {isDuplicateChoice(index, choice) && (
+                      <p className="text-xs text-red-500 mt-1">この選択肢は重複しています</p>
+                    )}
+                  </div>
+                  {choices.length > 3 && (
+                    <button
+                      type="button"
+                      onClick={() => removeChoice(index)}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      <FaTrash />
+                    </button>
                   )}
                 </div>
-                {choices.length > 3 && (
-                  <button
-                    type="button"
-                    onClick={() => removeChoice(index)}
-                    className="text-red-500 hover:text-red-700"
-                  >
-                    <FaTrash />
-                  </button>
+                {showChoicesPreview && choice && (
+                  <div className="ml-12 p-2 bg-gray-50 border border-gray-200 rounded-md">
+                    <div className="text-xs text-gray-600 mb-1">選択肢 {String.fromCharCode(65 + index)} プレビュー:</div>
+                    <div className="text-base">
+                      <LatexRenderer text={choice} />
+                    </div>
+                  </div>
                 )}
               </div>
             ))}
@@ -366,33 +386,15 @@ const QuizFormEditor: FC<QuizFormEditorProps> = ({
         {type === 'input' && (
           <div className="space-y-4">
             <div>
-              <div className="flex items-center justify-between">
-                <label htmlFor="correctAnswer" className="form-label">正解</label>
-                <button
-                  type="button"
-                  onClick={() => setShowAnswerPreview(!showAnswerPreview)}
-                  className="text-sm text-blue-600 hover:text-blue-800 flex items-center"
-                >
-                  {showAnswerPreview ? <FaEyeSlash className="mr-1" /> : <FaEye className="mr-1" />}
-                  {showAnswerPreview ? 'プレビューを隠す' : 'LaTeXプレビュー'}
-                </button>
-              </div>
+              <label htmlFor="correctAnswer" className="form-label">正解</label>
               <input
                 type="text"
                 id="correctAnswer"
                 className="form-input"
                 value={correctAnswer}
                 onChange={(e) => setCorrectAnswer(e.target.value)}
-                placeholder="正解を入力（LaTeX記法対応: $x^2$, $$\frac{1}{2}$$）"
+                placeholder="正解を入力"
               />
-              {showAnswerPreview && correctAnswer && (
-                <div className="mt-2 p-3 bg-gray-50 border border-gray-200 rounded-md">
-                  <div className="text-sm text-gray-600 mb-1">プレビュー:</div>
-                  <div className="text-lg">
-                    <LatexRenderer text={correctAnswer} />
-                  </div>
-                </div>
-              )}
             </div>
             
             <div>

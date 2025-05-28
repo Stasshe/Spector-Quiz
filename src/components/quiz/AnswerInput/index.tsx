@@ -1,6 +1,7 @@
 import { useState, FormEvent } from 'react';
 import { Quiz } from '@/types/quiz';
 import { FaPaperPlane } from 'react-icons/fa';
+import LatexRenderer from '@/components/latex/LatexRenderer';
 
 interface AnswerInputProps {
   quiz: Quiz | null;
@@ -45,7 +46,7 @@ export default function AnswerInput({ quiz, onSubmit }: AnswerInputProps) {
                 <span className="flex items-center justify-center w-6 h-6 rounded-full bg-yellow-200 text-yellow-800 font-medium text-sm mr-3 flex-shrink-0">
                   {String.fromCharCode(65 + index)}
                 </span>
-                <span>{choice}</span>
+                <LatexRenderer text={choice} />
               </div>
             </button>
           ))}
