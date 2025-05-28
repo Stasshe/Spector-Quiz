@@ -18,6 +18,7 @@ export default function QuizQuestion({ quiz, isAnswerRevealed }: QuizQuestionPro
   const [isInitialized, setIsInitialized] = useState(false);
   const currentQuizIdRef = useRef<string>('');
   const [isNewQuestion, setIsNewQuestion] = useState(false); // 新しい問題フラグ
+  const [localAnswerRevealed, setLocalAnswerRevealed] = useState(false); // ローカル状態
   
   // quizがnullの場合は何も表示しない
   if (!quiz) {
@@ -27,12 +28,19 @@ export default function QuizQuestion({ quiz, isAnswerRevealed }: QuizQuestionPro
   // 問題が変わった時の初期化処理（最小限のログ）
   useEffect(() => {
     if (quiz.quizId !== currentQuizIdRef.current) {
+      console.log('[QuizQuestion] 新しい問題検出 - 答え表示状態をリセット');
       currentQuizIdRef.current = quiz.quizId;
       setIsInitialized(false);
+      setLocalAnswerRevealed(false); // 新しい問題では答え非表示
       // タイマーは常にアクティブに保つ
       setTimerActive(true);
     }
   }, [quiz.quizId]);
+
+  // isAnswerRevealedの変更を監視してローカル状態を更新
+  useEffect(() => {
+    setLocalAnswerRevealed(isAnswerRevealed || false);
+  }, [isAnswerRevealed]);
    // タイマーを開始する処理（問題は常に表示）
   useEffect(() => {
     // 現在のリセットキーを生成
@@ -79,7 +87,7 @@ export default function QuizQuestion({ quiz, isAnswerRevealed }: QuizQuestionPro
             isActive={timerActive && quizRoom?.status === 'in_progress'}
             onTimeUp={handleTimeUp}
             resetKey={`${quiz.quizId}-${quizRoom?.currentQuizIndex || 0}`} // クイズIDとインデックスを組み合わせてユニークなキーを作成
-            isAnswerRevealed={isAnswerRevealed}
+            isAnswerRevealed={localAnswerRevealed} // ローカル状態を使用
           />
         </div>
       )}
