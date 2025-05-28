@@ -253,7 +253,7 @@ export default function QuizTimer({ genre, isActive, onTimeUp, resetKey, localAn
 
           {/* ジャンル表示 */}
           <div className="mt-2 text-xs text-gray-600 text-center">
-            {effectiveGenre}
+            ジャンルごとに制限時間が違います。
           </div>
         </div>
 
