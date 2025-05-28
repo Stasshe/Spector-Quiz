@@ -4,7 +4,7 @@ import { db, usersDb } from '@/config/firebase';
 import { SCORING, TIMING, getQuestionTimeout } from '@/config/quizConfig';
 import { useAuth } from '@/context/AuthContext';
 import { useQuiz } from '@/context/QuizContext';
-import { cleanupRoomAnswers, updateUserStatsOnRoomComplete, updateAllQuizStats } from '@/services/quizRoom';
+import { updateAllQuizStats } from '@/services/quizRoom';
 import { Quiz } from '@/types/quiz';
 import { QuizRoom } from '@/types/room';
 import {
@@ -49,6 +49,12 @@ export function useLeader(roomId: string) {
       
       if (!currentQuizId) {
         console.log('[fetchCurrentQuiz] クイズIDが見つかりません - クイズ配列が空かインデックスが範囲外');
+        return;
+      }
+
+      // 重複問題防止チェック
+      if (currentQuiz && currentQuiz.quizId === currentQuizId) {
+        console.log(`[fetchCurrentQuiz] 同じクイズが既に設定済み (${currentQuizId}) - スキップ`);
         return;
       }
       

@@ -12,7 +12,7 @@ interface QuizQuestionProps {
 export default function QuizQuestion({ quiz }: QuizQuestionProps) {
   const { setAnimationInProgress, quizRoom } = useQuiz();
   const { startQuestionTimer } = useLeader(quizRoom?.roomId || '');
-  const [timerActive, setTimerActive] = useState(false);
+  const [timerActive, setTimerActive] = useState(true); // 初期値をtrueに変更
   const [timerResetKey, setTimerResetKey] = useState<string>('');
   const [isInitialized, setIsInitialized] = useState(false);
   const currentQuizIdRef = useRef<string>('');
@@ -27,46 +27,38 @@ export default function QuizQuestion({ quiz }: QuizQuestionProps) {
     if (quiz.quizId !== currentQuizIdRef.current) {
       currentQuizIdRef.current = quiz.quizId;
       setIsInitialized(false);
-      // タイマーはリセットキーの変更で制御されるため、ここでは停止しない
-      // setTimerActive(false); を削除
-      // setTimerResetKey(''); を削除 - リセットキーは次のuseEffectで設定される
+      // タイマーは常にアクティブに保つ
+      setTimerActive(true);
     }
   }, [quiz.quizId]);
    // タイマーを開始する処理（問題は常に表示）
   useEffect(() => {
     // 現在のリセットキーを生成
     const currentResetKey = `${quiz.quizId}-${quizRoom?.currentQuizIndex || 0}`;
-    const shouldInitialize = !isInitialized || 
-                           timerResetKey !== currentResetKey;
     
-    if (!shouldInitialize) {
+    // 既に初期化済みで、同じリセットキーの場合はスキップ
+    if (isInitialized && timerResetKey === currentResetKey) {
       return;
     }
 
     setAnimationInProgress(true);
-    // タイマーを一度無効にするのではなく、リセットキーを即座に設定
     setTimerResetKey(currentResetKey);
     
-    // 問題が切り替わった時の遅延を最小限にする
+    // 短い遅延でアニメーション終了
     const questionTimer = setTimeout(() => {
       setAnimationInProgress(false);
+      setIsInitialized(true);
       
-      // 問題表示後、タイマーをアクティブにする
-      setTimeout(() => {
-        setTimerActive(true);
-        setIsInitialized(true);
-        
-        // リーダーの場合はサーバー側でもタイマーを開始
-        if (quizRoom?.roomId && quizRoom.status === 'in_progress') {
-          startQuestionTimer();
-        }
-      }, 150); // タイマー開始までの遅延を少し増やして確実性を向上
-    }, 50); // 初期遅延を維持
+      // リーダーの場合はサーバー側でもタイマーを開始
+      if (quizRoom?.roomId && quizRoom.status === 'in_progress') {
+        startQuestionTimer();
+      }
+    }, 100); // 遅延を短縮
     
     return () => {
       clearTimeout(questionTimer);
     };
-  }, [quiz.quizId, quizRoom?.currentQuizIndex, setAnimationInProgress, startQuestionTimer, quizRoom?.roomId, quizRoom?.status]);  // タイマーが終了した時の処理
+  }, [quiz.quizId, quizRoom?.currentQuizIndex, setAnimationInProgress, startQuestionTimer, quizRoom?.roomId, quizRoom?.status, isInitialized, timerResetKey]);  // タイマーが終了した時の処理
   const handleTimeUp = () => {
     setTimerActive(false);
     // サーバー側のタイムアウト処理は useLeader の startQuestionTimer で実行される
