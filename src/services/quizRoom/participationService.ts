@@ -1,6 +1,6 @@
 'use client';
 
-import { db } from '@/config/firebase';
+import { db, usersDb } from '@/config/firebase';
 import { QuizRoom } from '@/types/room';
 import { ParticipantInfo } from '@/types/user';
 import {
@@ -56,7 +56,7 @@ export async function joinRoomService(
     }
     
     // ユーザーの現在の状態を確認
-    const userRef = doc(db, 'users', userId);
+    const userRef = doc(usersDb, 'users', userId);
     let currentRoomId: string | null = null;
     
     try {
@@ -173,7 +173,7 @@ export async function leaveRoomService(
         `users/${userId}`,
         'ルーム退出時のユーザー情報クリア'
       );
-      await updateDoc(doc(db, 'users', userId), {
+      await updateDoc(doc(usersDb, 'users', userId), {
         currentRoomId: null
       });
       console.log(`[leaveRoomService] ユーザー(${userId})のルーム情報をクリアしました`);
@@ -209,7 +209,7 @@ export async function leaveRoomService(
               `users/${pid}`,
               'リーダー退出時の参加者情報クリア'
             );
-            await updateDoc(doc(db, 'users', pid), {
+            await updateDoc(doc(usersDb, 'users', pid), {
               currentRoomId: null
             });
           } catch (err) {

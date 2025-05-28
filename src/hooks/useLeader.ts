@@ -1,6 +1,6 @@
 'use client';
 
-import { db } from '@/config/firebase';
+import { db, usersDb } from '@/config/firebase';
 import { SCORING, TIMING, getQuestionTimeout } from '@/config/quizConfig';
 import { useAuth } from '@/context/AuthContext';
 import { useQuiz } from '@/context/QuizContext';
@@ -733,7 +733,7 @@ export function useLeader(roomId: string) {
           // まず、各参加者のcurrentRoomIdをnullに設定して参照を解除
           const participantUpdates = Object.keys(quizRoom.participants).map(async (userId) => {
             try {
-              await updateDoc(doc(db, 'users', userId), { currentRoomId: null });
+              await updateDoc(doc(usersDb, 'users', userId), { currentRoomId: null });
               console.log(`User ${userId} room reference cleared`);
             } catch (userErr) {
               console.warn(`Failed to clear room reference for user ${userId}:`, userErr);

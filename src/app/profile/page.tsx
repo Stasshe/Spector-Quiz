@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { doc, getDoc } from 'firebase/firestore';
-import { db } from '@/config/firebase';
+import { usersDb } from '@/config/firebase';
 import { User, UserProfile } from '@/types/user';
 import { FaUser, FaTrophy, FaGamepad, FaCheck, FaArrowLeft } from 'react-icons/fa';
 import Link from 'next/link';
@@ -37,7 +37,7 @@ function ProfileContent() {
 
       try {
         setLoading(true);
-        const userRef = doc(db, 'users', userId);
+        const userRef = doc(usersDb, 'users', userId);
         const userSnap = await getDoc(userRef);
         
         if (userSnap.exists()) {

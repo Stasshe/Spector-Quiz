@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { FaTrophy, FaMedal, FaUser, FaCrown, FaChartLine, FaCheck, FaBolt, FaFire } from 'react-icons/fa';
 import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
-import { db } from '@/config/firebase';
+import { usersDb } from '@/config/firebase';
 import { User, UserProfile } from '@/types/user';
 
 export default function RankingPage() {
@@ -19,7 +19,7 @@ export default function RankingPage() {
         setLoading(true);
         
         // 経験値順のランキングを取得
-        const usersRef = collection(db, 'users');
+        const usersRef = collection(usersDb, 'users');
         const q = query(
           usersRef, 
           orderBy(activeTab === 'exp' ? 'exp' : 'stats.correctAnswers', 'desc'),

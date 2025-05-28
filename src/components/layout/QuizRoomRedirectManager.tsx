@@ -1,6 +1,6 @@
 'use client';
 
-import { db } from '@/config/firebase';
+import { db, usersDb } from '@/config/firebase';
 import { useAuth } from '@/context/AuthContext';
 import { useQuiz } from '@/hooks/useQuiz';
 import { doc, getDoc } from 'firebase/firestore';
@@ -68,7 +68,7 @@ export default function QuizRoomRedirectManager() {
     if (currentUser && (!quizRoom || !quizRoom.roomId)) {
       const fetchRoomFromFirestore = async () => {
         try {
-          const userRef = doc(db, 'users', currentUser.uid);
+          const userRef = doc(usersDb, 'users', currentUser.uid);
           const userDoc = await getDoc(userRef);
           
           if (userDoc.exists() && userDoc.data().currentRoomId) {

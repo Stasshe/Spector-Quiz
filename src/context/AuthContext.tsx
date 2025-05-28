@@ -1,6 +1,6 @@
 'use client';
 
-import { auth, db } from '@/config/firebase';
+import { usersAuth, usersDb } from '@/config/firebase';
 import { User, UserProfile } from '@/types/user';
 import {
   createUserWithEmailAndPassword,
@@ -30,47 +30,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [initialized, setInitialized] = useState(false); // 初期化状態を追加
 
-  // Firebase認証の状態変更監視
+  // Firebase認証の状態変更監視（usersプロジェクトのみ）
   useEffect(() => {
-    console.log('Setting up auth state listener');
+    console.log('Setting up auth state listener for users project only');
     let isMounted = true;
     
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      console.log('Auth state changed:', user ? `User: ${user.uid}` : 'No user');
+    // Usersプロジェクトの認証状態のみを監視
+    const unsubscribeUsers = onAuthStateChanged(usersAuth, async (user) => {
+      console.log('Users auth state changed:', user ? `User: ${user.uid}` : 'No user');
       
       if (!isMounted) {
-        console.log('Component unmounted, skipping auth state update');
+        console.log('Component unmounted, skipping users auth state update');
         return;
       }
       
-      setCurrentUser(user);
-      
       if (user) {
-        try {
-          const userDocRef = doc(db, 'users', user.uid);
-          const userDoc = await getDoc(userDocRef);
-          
-          if (userDoc.exists()) {
-            const userData = userDoc.data() as User;
-            setUserProfile({
-              userId: userData.userId,
-              username: userData.username,
-              iconId: userData.iconId,
-              exp: userData.exp,
-              rank: userData.rank,
-              stats: userData.stats,
-              isAdmin: userData.userId === "100000" // ユーザーIDが100000なら管理者権限を付与
-            });
-            
-          } else {
-            console.warn('User document does not exist for uid:', user.uid);
-            setUserProfile(null);
-          }
-        } catch (error) {
-          console.error('Error fetching user profile:', error);
-          setUserProfile(null);
-        }
+        setCurrentUser(user);
+        await handleUserProfile(user.uid);
       } else {
+        setCurrentUser(null);
         setUserProfile(null);
       }
       
@@ -79,19 +57,75 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log('Auth initialization complete');
     });
 
+    // ユーザープロファイル処理の共通関数
+    const handleUserProfile = async (uid: string) => {
+      try {
+        const userDocRef = doc(usersDb, 'users', uid);
+        const userDoc = await getDoc(userDocRef);
+        
+        if (userDoc.exists()) {
+          const userData = userDoc.data() as User;
+          setUserProfile({
+            userId: userData.userId,
+            username: userData.username,
+            iconId: userData.iconId,
+            exp: userData.exp,
+            rank: userData.rank,
+            stats: userData.stats,
+            isAdmin: userData.userId === "100000" // ユーザーIDが100000なら管理者権限を付与
+          });
+          
+          // ユーザーがオンライン状態であることを更新
+          await setDoc(userDocRef, {
+            isOnline: true,
+            lastLoginAt: serverTimestamp()
+          }, { merge: true });
+        } else {
+          console.warn('User document does not exist for uid:', uid);
+          setUserProfile(null);
+        }
+      } catch (error) {
+        console.error('Error fetching user profile:', error);
+        setUserProfile(null);
+      }
+    };
+
     // コンポーネントのアンマウント時にFirebase認証の監視を解除
     return () => {
       isMounted = false;
       console.log('Cleaning up auth state listener');
-      unsubscribe();
+      unsubscribeUsers();
+    };
+  }, []);
+
+  // アプリケーション終了時にユーザーをオフラインに設定
+  useEffect(() => {
+    const handleBeforeUnload = async () => {
+      // usersプロジェクトでのみユーザーをオフラインに設定
+      if (usersAuth.currentUser) {
+        try {
+          const userRef = doc(usersDb, 'users', usersAuth.currentUser.uid);
+          await setDoc(userRef, {
+            isOnline: false
+          }, { merge: true });
+        } catch (error) {
+          console.error('Error setting user offline:', error);
+        }
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, []);
 
   // 次のユーザーIDを生成する関数（6桁）
   const generateNextUserId = async (): Promise<string> => {
     try {
-      // ユーザーコレクションから最新のユーザーIDを取得
-      const usersRef = collection(db, 'users');
+      // ユーザーコレクションから最新のユーザーIDを取得（usersDbを使用）
+      const usersRef = collection(usersDb, 'users');
       const q = query(usersRef, orderBy('userId', 'desc'), limit(1));
       const querySnapshot = await getDocs(q);
       
@@ -126,7 +160,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // メールアドレスの代わりにuserIdを使用するための特殊なフォーマット
       // Firebase Authはメールアドレスを必要とするため、ダミーのメールアドレスを作成
       const email = `${userId}@zap-quiz.app`;
-      await signInWithEmailAndPassword(auth, email, password);
+      
+      // usersプロジェクトでのみログイン
+      await signInWithEmailAndPassword(usersAuth, email, password);
+      console.log('Successfully logged in to users project');
       
       // ユーザープロファイルの更新はonAuthStateChangedで行われるので、ここでは不要
       return;
@@ -149,11 +186,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Firebase Authはメールアドレスを必要とするため、ダミーのメールアドレスを作成
       const email = `${nextUserId}@zap-quiz.app`;
       
-      // Firebase Authで新規ユーザー作成
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
+      // usersプロジェクトでのみユーザーを作成
+      const usersUserCredential = await createUserWithEmailAndPassword(usersAuth, email, password);
       
-      // Firestoreにユーザー情報を保存
+      const user = usersUserCredential.user;
+      
+      // Firestoreにユーザー情報を保存（usersDbに保存）
       const newUser: User = {
         userId: nextUserId, // 自動生成されたユーザーID
         username,
@@ -169,7 +207,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       };
       
-      await setDoc(doc(db, 'users', user.uid), newUser);
+      await setDoc(doc(usersDb, 'users', user.uid), newUser);
       
       // 登録後、自動的にログイン状態にするために、生成されたIDを返す
       return nextUserId;
@@ -185,14 +223,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       setLoading(true);
       // ログアウト時間を記録
-      if (auth.currentUser) {
-        const userRef = doc(db, 'users', auth.currentUser.uid);
+      if (usersAuth.currentUser) {
+        const userRef = doc(usersDb, 'users', usersAuth.currentUser.uid);
         await setDoc(userRef, {
+          isOnline: false,
           currentRoomId: null,
+          lastLoginAt: serverTimestamp()
         }, { merge: true });
       }
       
-      await signOut(auth);
+      // usersプロジェクトからのみログアウト
+      await signOut(usersAuth);
     } catch (error) {
       console.error('Logout error:', error);
       throw error;
