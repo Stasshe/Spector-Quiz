@@ -32,20 +32,22 @@ export function useLeader(roomId: string) {
   const { currentUser } = useAuth();
 
   // 現在の問題を取得してセット
-  const fetchCurrentQuiz = useCallback(async () => {
+  const fetchCurrentQuiz = useCallback(async (overrideIndex?: number) => {
     if (!quizRoom) {
       console.log('[fetchCurrentQuiz] クイズルームが設定されていません');
       return;
     }
     
-    console.log(`[fetchCurrentQuiz] 実行開始: roomId=${roomId}, currentQuizIndex=${quizRoom.currentQuizIndex}`);
+    // インデックスが指定された場合はそれを使用、そうでなければquizRoomから取得
+    const currentQuizIndex = overrideIndex !== undefined ? overrideIndex : quizRoom.currentQuizIndex;
+    console.log(`[fetchCurrentQuiz] 実行開始: roomId=${roomId}, currentQuizIndex=${currentQuizIndex} (override: ${overrideIndex})`);
     
     try {
       // quizIdsがundefinedの可能性を考慮
       const quizIds = quizRoom.quizIds || [];
-      const currentQuizId = quizIds[quizRoom.currentQuizIndex];
+      const currentQuizId = quizIds[currentQuizIndex];
       
-      console.log(`[fetchCurrentQuiz] クイズIDs: ${JSON.stringify(quizIds)}, 現在のインデックス: ${quizRoom.currentQuizIndex}, 現在のクイズID: ${currentQuizId}`);
+      console.log(`[fetchCurrentQuiz] クイズIDs: ${JSON.stringify(quizIds)}, 現在のインデックス: ${currentQuizIndex}, 現在のクイズID: ${currentQuizId}`);
       
       if (!currentQuizId) {
         console.log('[fetchCurrentQuiz] クイズIDが見つかりません - クイズ配列が空かインデックスが範囲外');
@@ -255,8 +257,8 @@ export function useLeader(roomId: string) {
         }
       }
       
-      // 最初の問題を取得
-      await fetchCurrentQuiz();
+      // 最初の問題を取得（インデックス0を明示的に指定）
+      await fetchCurrentQuiz(0);
     } catch (error) {
       console.error('Error starting quiz game:', error);
     }
@@ -301,8 +303,8 @@ export function useLeader(roomId: string) {
         console.log('[moveToNextQuestion] クイズインデックスに変更がないため、書き込みをスキップしました');
       }
       
-      // 次の問題を取得
-      await fetchCurrentQuiz();
+      // 次の問題を取得（新しいインデックスを直接渡す）
+      await fetchCurrentQuiz(nextIndex);
     } catch (error) {
       console.error('Error moving to next question:', error);
     }
