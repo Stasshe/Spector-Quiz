@@ -261,6 +261,16 @@ export default function CreateQuizForm() {
     setQuizzes(updatedQuizzes);
   };
 
+  // 一括削除
+  const handleBulkRemove = (indices: number[]) => {
+    const updatedQuizzes = [...quizzes];
+    // 逆順で削除（インデックスがずれないように）
+    indices.sort((a, b) => b - a).forEach(index => {
+      updatedQuizzes.splice(index, 1);
+    });
+    setQuizzes(updatedQuizzes);
+  };
+
   // 下書きをロード
   const loadDraft = (draft: any) => {
     setDraftId(draft.draftId);
@@ -643,6 +653,7 @@ export default function CreateQuizForm() {
                 }}
                 onEdit={editQuiz}
                 onRemove={removeQuiz}
+                onBulkRemove={handleBulkRemove}
               />
               
               {/* 送信ボタン */}
