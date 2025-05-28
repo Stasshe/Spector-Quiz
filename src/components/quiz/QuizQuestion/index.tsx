@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
-import { Quiz } from '@/types/quiz';
-import { useQuiz } from '@/context/QuizContext';
-import { motion, AnimatePresence } from 'framer-motion';
 import QuizTimer from '@/components/quiz/QuizTimer';
+import { useQuiz } from '@/context/QuizContext';
 import { useLeader } from '@/hooks/useLeader';
+import { Quiz } from '@/types/quiz';
+import { motion } from 'framer-motion';
+import { useEffect, useState, useRef } from 'react';
 
 interface QuizQuestionProps {
   quiz: Quiz;
@@ -15,90 +15,73 @@ export default function QuizQuestion({ quiz }: QuizQuestionProps) {
   const [timerActive, setTimerActive] = useState(false);
   const [timerResetKey, setTimerResetKey] = useState<string>('');
   const [isInitialized, setIsInitialized] = useState(false);
+  const currentQuizIdRef = useRef<string>('');
   
   // quizがnullの場合は何も表示しない
   if (!quiz) {
     return null;
   }
 
-  // 問題が変わった時の初期化処理
+  // 問題が変わった時の初期化処理（最小限のログ）
   useEffect(() => {
-    console.log('Quiz changed, resetting state:', quiz.quizId);
-    setIsInitialized(false);
-    setTimerActive(false);
-    setTimerResetKey('');
+    if (quiz.quizId !== currentQuizIdRef.current) {
+      currentQuizIdRef.current = quiz.quizId;
+      setIsInitialized(false);
+      setTimerActive(false);
+      setTimerResetKey('');
+    }
   }, [quiz.quizId]);
-  
-  // タイマーを開始する処理（問題は常に表示）
+   // タイマーを開始する処理（問題は常に表示）
   useEffect(() => {
-    console.log('QuizQuestion effect triggered', { 
-      quizId: quiz.quizId, 
-      timerResetKey, 
-      isInitialized,
-      quizRoomId: quizRoom?.roomId,
-      status: quizRoom?.status,
-      currentQuizIndex: quizRoom?.currentQuizIndex
-    });
-    
-    // 問題IDが変わった場合、または初期化されていない場合は必ずタイマーを初期化
-    // currentQuizIndexも考慮して、同じ問題でも異なるタイミングで表示される場合を検出
+    // 現在のリセットキーを生成
     const currentResetKey = `${quiz.quizId}-${quizRoom?.currentQuizIndex || 0}`;
     const shouldInitialize = !isInitialized || 
                            timerResetKey !== currentResetKey ||
                            !timerActive;
     
     if (!shouldInitialize) {
-      console.log('Quiz already properly initialized, skipping');
       return;
     }
 
-    console.log('Initializing quiz timer for:', quiz.quizId);
     setAnimationInProgress(true);
     setTimerActive(false);
     
     // 問題が切り替わった時の遅延を最小限にする
     const questionTimer = setTimeout(() => {
-      console.log('Starting question display');
       setAnimationInProgress(false);
       
       // 問題表示後、タイマーを開始
       setTimeout(() => {
-        console.log('Starting timer for quiz:', quiz.quizId);
         setTimerActive(true);
         setTimerResetKey(currentResetKey);
         setIsInitialized(true);
         
         // リーダーの場合はサーバー側でもタイマーを開始
         if (quizRoom?.roomId && quizRoom.status === 'in_progress') {
-          console.log('Starting server-side question timer');
           startQuestionTimer();
         }
       }, 150); // タイマー開始までの遅延を少し増やして確実性を向上
     }, 50); // 初期遅延を維持
     
     return () => {
-      console.log('Cleaning up question timer');
       clearTimeout(questionTimer);
     };
-  }, [quiz.quizId, quizRoom?.currentQuizIndex, setAnimationInProgress, startQuestionTimer, quizRoom?.roomId, quizRoom?.status]);
-
-  // タイマーが終了した時の処理
+  }, [quiz.quizId, quizRoom?.currentQuizIndex, setAnimationInProgress, startQuestionTimer, quizRoom?.roomId, quizRoom?.status]);  // タイマーが終了した時の処理
   const handleTimeUp = () => {
-    console.log('QuizQuestion: 時間切れです！');
     setTimerActive(false);
     // サーバー側のタイムアウト処理は useLeader の startQuestionTimer で実行される
   };
-
-  // タイマーの状態をデバッグ用にログ出力
-  useEffect(() => {
-    console.log('Timer状態変化:', {
-      timerActive,
-      quizRoomStatus: quizRoom?.status,
-      isRevealed: quizRoom?.currentState?.isRevealed,
-      resetKey: timerResetKey,
-      finalIsActive: timerActive && quizRoom?.status === 'in_progress'
-    });
-  }, [timerActive, quizRoom?.status, quizRoom?.currentState?.isRevealed, timerResetKey]);
+  
+  // デバッグログを削除（必要時のみ有効化）
+  // useEffect(() => {
+  //   console.log('Timer状態変化:', {
+  //     timerActive,
+  //     quizRoomStatus: quizRoom?.status,
+  //     isRevealed: quizRoom?.currentState?.isRevealed,
+  //     resetKey: timerResetKey,
+  //     finalIsActive: timerActive && quizRoom?.status === 'in_progress'
+  //   });
+  // }, [timerActive, quizRoom?.status, quizRoom?.currentState?.isRevealed, timerResetKey]);
   
   return (
     <div className="quiz-question relative">

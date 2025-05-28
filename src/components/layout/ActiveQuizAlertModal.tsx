@@ -91,7 +91,6 @@ export default function ActiveQuizAlertModal() {
       
       // 既に正しいルームにいる場合はアラートを表示しない
       if (currentRoomIdFromUrl === targetRoomId) {
-        console.log('[ActiveQuizAlertModal] 既に正しいルームページにいます:', targetRoomId);
         setShowAlert(false);
         return;
       }
@@ -101,8 +100,6 @@ export default function ActiveQuizAlertModal() {
     const checkRoomIdFromFirebase = async () => {
       try {
         if (!quizRoom.roomId && currentUser) {
-          console.log('[ActiveQuizAlertModal] quizRoomにroomIdがありません。Firebaseから取得を試みます');
-          
           // 1. ユーザードキュメントから現在のルームIDを取得
           const userRef = doc(usersDb, 'users', currentUser.uid);
           const userDoc = await getDoc(userRef);
@@ -111,11 +108,8 @@ export default function ActiveQuizAlertModal() {
           
           if (userDoc.exists() && userDoc.data().currentRoomId) {
             foundRoomId = userDoc.data().currentRoomId;
-            console.log(`[ActiveQuizAlertModal] ユーザードキュメントからルームを取得: ${foundRoomId}`);
           } else {
             // 2. ユーザードキュメントに情報がない場合、アクティブなルームを検索
-            console.log('[ActiveQuizAlertModal] ユーザードキュメントに情報がありません。アクティブなルームを検索します');
-            
             // 進行中のルームから、このユーザーが参加しているものを探す
             const roomsRef = collection(db, 'quiz_rooms');
             const roomsQuery = query(
@@ -129,12 +123,10 @@ export default function ActiveQuizAlertModal() {
                 // 最初に見つかったアクティブなルームを使用
                 const firstRoom = roomsSnapshot.docs[0];
                 foundRoomId = firstRoom.id;
-                console.log(`[ActiveQuizAlertModal] アクティブなルームを発見: ${foundRoomId}`);
                 
                 // ユーザードキュメントも更新しておく
                 try {
                   await updateDoc(userRef, { currentRoomId: foundRoomId });
-                  console.log('[ActiveQuizAlertModal] ユーザードキュメントにルームIDを設定しました');
                 } catch (updateErr) {
                   console.warn('[ActiveQuizAlertModal] ユーザードキュメント更新に失敗しましたが、処理を続行します:', updateErr);
                 }
@@ -150,18 +142,10 @@ export default function ActiveQuizAlertModal() {
             const roomSnap = await getDoc(roomRef);
             if (roomSnap.exists()) {
               const roomData = roomSnap.data();
-              console.log('[ActiveQuizAlertModal] Firebaseから取得したルーム情報:', {
-                roomId: foundRoomId,
-                status: roomData.status,
-                name: roomData.name,
-                classType: roomData.classType,
-                quizType: roomData.quizType
-              });
               
               // 手動でルームIDを保存
               setManualRoomId(foundRoomId);
             } else {
-              console.warn('[ActiveQuizAlertModal] ルームが存在しません:', foundRoomId);
               // 存在しないルームIDの場合、ユーザードキュメントをクリア
               try {
                 await updateDoc(userRef, { currentRoomId: null });
@@ -169,8 +153,6 @@ export default function ActiveQuizAlertModal() {
                 console.warn('[ActiveQuizAlertModal] ユーザードキュメントのクリアに失敗:', clearErr);
               }
             }
-          } else {
-            console.log('[ActiveQuizAlertModal] アクティブなルームが見つかりませんでした');
           }
         }
       } catch (err) {

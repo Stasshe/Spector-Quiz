@@ -18,19 +18,17 @@ export default function QuizTimer({ genre, isActive, onTimeUp, resetKey }: QuizT
   const [isVisible, setIsVisible] = useState(false);
   const lastResetKeyRef = useRef<string>(''); // 前回のresetKeyを記録
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isInitializedRef = useRef(false);
 
   // ジャンルまたは制限時間が無効な場合は何も表示しない
   if (!genre || totalTime <= 0) {
     return null;
   }
 
-  // タイマーをリセット（resetKeyが変わった時、または強制リセットが必要な時）
+  // タイマーをリセット（resetKeyが変わった時のみ）
   useEffect(() => {
-    console.log('Timer effect:', { resetKey, lastResetKey: lastResetKeyRef.current, isActive, totalTime });
-    
-    // resetKeyが存在し、前回と異なる場合、または初回の場合はリセット
-    if (resetKey && (resetKey !== lastResetKeyRef.current || lastResetKeyRef.current === '')) {
-      console.log('タイマーリセット:', resetKey, '前回:', lastResetKeyRef.current);
+    // resetKeyが存在し、前回と異なる場合のみリセット
+    if (resetKey && resetKey !== lastResetKeyRef.current) {
       // 既存のインターバルをクリア
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
@@ -38,36 +36,28 @@ export default function QuizTimer({ genre, isActive, onTimeUp, resetKey }: QuizT
       }
       setTimeLeft(totalTime);
       lastResetKeyRef.current = resetKey;
+      isInitializedRef.current = true;
     }
     
-    // isActiveの状態とresetKeyに基づいて表示状態を決定
-    if (resetKey) {
-      setIsVisible(true); // resetKeyがあれば常に表示
-    } else {
-      setIsVisible(isActive);
-    }
+    // 表示状態の決定
+    setIsVisible(resetKey ? true : isActive);
   }, [resetKey, totalTime, isActive]);
 
-  // カウントダウン処理
+  // カウントダウン処理（isActiveが変わった時のみ）
   useEffect(() => {
-    console.log('Timer countdown effect:', { isActive, timeLeft, hasInterval: !!intervalRef.current });
-    
     // 既存のインターバルをクリア
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
 
-    if (!isActive) {
-      console.log('Timer not active, stopping countdown');
+    if (!isActive || !isInitializedRef.current) {
       return;
     }
 
-    console.log('Starting timer countdown');
     intervalRef.current = setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 100) { // 100ms以下になったら終了
-          console.log('Timer reached zero, calling onTimeUp');
           if (intervalRef.current) {
             clearInterval(intervalRef.current);
             intervalRef.current = null;
@@ -81,13 +71,12 @@ export default function QuizTimer({ genre, isActive, onTimeUp, resetKey }: QuizT
     }, 100);
 
     return () => {
-      console.log('Cleaning up timer interval');
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
     };
-  }, [isActive, onTimeUp, resetKey]); // resetKeyを依存配列に追加して、リセット時も確実にタイマーが再開される
+  }, [isActive, onTimeUp, isInitializedRef.current]); // resetKeyの依存を削除
 
   // 時間の表示形式を変換
   const formatTime = (milliseconds: number) => {

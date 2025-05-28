@@ -27,8 +27,6 @@ export default function QuizRoomRedirectManager() {
     
     // クイズルームページにいる場合の処理（末尾のスラッシュも考慮）
     if (pathname && (pathname.includes('/quiz/room') || pathname === '/quiz/room/')) {
-      console.log('[QuizRoomRedirectManager] クイズルームページに滞在中 - リダイレクト処理は無効化');
-      
       // クイズルームページにいる場合はリダイレクト処理をスキップするためのフラグを設定
       redirectInProgressRef.current = true;
       
@@ -46,7 +44,6 @@ export default function QuizRoomRedirectManager() {
     } else if (typeof window !== 'undefined') {
       // パスからでは検出できない場合のフォールバック：window.inQuizRoomPageをチェック
       if (window.inQuizRoomPage) {
-        console.log('[QuizRoomRedirectManager] window.inQuizRoomPage = true - リダイレクト処理は無効化');
         // 明示的にフラグをリセット（冗長性のため）
         redirectInProgressRef.current = true;
         
@@ -73,7 +70,6 @@ export default function QuizRoomRedirectManager() {
           
           if (userDoc.exists() && userDoc.data().currentRoomId) {
             const roomId = userDoc.data().currentRoomId;
-            console.log(`[QuizRoomRedirectManager] Firebaseから現在のルームを検出: ${roomId}`);
             
             if (roomId) {
               setManualRoomId(roomId);
@@ -84,12 +80,9 @@ export default function QuizRoomRedirectManager() {
               const roomSnap = await getDoc(roomRef);
               if (roomSnap.exists()) {
                 const roomData = roomSnap.data();
-                console.log(`[QuizRoomRedirectManager] ルーム状態: ${roomData.status}`);
                 
                 // 公式クイズの場合は特別処理（quizIdがユーザー作成ではなく公式データを参照するため）
                 if (roomData.quizType === 'official' && roomData.status === 'in_progress') {
-                  console.log('[QuizRoomRedirectManager] 公式クイズルームを検出。特別処理を適用します');
-                  
                   // 無限リダイレクトを防ぐために、公式クイズであることをマーク
                   if (typeof window !== 'undefined') {
                     window.isOfficialQuiz = true;
@@ -111,7 +104,6 @@ export default function QuizRoomRedirectManager() {
   useEffect(() => {
     // 認証チェック - 未ログインの場合は何もしない
     if (!currentUser) {
-      console.log('[QuizRoomRedirectManager] ユーザーが未ログインのため、リダイレクト処理をスキップ');
       return;
     }
     
@@ -127,7 +119,6 @@ export default function QuizRoomRedirectManager() {
     
     // エラーが発生している場合はリダイレクトを一時的にスキップ
     if (hasRecentError) {
-      console.log('[QuizRoomRedirectManager] 最近エラーが発生したため、リダイレクトを一時的に停止します');
       // 5秒後にエラーフラグをリセット
       const errorResetTimer = setTimeout(() => {
         if (typeof window !== 'undefined') {
@@ -143,18 +134,8 @@ export default function QuizRoomRedirectManager() {
       // 現在のパスがすでに正しいルームページの場合はスキップ
       const currentRoomIdFromPath = pathname?.includes('/quiz/room') && new URLSearchParams(window?.location?.search || '').get('id');
       if (currentRoomIdFromPath === activeRoomId) {
-        console.log('[QuizRoomRedirectManager] 既に正しいルームページにいます:', activeRoomId);
         return;
       }
-      
-      // デバッグ情報を出力
-      console.log('[QuizRoomRedirectManager] 進行中クイズルーム検出:', {
-        roomId: activeRoomId,
-        currentPath: pathname,
-        inRoom: pathname?.includes('/quiz/room'),
-        isOfficialQuiz: typeof window !== 'undefined' ? window.isOfficialQuiz : false,
-        redirectInProgress: redirectInProgressRef.current
-      });
       
       // すでにルームページにいる場合の詳細チェック
       const inRoomPage = 
@@ -168,22 +149,14 @@ export default function QuizRoomRedirectManager() {
         
         // 既に正しいルームにいる場合はリダイレクトをスキップ
         if (currentRoomIdFromUrl === activeRoomId) {
-          console.log('[QuizRoomRedirectManager] 既に正しいルームページにいます:', activeRoomId);
           return;
         }
         
-        console.log('[QuizRoomRedirectManager] すでにルームページにいるため、リダイレクト処理をスキップ', {
-          pathname,
-          currentRoomIdFromUrl,
-          targetRoomId: activeRoomId,
-          windowFlag: typeof window !== 'undefined' ? window.inQuizRoomPage : undefined
-        });
         return;
       }
       
       // 認証ページへの遷移は許可
       if (pathname?.includes('/auth/')) {
-        console.log('[QuizRoomRedirectManager] 認証ページへの遷移は許可します');
         return;
       }
 
@@ -193,16 +166,11 @@ export default function QuizRoomRedirectManager() {
       
       if (pathChanged || (isQuizPath && !redirectInProgressRef.current)) {
         if (pathChanged) {
-          console.log(`[QuizRoomRedirectManager] パス変更を検知: ${lastPathRef.current} -> ${pathname}`);
           lastPathRef.current = pathname;
-        } else {
-          console.log('[QuizRoomRedirectManager] クイズ関連ページにいるためリダイレクトチェックを実行');
         }
         
         // リダイレクトが既に進行中でなければ実行
         if (!redirectInProgressRef.current) {
-          console.log('[QuizRoomRedirectManager] クイズ進行中にページ移動を検出。ルームページに強制リダイレクト：', activeRoomId);
-          
           // リダイレクト進行中フラグをセット
           redirectInProgressRef.current = true;
           
@@ -216,7 +184,6 @@ export default function QuizRoomRedirectManager() {
                 message.toString().includes('クイズが見つかりません') || 
                 message.toString().includes('Error fetching quiz')
               )) {
-                console.log('[QuizRoomRedirectManager] クイズ取得エラーを検出。リダイレクトを一時停止します');
                 window.quizErrorTimestamp = Date.now();
               }
               
@@ -238,7 +205,6 @@ export default function QuizRoomRedirectManager() {
           try {
             // パス構築して安全に遷移
             const redirectUrl = `/quiz/room?id=${encodeURIComponent(activeRoomId)}`;
-            console.log(`[QuizRoomRedirectManager] リダイレクト実行: ${redirectUrl}`);
             
             // 公式クイズでエラーが発生したことがある場合はクエリパラメータを追加
             const isOfficialQuiz = typeof window !== 'undefined' ? window.isOfficialQuiz : false;
@@ -252,11 +218,9 @@ export default function QuizRoomRedirectManager() {
               // 既にクイズルームページにいる場合はスキップ
               if (typeof window !== 'undefined' && 
                  (window.location.pathname.includes('/quiz/room') || window.inQuizRoomPage)) {
-                console.log('[QuizRoomRedirectManager] すでにルームページに移動済みです');
                 return;
               }
               
-              console.log('[QuizRoomRedirectManager] バックアップリダイレクト実行');
               // 本当に緊急時のバックアップとしてwindow.location.hrefを使用
               if (typeof window !== 'undefined') {
                 window.location.href = finalUrl;
