@@ -1,4 +1,5 @@
 import QuizTimer from '@/components/quiz/QuizTimer';
+import LatexRenderer from '@/components/common/LatexRenderer';
 import { useQuiz } from '@/context/QuizContext';
 import { useLeader } from '@/hooks/useLeader';
 import { Quiz } from '@/types/quiz';
@@ -90,12 +91,14 @@ export default function QuizQuestion({ quiz, isAnswerRevealed }: QuizQuestionPro
         transition={{ duration: 0.5 }}
         className="text-xl md:text-2xl font-bold mb-4 pr-24" // 右側のスペースを確保
       >
-        {quiz.title}
+        <LatexRenderer text={quiz.title} />
       </motion.h2>
       
       {/* 問題文表示 - 常に表示 */}
       <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-4 mb-6">
-        <p className="text-lg font-medium">{quiz.question}</p>
+        <div className="text-lg font-medium">
+          <LatexRenderer text={quiz.question} />
+        </div>
       </div>
       
       {/* 入力式問題の場合のガイダンス */}

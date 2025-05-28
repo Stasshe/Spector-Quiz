@@ -1,5 +1,6 @@
 import { Quiz } from '@/types/quiz';
 import { ParticipantInfo } from '@/types/user';
+import LatexRenderer from '@/components/common/LatexRenderer';
 import { FaCheck, FaTimes } from 'react-icons/fa';
 
 interface QuizResultProps {
@@ -35,7 +36,7 @@ export default function QuizResult({ isCorrect, quiz, answererId, participants }
         <div className="mb-4">
           <div className="font-medium mb-2">正解:</div>
           <div className="bg-white p-3 rounded-md border border-gray-200">
-            {quiz.correctAnswer}
+            <LatexRenderer text={quiz.correctAnswer} />
           </div>
         </div>
 
@@ -43,7 +44,7 @@ export default function QuizResult({ isCorrect, quiz, answererId, participants }
           <div className="mb-4">
             <div className="font-medium mb-2">許容される他の回答:</div>
             <div className="bg-white p-3 rounded-md border border-gray-200">
-              {quiz.acceptableAnswers.join('、 ')}
+              <LatexRenderer text={quiz.acceptableAnswers.join('、 ')} />
             </div>
           </div>
         )}
@@ -52,7 +53,7 @@ export default function QuizResult({ isCorrect, quiz, answererId, participants }
           <div>
             <div className="font-medium mb-2">解説:</div>
             <div className="bg-white p-3 rounded-md border border-gray-200 text-gray-700">
-              {quiz.explanation}
+              <LatexRenderer text={quiz.explanation} />
             </div>
           </div>
         )}

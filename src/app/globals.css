@@ -2,6 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* KaTeX CSS */
+@import 'katex/dist/katex.min.css';
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -238,4 +241,31 @@
 @keyframes timer-bar {
   from { width: 100%; }
   to { width: 0%; }
+}
+
+/* LaTeX表示のスタイリング */
+.latex-content .katex {
+  font-size: inherit;
+  color: inherit;
+}
+
+.latex-content .katex-display {
+  margin: 0.5em 0;
+  text-align: center;
+}
+
+.latex-content .katex-display > .katex {
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* 数式のレスポンシブ対応 */
+@media (max-width: 640px) {
+  .latex-content .katex {
+    font-size: 0.9em;
+  }
+  
+  .latex-content .katex-display {
+    margin: 0.3em 0;
+  }
 }

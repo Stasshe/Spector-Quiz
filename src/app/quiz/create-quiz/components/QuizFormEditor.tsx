@@ -1,8 +1,10 @@
 'use client';
 
 import { FC, useState } from 'react';
-import { FaCheck, FaPlus, FaTrash } from 'react-icons/fa';
+import { FaCheck, FaPlus, FaTrash, FaEye, FaEyeSlash } from 'react-icons/fa';
 import { Quiz, QuizType } from '@/types/quiz';
+import LatexRenderer from '@/components/common/LatexRenderer';
+import LatexGuide from '@/components/common/LatexGuide';
 
 
 interface QuizFormEditorProps {
@@ -29,6 +31,12 @@ const QuizFormEditor: FC<QuizFormEditorProps> = ({
   const [acceptableAnswers, setAcceptableAnswers] = useState<string[]>(editingQuiz?.acceptableAnswers || ['']);
   const [explanation, setExplanation] = useState(editingQuiz?.explanation || '');
   const [errorMessage, setErrorMessage] = useState('');
+  
+  // プレビュー表示の状態
+  const [showTitlePreview, setShowTitlePreview] = useState(false);
+  const [showQuestionPreview, setShowQuestionPreview] = useState(false);
+  const [showAnswerPreview, setShowAnswerPreview] = useState(false);
+  const [showExplanationPreview, setShowExplanationPreview] = useState(false);
   
   // 問題タイプが変更されたときに正解をリセット
   const handleTypeChange = (newType: QuizType) => {
@@ -182,13 +190,16 @@ const QuizFormEditor: FC<QuizFormEditorProps> = ({
     <div className="border border-gray-200 rounded-lg p-4">
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-medium">{editingQuiz ? 'クイズを編集' : '新しいクイズ'}</h3>
-        <button
-          type="button"
-          onClick={onCancel}
-          className="text-gray-500 hover:text-gray-700"
-        >
-          キャンセル
-        </button>
+        <div className="flex items-center space-x-3">
+          <LatexGuide />
+          <button
+            type="button"
+            onClick={onCancel}
+            className="text-gray-500 hover:text-gray-700"
+          >
+            キャンセル
+          </button>
+        </div>
       </div>
       
       {errorMessage && (
@@ -199,29 +210,65 @@ const QuizFormEditor: FC<QuizFormEditorProps> = ({
       
       <div className="space-y-4">
         <div>
-          <label htmlFor="quizTitle" className="form-label">クイズタイトル</label>
+          <div className="flex items-center justify-between">
+            <label htmlFor="quizTitle" className="form-label">クイズタイトル</label>
+            <button
+              type="button"
+              onClick={() => setShowTitlePreview(!showTitlePreview)}
+              className="text-sm text-blue-600 hover:text-blue-800 flex items-center"
+            >
+              {showTitlePreview ? <FaEyeSlash className="mr-1" /> : <FaEye className="mr-1" />}
+              {showTitlePreview ? 'プレビューを隠す' : 'LaTeXプレビュー'}
+            </button>
+          </div>
           <input
             type="text"
             id="quizTitle"
             className="form-input"
             value={quizTitle}
             onChange={(e) => setQuizTitle(e.target.value)}
-            placeholder="クイズのタイトルを入力"
+            placeholder="クイズのタイトルを入力（LaTeX記法対応: $x^2$, $$\frac{1}{2}$$）"
             required
           />
+          {showTitlePreview && quizTitle && (
+            <div className="mt-2 p-3 bg-gray-50 border border-gray-200 rounded-md">
+              <div className="text-sm text-gray-600 mb-1">プレビュー:</div>
+              <div className="text-lg font-bold">
+                <LatexRenderer text={quizTitle} />
+              </div>
+            </div>
+          )}
         </div>
         
         <div>
-          <label htmlFor="question" className="form-label">問題文</label>
+          <div className="flex items-center justify-between">
+            <label htmlFor="question" className="form-label">問題文</label>
+            <button
+              type="button"
+              onClick={() => setShowQuestionPreview(!showQuestionPreview)}
+              className="text-sm text-blue-600 hover:text-blue-800 flex items-center"
+            >
+              {showQuestionPreview ? <FaEyeSlash className="mr-1" /> : <FaEye className="mr-1" />}
+              {showQuestionPreview ? 'プレビューを隠す' : 'LaTeXプレビュー'}
+            </button>
+          </div>
           <textarea
             id="question"
             className="form-textarea"
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
-            placeholder="問題文を入力"
+            placeholder="問題文を入力（LaTeX記法対応: $x^2$, $$\frac{1}{2}$$）"
             rows={3}
             required
           ></textarea>
+          {showQuestionPreview && question && (
+            <div className="mt-2 p-3 bg-gray-50 border border-gray-200 rounded-md">
+              <div className="text-sm text-gray-600 mb-1">プレビュー:</div>
+              <div className="text-lg">
+                <LatexRenderer text={question} />
+              </div>
+            </div>
+          )}
         </div>
         
         
@@ -319,15 +366,33 @@ const QuizFormEditor: FC<QuizFormEditorProps> = ({
         {type === 'input' && (
           <div className="space-y-4">
             <div>
-              <label htmlFor="correctAnswer" className="form-label">正解</label>
+              <div className="flex items-center justify-between">
+                <label htmlFor="correctAnswer" className="form-label">正解</label>
+                <button
+                  type="button"
+                  onClick={() => setShowAnswerPreview(!showAnswerPreview)}
+                  className="text-sm text-blue-600 hover:text-blue-800 flex items-center"
+                >
+                  {showAnswerPreview ? <FaEyeSlash className="mr-1" /> : <FaEye className="mr-1" />}
+                  {showAnswerPreview ? 'プレビューを隠す' : 'LaTeXプレビュー'}
+                </button>
+              </div>
               <input
                 type="text"
                 id="correctAnswer"
                 className="form-input"
                 value={correctAnswer}
                 onChange={(e) => setCorrectAnswer(e.target.value)}
-                placeholder="正解を入力"
+                placeholder="正解を入力（LaTeX記法対応: $x^2$, $$\frac{1}{2}$$）"
               />
+              {showAnswerPreview && correctAnswer && (
+                <div className="mt-2 p-3 bg-gray-50 border border-gray-200 rounded-md">
+                  <div className="text-sm text-gray-600 mb-1">プレビュー:</div>
+                  <div className="text-lg">
+                    <LatexRenderer text={correctAnswer} />
+                  </div>
+                </div>
+              )}
             </div>
             
             <div>
@@ -367,15 +432,33 @@ const QuizFormEditor: FC<QuizFormEditorProps> = ({
         )}
         
         <div>
-          <label htmlFor="quizExplanation" className="form-label">解説 (省略可)</label>
+          <div className="flex items-center justify-between">
+            <label htmlFor="quizExplanation" className="form-label">解説 (省略可)</label>
+            <button
+              type="button"
+              onClick={() => setShowExplanationPreview(!showExplanationPreview)}
+              className="text-sm text-blue-600 hover:text-blue-800 flex items-center"
+            >
+              {showExplanationPreview ? <FaEyeSlash className="mr-1" /> : <FaEye className="mr-1" />}
+              {showExplanationPreview ? 'プレビューを隠す' : 'LaTeXプレビュー'}
+            </button>
+          </div>
           <textarea
             id="quizExplanation"
             className="form-textarea"
             value={explanation}
             onChange={(e) => setExplanation(e.target.value)}
-            placeholder="解説を入力してください。正解の根拠や関連する背景知識なども含めて詳しく説明すると学習効果が高まります。"
+            placeholder="解説を入力してください。正解の根拠や関連する背景知識なども含めて詳しく説明すると学習効果が高まります。（LaTeX記法対応: $x^2$, $$\frac{1}{2}$$）"
             rows={5}
           ></textarea>
+          {showExplanationPreview && explanation && (
+            <div className="mt-2 p-3 bg-gray-50 border border-gray-200 rounded-md">
+              <div className="text-sm text-gray-600 mb-1">プレビュー:</div>
+              <div className="text-base">
+                <LatexRenderer text={explanation} />
+              </div>
+            </div>
+          )}
         </div>
         
         <div className="flex justify-end pt-2">
