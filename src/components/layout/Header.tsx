@@ -30,6 +30,11 @@ export default function Header() {
     { name: 'マイ単元', href: '/quiz/my-units' },
   ] : [];
 
+  // クイズルームページではヘッダーを非表示
+  if (pathname.startsWith('/quiz/room')) {
+    return null;
+  }
+
   return (
     <header className="sticky top-0 z-50">
       <div className="app-container">

@@ -16,6 +16,7 @@ import ScoreBoard from '@/components/quiz/ScoreBoard';
 import { FaSignOutAlt, FaPlay } from 'react-icons/fa';
 import { db } from '@/config/firebase';
 import { deleteDoc, doc } from 'firebase/firestore';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // ローディングフォールバックコンポーネント
 function QuizRoomLoading() {
@@ -225,219 +226,206 @@ function QuizRoomContent() {
   const isRevealed = displayRoom.currentState?.isRevealed;
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-6 flex justify-between items-center">
-        <h1 className="text-2xl font-bold">{displayRoom.name}</h1>
-        <button
-          onClick={handleLeaveRoom}
-          className="bg-red-600 text-white px-4 py-2 rounded-md flex items-center"
-        >
-          <FaSignOutAlt className="mr-2" /> 退出する
-        </button>
+    <div className="min-h-screen max-h-screen overflow-hidden bg-gray-50 flex flex-col">
+      {/* ヘッダー代わりのシンプルなナビゲーション - 高さ固定 */}
+      <div className="bg-white shadow-sm border-b flex-shrink-0">
+        <div className="container mx-auto px-4 py-2 flex justify-between items-center h-14">
+          <h1 className="text-lg font-bold text-gray-800 truncate">{displayRoom.name}</h1>
+          <button
+            onClick={handleLeaveRoom}
+            className="bg-red-600 text-white px-3 py-2 rounded-lg flex items-center hover:bg-red-700 transition-colors text-sm"
+          >
+            <FaSignOutAlt className="mr-1" /> 退出
+          </button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* 左側：参加者リスト */}
-        <div className="lg:col-span-1">
-          <div className="bg-white rounded-lg shadow-md p-4 mb-6">
-            <h2 className="text-lg font-medium mb-4">参加者</h2>
-            <ParticipantList participants={displayRoom.participants || {}} leaderId={displayRoom.roomLeaderId} />
+      {/* メインコンテンツエリア - 残りの高さを使用し、スクロール禁止 */}
+      <div className="flex-1 container mx-auto px-4 py-3 overflow-hidden">
+        <div className="h-full grid grid-cols-1 xl:grid-cols-4 gap-4">
+          {/* 左側：参加者リスト（xl画面以上で表示） - 高さ制限 */}
+          <div className="xl:col-span-1 order-2 xl:order-1 flex flex-col h-full max-h-full">
+            <div className="bg-white rounded-xl shadow-md p-3 mb-3 flex-1 min-h-0 overflow-y-auto">
+              <h2 className="text-base font-medium mb-3">参加者</h2>
+              <ParticipantList participants={displayRoom.participants || {}} leaderId={displayRoom.roomLeaderId} />
+            </div>
+
+            {/* スコアボード */}
+            <div className="bg-white rounded-xl shadow-md p-3 flex-1 min-h-0 overflow-y-auto">
+              <h2 className="text-base font-medium mb-3">スコアボード</h2>
+              <ScoreBoard participants={displayRoom.participants || {}} />
+            </div>
           </div>
 
-          {/* スコアボード */}
-          <div className="bg-white rounded-lg shadow-md p-4">
-            <h2 className="text-lg font-medium mb-4">スコアボード</h2>
-            <ScoreBoard participants={displayRoom.participants || {}} />
-          </div>
-        </div>
-
-        {/* 右側：クイズエリア */}
-        <div className="lg:col-span-2">
-          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-            {/* 待機中の場合 */}
-            {displayRoom.status === 'waiting' && (
-              <div className="text-center py-8">
-                <h2 className="text-2xl font-bold mb-4">クイズの開始を待っています</h2>
-                <p className="text-gray-600 mb-6">
-                  {isLeader
-                    ? 'あなたはルームリーダーです。クイズを開始してください。'
-                    : 'ルームリーダーがクイズを開始するまでお待ちください。'}
-                </p>
-                {isLeader ? (
-                  <button
-                    onClick={startQuizGame}
-                    className="bg-indigo-600 text-white px-6 py-3 rounded-md text-lg flex items-center mx-auto"
+          {/* 中央・右側：クイズエリア（より広く） - 高さ制限 */}
+          <div className="xl:col-span-3 order-1 xl:order-2 flex flex-col h-full max-h-full">
+            <div className="bg-white rounded-xl shadow-md p-4 flex-1 min-h-0 overflow-y-auto">
+              <AnimatePresence mode="wait">
+                {/* 待機中の場合 */}
+                {displayRoom.status === 'waiting' && (
+                  <motion.div
+                    key="waiting"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.5 }}
+                    className="text-center py-12"
                   >
-                    <FaPlay className="mr-2" /> クイズを開始する
-                  </button>
-                ) : (
-                  <div className="mt-4">
-                    <p className="text-gray-500">
-                      参加者数: {Object.keys(displayRoom.participants || {}).length}人
-                    </p>
-                    <p className="text-gray-500">
-                    ルームリーダー: {displayRoom.participants?.[displayRoom.roomLeaderId]?.username || 'Unknown'}
-                    </p>
-                    <p className="text-gray-500">
-                      ジャンル: {displayRoom.genre}
-                    </p>
-                    <p className="text-gray-500">
-                      単元: {displayRoom.unitId}
-                    </p>
-                    <p className="text-gray-500">
-                      ルームID: {roomId}
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* 進行中の場合 */}
-            {displayRoom.status === 'in_progress' && (
-              <div>
-                {/* 問題表示（常に表示） */}
-                {currentQuiz ? (
-                  <QuizQuestion quiz={currentQuiz} isAnswerRevealed={isRevealed} />
-                ) : (
-                  <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-md text-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
-                    <p className="text-blue-700">問題を読み込み中...</p>
-                    <p className="text-blue-500 text-sm mt-2">
-                      {displayRoom.currentState?.quizId ? 
-                        `クイズID: ${displayRoom.currentState.quizId}` : 
-                        '問題情報を取得しています'
-                      }
-                    </p>
-                  </div>
-                )}
-
-                {/* 早押しボタンの表示条件を簡潔に */}
-                {(() => {
-                  // 基本条件チェック
-                  if (!currentUser || !currentQuiz || !displayRoom.currentState) {
-                    return null;
-                  }
-                  
-                  // 正答が表示されている場合は非表示
-                  if (isRevealed) {
-                    return null;
-                  }
-                  
-                  // 既に正解者がいる場合は非表示
-                  if (displayRoom.currentState.answerStatus === 'correct') {
-                    return null;
-                  }
-                  
-                  // 現在解答権を持っている場合は非表示
-                  if (hasAnsweringRight || displayRoom.currentState.currentAnswerer === currentUser.uid) {
-                    return null;
-                  }
-                  
-                  // 他の人が解答中の場合は非表示
-                  if (displayRoom.currentState.currentAnswerer && displayRoom.currentState.answerStatus === 'answering') {
-                    return null;
-                  }
-                  
-                  // このユーザーが既にこの問題で間違えている場合は非表示
-                  const userParticipant = displayRoom.participants?.[currentUser.uid];
-                  if (userParticipant?.wrongQuizIds?.includes(currentQuiz.quizId)) {
-                    return null;
-                  }
-                  
-                  // 待機状態の場合のみボタンを表示
-                  if (displayRoom.currentState.answerStatus === 'waiting') {
-                    return (
-                      <div className="mt-6 text-center">
+                    {isLeader ? (
+                      <div className="space-y-6">
+                        <div className="text-2xl font-bold text-gray-800 mb-4">
+                          ゲーム開始準備
+                        </div>
+                        <p className="text-gray-600 mb-8">
+                          参加者が集まったらゲームを開始できます
+                        </p>
                         <button
-                          onClick={handleBuzzer}
-                          className="bg-yellow-500 hover:bg-yellow-600 text-white text-xl px-8 py-4 rounded-full shadow-lg transform transition-transform active:scale-95"
+                          onClick={startQuizGame}
+                          className="bg-indigo-600 text-white px-8 py-4 rounded-xl text-lg font-medium hover:bg-indigo-700 transition-colors shadow-lg"
                         >
-                          押す！
+                          ゲーム開始
                         </button>
                       </div>
-                    );
-                  }
-                  
-                  return null;
-                })()}
-
-                {/* 解答入力（解答権を持っている場合） */}
-                {hasAnsweringRight && displayRoom.currentState?.answerStatus === 'answering' && (
-                  <AnswerInput
-                    quiz={currentQuiz}
-                    onSubmit={submitAnswer}
-                  />
-                )}
-
-                {/* 他のプレイヤーが解答中 */}
-                {displayRoom.currentState?.currentAnswerer && 
-                  displayRoom.currentState.currentAnswerer !== currentUser?.uid && 
-                  displayRoom.currentState.answerStatus === 'answering' && (
-                  <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-md text-center">
-                    <p className="text-yellow-700">
-                      {displayRoom.participants?.[displayRoom.currentState.currentAnswerer]?.username || 'Unknown'} さんが解答中...
-                    </p>
-                  </div>
-                )}
-
-                {/* 正解/不正解の表示 */}
-                {isRevealed && (
-                  <QuizResult
-                    isCorrect={isCorrect}
-                    quiz={currentQuiz}
-                    answererId={displayRoom.currentState?.currentAnswerer || ''}
-                    participants={displayRoom.participants || {}}
-                  />
-                )}
-              </div>
-            )}
-
-            {/* 完了した場合 */}
-            {displayRoom.status === 'completed' && (
-              <div className="text-center py-8">
-                <h2 className="text-2xl font-bold mb-4">クイズが終了しました</h2>
-                <p className="text-gray-600 mb-6">
-                  全ての問題が終了しました。結果をご確認ください。
-                </p>
-                {statsUpdated && (
-                  <div className="my-4 p-4 bg-green-50 border border-green-200 rounded-md">
-                    <p className="text-green-600">✓ プレイ結果が統計に反映されました！</p>
-                    {room && room.statsUpdated ? (
-                      <p className="text-gray-600 mt-1">全ての処理が完了しました。自動的にクイズ選択画面に戻ります...</p>
                     ) : (
-                      <p className="text-gray-600 mt-1">統計更新処理が進行中です。完了後に自動的に画面が切り替わります...</p>
+                      <div className="space-y-6">
+                        <div className="text-2xl font-bold text-gray-800 mb-4">
+                          ゲーム開始をお待ちください
+                        </div>
+                        <p className="text-gray-600">
+                          ルームリーダーがゲームを開始するまでお待ちください
+                        </p>
+                        <div className="animate-pulse text-indigo-600">
+                          準備中...
+                        </div>
+                      </div>
                     )}
-                  </div>
+                  </motion.div>
                 )}
-                <button
-                  onClick={handleLeaveRoom}
-                  className="bg-indigo-600 text-white px-6 py-3 rounded-md text-lg"
-                >
-                  クイズ選択に戻る
-                </button>
-              </div>
+
+                {/* 進行中の場合 */}
+                {displayRoom.status === 'in_progress' && (
+                  <motion.div
+                    key={`quiz-${displayRoom.currentQuizIndex}`}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 1.05 }}
+                    transition={{ duration: 0.6, ease: "easeOut" }}
+                    className="quiz-game-area"
+                  >
+                    {currentQuiz ? (
+                      <QuizQuestion 
+                        quiz={currentQuiz} 
+                        isAnswerRevealed={isRevealed}
+                      />
+                    ) : (
+                      <div className="text-center py-12">
+                        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500 mx-auto mb-4"></div>
+                        <p className="text-gray-600">クイズを読み込み中...</p>
+                      </div>
+                    )}
+                    
+                    {/* ブザーエリア */}
+                    {currentQuiz && !isRevealed && !hasAnsweringRight && (
+                      <motion.div 
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.3, duration: 0.4 }}
+                        className="mt-8 text-center"
+                      >
+                        <button
+                          onClick={handleBuzzer}
+                          className="buzzer-button"
+                          disabled={hasAnsweringRight}
+                        >
+                          🔔 ブザー
+                        </button>
+                      </motion.div>
+                    )}
+                    
+                    {/* 回答エリア */}
+                    {hasAnsweringRight && !isRevealed && (
+                      <motion.div 
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.4 }}
+                        className="mt-8"
+                      >
+                        <AnswerInput
+                          quiz={currentQuiz}
+                          onSubmit={submitAnswer}
+                        />
+                      </motion.div>
+                    )}
+                    
+                    {/* 正答表示 */}
+                    {isRevealed && currentQuiz && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5 }}
+                        className="mt-8"
+                      >
+                        <QuizResult
+                          quiz={currentQuiz}
+                          isCorrect={isCorrect}
+                          answererId={displayRoom.currentState?.currentAnswerer || ''}
+                          participants={displayRoom.participants || {}}
+                        />
+                      </motion.div>
+                    )}
+                  </motion.div>
+                )}
+
+                {/* 完了の場合 */}
+                {displayRoom.status === 'completed' && (
+                  <motion.div
+                    key="completed"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.5 }}
+                    className="text-center py-12"
+                  >
+                    <div className="text-3xl font-bold text-gray-800 mb-6">
+                      🎉 ゲーム終了！
+                    </div>
+                    <p className="text-gray-600 mb-8">
+                      お疲れ様でした！最終結果をご確認ください。
+                    </p>
+                    <div className="bg-gray-50 rounded-xl p-6">
+                      <h3 className="text-xl font-bold mb-4">最終スコア</h3>
+                      <ScoreBoard participants={displayRoom.participants || {}} />
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* クイズ進行状況 */}
+            {displayRoom.status === 'in_progress' && (
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.2 }}
+                className="bg-white rounded-xl shadow-md p-4"
+              >
+                <div className="flex items-center justify-between text-sm text-gray-600">
+                  <span>進行状況</span>
+                  <span>{displayRoom.currentQuizIndex + 1} / {displayRoom.totalQuizCount || 0}</span>
+                </div>
+                <div className="progress-container mt-2">
+                  <motion.div 
+                    className="progress-bar bg-indigo-600"
+                    initial={{ width: 0 }}
+                    animate={{ 
+                      width: `${((displayRoom.currentQuizIndex + 1) / (displayRoom.totalQuizCount || 1)) * 100}%` 
+                    }}
+                    transition={{ duration: 0.8, ease: "easeOut" }}
+                  />
+                </div>
+              </motion.div>
             )}
           </div>
-
-          {/* クイズ進行状況 */}
-          {displayRoom.status === 'in_progress' && (
-            <div className="bg-white rounded-lg shadow-md p-4">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm text-gray-600">問題の進行状況</span>
-                <span className="text-sm font-medium">
-                  {(displayRoom.currentQuizIndex || 0) + 1} / {displayRoom.totalQuizCount || 0}
-                </span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2.5">
-                <div
-                  className="bg-indigo-600 h-2.5 rounded-full"
-                  style={{
-                    width: `${(((displayRoom.currentQuizIndex || 0) + 1) / (displayRoom.totalQuizCount || 1)) * 100}%`,
-                  }}
-                ></div>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>

@@ -3,8 +3,8 @@ import LatexRenderer from '@/components/latex/LatexRenderer';
 import { useQuiz } from '@/context/QuizContext';
 import { useLeader } from '@/hooks/useLeader';
 import { Quiz } from '@/types/quiz';
-import { motion } from 'framer-motion';
-import { useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useRef, useEffect, useState } from 'react';
 
 interface QuizQuestionProps {
   quiz: Quiz;
@@ -16,6 +16,7 @@ export default function QuizQuestion({ quiz, isAnswerRevealed }: QuizQuestionPro
   const { startQuestionTimer } = useLeader(quizRoom?.roomId || '');
   const currentQuizIdRef = useRef<string>('');
   const initTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [showContent, setShowContent] = useState(false);
   
   // 新しい問題の検出とリーダーのタイマー開始処理
   useEffect(() => {
@@ -29,11 +30,17 @@ export default function QuizQuestion({ quiz, isAnswerRevealed }: QuizQuestionPro
       
       // アニメーション状態を設定
       setAnimationInProgress(true);
+      setShowContent(false);
       
       // 既存のタイマーをクリア
       if (initTimerRef.current) {
         clearTimeout(initTimerRef.current);
       }
+      
+      // アニメーション後にコンテンツを表示
+      setTimeout(() => {
+        setShowContent(true);
+      }, 200);
       
       // アニメーション終了後にリーダーのタイマーを開始
       initTimerRef.current = setTimeout(() => {
@@ -41,7 +48,9 @@ export default function QuizQuestion({ quiz, isAnswerRevealed }: QuizQuestionPro
         if (quizRoom?.roomId && quizRoom.status === 'in_progress') {
           startQuestionTimer();
         }
-      }, 100);
+      }, 800);
+    } else {
+      setShowContent(true);
     }
   }, [quiz, setAnimationInProgress, startQuestionTimer, quizRoom?.roomId, quizRoom?.status]);
   
@@ -73,49 +82,82 @@ export default function QuizQuestion({ quiz, isAnswerRevealed }: QuizQuestionPro
 
   return (
     <div className="quiz-question relative">
-      
-      {/* タイマーコンポーネント - 常に表示、答え表示中は停止 */}
-      <div className="mb-4">
-        <QuizTimer
-          genre={quiz.genre || 'general'}
-          isActive={quizRoom?.status === 'in_progress'}
-          onTimeUp={handleTimeUp}
-          resetKey={resetKey}
-          localAnswerRevealed={localAnswerRevealed}
-        />
-      </div>
-      
-      <motion.h2 
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="text-xl md:text-2xl font-bold mb-4 pr-24" // 右側のスペースを確保
-      >
-        <LatexRenderer text={quiz.title} />
-      </motion.h2>
-      
-      {/* 問題文表示 - 常に表示 */}
-      <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-4 mb-6">
-        <div className="text-lg font-medium">
-          <LatexRenderer text={quiz.question} />
-        </div>
-      </div>
-      
-      {/* 入力式問題の場合のガイダンス */}
-      {quiz.type === 'input' && (
-        <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.3 }}
-          className="text-gray-600 italic mb-4"
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={`quiz-content-${quiz.quizId}`}
+          initial={{ opacity: 0, y: 50, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -50, scale: 1.05 }}
+          transition={{ 
+            duration: 0.8,
+            ease: "easeOut",
+            scale: { duration: 0.6 },
+            opacity: { duration: 0.6 }
+          }}
         >
-          解答を入力してください
+          {/* タイマーコンポーネント - コンパクトに */}
+          <motion.div 
+            className="mb-4"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.1, duration: 0.3 }}
+          >
+            <QuizTimer
+              genre={quiz.genre || 'general'}
+              isActive={quizRoom?.status === 'in_progress'}
+              onTimeUp={handleTimeUp}
+              resetKey={resetKey}
+              localAnswerRevealed={localAnswerRevealed}
+            />
+          </motion.div>
+          
+          <motion.h2 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: showContent ? 1 : 0, y: showContent ? 0 : -20 }}
+            transition={{ delay: 0.2, duration: 0.4, ease: "easeOut" }}
+            className="text-xl md:text-2xl font-bold mb-4 text-gray-800 leading-tight"
+          >
+            <LatexRenderer text={quiz.title} />
+          </motion.h2>
+          
+          {/* 問題文表示 - コンパクトに */}
+          <motion.div 
+            className="bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-200 rounded-lg p-4 mb-4 shadow-sm"
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: showContent ? 1 : 0, scale: showContent ? 1 : 0.98 }}
+            transition={{ delay: 0.3, duration: 0.4, ease: "easeOut" }}
+          >
+            <div className="text-base md:text-lg font-medium leading-relaxed">
+              <LatexRenderer text={quiz.question} />
+            </div>
+          </motion.div>
+          
+          {/* 入力式問題の場合のガイダンス - よりコンパクトに */}
+          {quiz.type === 'input' && (
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: showContent ? 1 : 0, y: showContent ? 0 : 10 }}
+              transition={{ delay: 0.4, duration: 0.3 }}
+              className="text-gray-600 text-sm mb-3 text-center bg-gray-50 rounded-md p-2"
+            >
+              💡 解答を入力してください
+            </motion.div>
+          )}
+          
+          <motion.div 
+            className="text-xs text-gray-500 flex items-center justify-between"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: showContent ? 1 : 0 }}
+            transition={{ delay: 0.5, duration: 0.3 }}
+          >
+            <div className="flex items-center space-x-2">
+              <span className="bg-indigo-100 text-indigo-800 px-2 py-1 rounded-full text-xs font-medium">
+                {quiz.genre}
+              </span>
+            </div>
+          </motion.div>
         </motion.div>
-      )}
-      
-      <div className="text-sm text-gray-500">
-        <div>ジャンル: {quiz.genre}</div>
-      </div>
+      </AnimatePresence>
     </div>
   );
 }
