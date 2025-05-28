@@ -17,7 +17,7 @@ interface QuizTimerProps {
 export default function QuizTimer({ genre, isActive, onTimeUp, resetKey, localAnswerRevealed, forceStart }: QuizTimerProps) {
   // ジャンルまたは制限時間が無効な場合はデフォルト値を使用
   const effectiveGenre = genre || 'general';
-  console.log(`[QuizTimer] ${genre}のタイマーを開始`, { isActive, resetKey, localAnswerRevealed, forceStart });
+  //console.log(`[QuizTimer] ${genre}のタイマーを開始`, { isActive, resetKey, localAnswerRevealed, forceStart });
   // totalTimeをuseRefで保持し、最初の有効な値をキャッシュする
   const totalTimeRef = useRef<number>(0);
   // 初回のみジャンル別の制限時間を計算し、以降は同じ値を使用

@@ -10,7 +10,7 @@ export interface Quiz {
   correctAnswer: string;
   acceptableAnswers: string[];
   explanation: string;
-  genre?: string;      // 参照用（サブコレクション内では不要）
+  genre: string;
   createdBy: string;
   createdAt: Timestamp;
   useCount: number;
