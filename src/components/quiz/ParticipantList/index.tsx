@@ -1,5 +1,5 @@
 import { ParticipantInfo } from '@/types/user';
-import { FaCrown, FaUser, FaCircle } from 'react-icons/fa';
+import { FaCrown, FaUser } from 'react-icons/fa';
 
 interface ParticipantListProps {
   participants: { [userId: string]: ParticipantInfo };
@@ -37,14 +37,6 @@ export default function ParticipantList({ participants, leaderId }: ParticipantL
                   スコア: {participant.score}
                 </div>
               </div>
-            </div>
-            <div className="flex items-center">
-              <div 
-                className={`w-2 h-2 rounded-full ${
-                  participant.isOnline ? 'bg-green-500' : 'bg-gray-300'
-                }`}
-                title={participant.isOnline ? 'オンライン' : 'オフライン'}
-              />
             </div>
           </div>
         ))

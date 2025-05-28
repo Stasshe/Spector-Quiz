@@ -936,30 +936,6 @@ export function useQuizRoom() {
   }, []);
 
   /**
-   * 準備状態を切り替える
-   */
-  const toggleReadyStatus = useCallback(async (roomId: string, isReady: boolean) => {
-    if (!currentUser) {
-      setError('ログインが必要です');
-      return false;
-    }
-
-    try {
-      // 直接Firestoreを操作して準備状態を更新（頻繁な更新はupdatedAtを省略）
-      const roomRef = doc(db, 'quiz_rooms', roomId);
-      await updateDoc(roomRef, {
-        [`participants.${currentUser.uid}.isReady`]: isReady
-      });
-      
-      return true;
-    } catch (err) {
-      console.error('準備状態の更新に失敗しました', err);
-      setError('準備状態の更新に失敗しました');
-      return false;
-    }
-  }, [currentUser]);
-
-  /**
    * クイズを開始する (リーダー用)
    */
   const startQuizGame = useCallback(async (roomId: string) => {
@@ -1490,7 +1466,6 @@ export function useQuizRoom() {
     findOrCreateNewRoom,
     
     // ルーム操作
-    toggleReadyStatus,
     startQuizGame,
     finishQuizGame,
     

@@ -121,7 +121,6 @@ export default function ActiveQuizAlertModal() {
             const roomsQuery = query(
               roomsRef,
               where('status', 'in', ['waiting', 'in_progress']),
-              where(`participants.${currentUser.uid}.isOnline`, '==', true)
             );
             
             try {

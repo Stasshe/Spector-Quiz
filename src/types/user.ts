@@ -1,5 +1,3 @@
-import { Timestamp } from "firebase/firestore";
-
 export interface User {
   userId: string;
   username: string;
@@ -7,9 +5,6 @@ export interface User {
   iconId: number;
   exp: number;
   rank: string;
-  createdAt: Timestamp;
-  lastLoginAt: Timestamp;
-  isOnline: boolean;
   currentRoomId: string | null;
   stats: UserStats;
 }
@@ -42,5 +37,4 @@ export interface ParticipantInfo {
   missCount?: number; // お手つきカウント追加（省略可能にしておく）
   wrongQuizIds?: string[]; // 間違えた問題IDのリスト
   isReady: boolean;
-  isOnline: boolean;
 }

@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { db } from '@/config/firebase';
-import { collection, getDocs, query, orderBy, limit, doc, updateDoc, deleteDoc, getDoc } from 'firebase/firestore';
-import { User } from '@/types/user';
 import { useAuth } from '@/context/AuthContext';
+import { User } from '@/types/user';
+import { collection, doc, getDocs, updateDoc } from 'firebase/firestore';
+import { useEffect, useState } from 'react';
 
 // Firebaseドキュメント情報を含む拡張ユーザータイプ
 interface UserWithFirestoreId extends User {
@@ -41,12 +41,7 @@ export default function UserManagement() {
     async function fetchUsers() {
       try {
         setLoading(true);
-        const usersQuery = query(
-          collection(db, 'users'),
-          orderBy('lastLoginAt', 'desc')
-        );
-        
-        const usersSnapshot = await getDocs(usersQuery);
+        const usersSnapshot = await getDocs(collection(db, 'users'));
         let allUsers = usersSnapshot.docs.map(doc => ({
           ...doc.data(),
           userId: doc.data().userId || doc.id,
@@ -184,7 +179,6 @@ export default function UserManagement() {
                     <td className="py-3 px-6">{user.username}</td>
                     <td className="py-3 px-6 text-center">{user.rank}</td>
                     <td className="py-3 px-6 text-center">{user.exp}</td>
-                    <td className="py-3 px-6 text-center">{formatDate(user.lastLoginAt)}</td>
                     <td className="py-3 px-6 text-center">
                       <button
                         onClick={() => viewUserDetails(user)}

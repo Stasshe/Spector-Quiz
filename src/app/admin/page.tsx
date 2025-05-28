@@ -83,11 +83,6 @@ export default function AdminDashboard() {
           } as User;
         });
         
-        // アクティブユーザー（直近1日以内にログイン）の数を計算
-        statsData.activeUsers = statsData.recentUsers.filter(
-          user => user.lastLoginAt && user.lastLoginAt.toDate() > oneDayAgo
-        ).length;
-        
         // ジャンル数を取得
         const genresSnapshot = await getCountFromServer(collection(db, 'genres'));
         statsData.totalGenres = genresSnapshot.data().count;
@@ -213,8 +208,6 @@ export default function AdminDashboard() {
                   <td className="py-3 px-6">{user.userId}</td>
                   <td className="py-3 px-6">{user.username}</td>
                   <td className="py-3 px-6">{user.rank}</td>
-                  <td className="py-3 px-6">{formatDate(user.createdAt)}</td>
-                  <td className="py-3 px-6">{formatDate(user.lastLoginAt)}</td>
                 </tr>
               ))}
               {stats.recentUsers.length === 0 && (

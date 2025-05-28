@@ -57,8 +57,6 @@ firestore/
   email: string;                  // メールアドレス
   username: string;               // ユーザー名
   avatarUrl?: string;             // アバター画像URL
-  createdAt: Timestamp;           // 作成日時
-  lastLoginAt: Timestamp;         // 最終ログイン日時
   totalScore: number;             // 総獲得スコア
   gamesPlayed: number;            // 参加ゲーム数
   averageScore: number;           // 平均スコア

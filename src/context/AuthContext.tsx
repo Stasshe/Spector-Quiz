@@ -62,11 +62,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               isAdmin: userData.userId === "100000" // ユーザーIDが100000なら管理者権限を付与
             });
             
-            // ユーザーがオンライン状態であることを更新
-            await setDoc(userDocRef, {
-              isOnline: true,
-              lastLoginAt: serverTimestamp()
-            }, { merge: true });
           } else {
             console.warn('User document does not exist for uid:', user.uid);
             setUserProfile(null);
@@ -89,28 +84,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isMounted = false;
       console.log('Cleaning up auth state listener');
       unsubscribe();
-    };
-  }, []);
-
-  // アプリケーション終了時にユーザーをオフラインに設定
-  useEffect(() => {
-    const handleBeforeUnload = async () => {
-      if (auth.currentUser) {
-        try {
-          const userRef = doc(db, 'users', auth.currentUser.uid);
-          await setDoc(userRef, {
-            isOnline: false
-          }, { merge: true });
-        } catch (error) {
-          console.error('Error setting user offline:', error);
-        }
-      }
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, []);
 
@@ -188,9 +161,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         iconId,
         exp: 0,
         rank: 'ビギナー',
-        createdAt: serverTimestamp() as any,
-        lastLoginAt: serverTimestamp() as any,
-        isOnline: true,
         currentRoomId: null,
         stats: {
           totalAnswered: 0,
@@ -214,13 +184,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = async () => {
     try {
       setLoading(true);
-      // ユーザーがログアウトする前にオンライン状態を更新
+      // ログアウト時間を記録
       if (auth.currentUser) {
         const userRef = doc(db, 'users', auth.currentUser.uid);
         await setDoc(userRef, {
-          isOnline: false,
           currentRoomId: null,
-          lastLoginAt: serverTimestamp()
         }, { merge: true });
       }
       

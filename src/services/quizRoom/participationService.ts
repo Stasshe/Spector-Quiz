@@ -91,8 +91,7 @@ export async function joinRoomService(
         score: 0,
         missCount: 0,
         wrongQuizIds: [],
-        isReady: false,
-        isOnline: true
+        isReady: false
       };
       
       // バッチ処理でルーム参加とユーザー情報を一度に更新（書き込み回数削減）

@@ -100,8 +100,6 @@ firestore/
   email: string;
   username: string;
   avatarUrl?: string;
-  createdAt: Timestamp;
-  lastLoginAt: Timestamp;
 }
 ```
 

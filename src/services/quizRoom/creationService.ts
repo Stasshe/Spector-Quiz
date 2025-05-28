@@ -95,7 +95,6 @@ export async function createRoomService(
           missCount: 0,
           wrongQuizIds: [],
           isReady: false,
-          isOnline: true
         }
       },
       currentQuizIndex: 0,
@@ -259,7 +258,6 @@ export async function createRoomWithUnitService(
           missCount: 0,
           wrongQuizIds: [],
           isReady: false,
-          isOnline: true
         }
       },
       currentQuizIndex: 0,
