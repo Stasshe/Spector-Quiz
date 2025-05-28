@@ -76,21 +76,30 @@ export default function QuizQuestion({ quiz, isAnswerRevealed }: QuizQuestionPro
     // サーバー側のタイムアウト処理は useLeader の startQuestionTimer で実行される
   };
   
+  // デバッグ: quiz.genreの状態を確認
+  console.log('[QuizQuestion] タイマー表示チェック:', {
+    quizId: quiz.quizId,
+    genre: quiz.genre,
+    hasGenre: !!quiz.genre,
+    timerActive,
+    roomStatus: quizRoom?.status,
+    currentQuizIndex: quizRoom?.currentQuizIndex,
+    localAnswerRevealed
+  });
+
   return (
     <div className="quiz-question relative">
       
       {/* タイマーコンポーネント - 常に表示、答え表示中は停止 */}
-      {quiz.genre && (
-        <div className="mb-4">
-          <QuizTimer
-            genre={quiz.genre}
-            isActive={timerActive && quizRoom?.status === 'in_progress'}
-            onTimeUp={handleTimeUp}
-            resetKey={`${quiz.quizId}-${quizRoom?.currentQuizIndex || 0}`} // クイズIDとインデックスを組み合わせてユニークなキーを作成
-            localAnswerRevealed={localAnswerRevealed} // ローカル状態を使用
-          />
-        </div>
-      )}
+      <div className="mb-4">
+        <QuizTimer
+          genre={quiz.genre || 'general'} // genreがない場合はデフォルト値を使用
+          isActive={timerActive && quizRoom?.status === 'in_progress'}
+          onTimeUp={handleTimeUp}
+          resetKey={`${quiz.quizId}-${quizRoom?.currentQuizIndex || 0}`} // クイズIDとインデックスを組み合わせてユニークなキーを作成
+          localAnswerRevealed={localAnswerRevealed} // ローカル状態を使用
+        />
+      </div>
       
       <motion.h2 
         initial={{ opacity: 0, y: -20 }}

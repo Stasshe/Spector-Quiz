@@ -177,6 +177,16 @@ function QuizRoomContent() {
   // roomが存在するがquizRoomがない場合は、roomをquizRoomとして使用
   const displayRoom = quizRoom || room;
 
+  // デバッグ: currentQuizとisRevealedの状態を監視
+  useEffect(() => {
+    console.log('[QuizRoomPage] 状態変更:', {
+      currentQuiz: currentQuiz ? `${currentQuiz.quizId}` : 'null',
+      isRevealed: displayRoom.currentState?.isRevealed,
+      roomStatus: displayRoom.status,
+      currentQuizIndex: displayRoom.currentQuizIndex
+    });
+  }, [currentQuiz, displayRoom.currentState?.isRevealed, displayRoom.status, displayRoom.currentQuizIndex]);
+
   // 正解/不正解の状態
   const isCorrect = displayRoom.currentState?.answerStatus === 'correct';
   const isIncorrect = displayRoom.currentState?.answerStatus === 'incorrect';

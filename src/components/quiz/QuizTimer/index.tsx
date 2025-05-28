@@ -15,15 +15,22 @@ interface QuizTimerProps {
 }
 
 export default function QuizTimer({ genre, isActive, onTimeUp, resetKey, localAnswerRevealed, forceStart }: QuizTimerProps) {
-  const totalTime = getQuestionTimeout(genre); // ジャンル別の制限時間（ミリ秒）
+  // ジャンルまたは制限時間が無効な場合はデフォルト値を使用
+  const effectiveGenre = genre || 'general';
+  const totalTime = getQuestionTimeout(effectiveGenre); // ジャンル別の制限時間（ミリ秒）
   const [timeLeft, setTimeLeft] = useState(totalTime);
-  const [isVisible, setIsVisible] = useState(false);
   const lastResetKeyRef = useRef<string>(''); // 前回のresetKeyを記録
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const isInitializedRef = useRef(false);
 
-  // ジャンルまたは制限時間が無効な場合は何も表示しない
-  if (!genre || totalTime <= 0) {
+  if (totalTime <= 0) {
+    console.log('[QuizTimer] 制限時間が無効のため非表示:', { genre, effectiveGenre, totalTime });
+    return null;
+  }
+
+  // resetKeyがない場合は非表示
+  if (!resetKey) {
+    console.log('[QuizTimer] resetKeyがないため非表示');
     return null;
   }  // タイマーをリセット（resetKeyが変わった時のみ）
   useEffect(() => {
@@ -40,7 +47,8 @@ export default function QuizTimer({ genre, isActive, onTimeUp, resetKey, localAn
       setTimeLeft(totalTime);
       lastResetKeyRef.current = resetKey;
       isInitializedRef.current = true;
-      setIsVisible(true);
+      
+      console.log('[QuizTimer] タイマーリセット完了');
       
       // 新しい問題では即座にタイマーを開始（localAnswerRevealedの初期値はfalseなので）
       if (isActive) {
@@ -88,22 +96,6 @@ export default function QuizTimer({ genre, isActive, onTimeUp, resetKey, localAn
     }
   }, [localAnswerRevealed, isActive, onTimeUp]);
 
-  // 表示状態の決定
-  useEffect(() => {
-    const shouldBeVisible = !!resetKey;
-    
-    console.log('[QuizTimer] 表示状態チェック:', {
-      resetKey,
-      shouldBeVisible,
-      currentIsVisible: isVisible,
-      localAnswerRevealed
-    });
-    
-    if (shouldBeVisible !== isVisible) {
-      setIsVisible(shouldBeVisible);
-    }
-  }, [resetKey, localAnswerRevealed, isVisible]);
-
   // 時間の表示形式を変換
   const formatTime = (milliseconds: number) => {
     const seconds = Math.ceil(milliseconds / 1000);
@@ -145,7 +137,9 @@ export default function QuizTimer({ genre, isActive, onTimeUp, resetKey, localAn
   // 非常に危険状態（残り3秒以下）の判定
   const isCritical = timeLeft <= 3000;
 
-  if (!isVisible) {
+  // resetKeyがない場合のみ非表示
+  if (!resetKey) {
+    console.log('[QuizTimer] resetKeyがないため非表示');
     return null;
   }
 
@@ -168,7 +162,7 @@ export default function QuizTimer({ genre, isActive, onTimeUp, resetKey, localAn
           <div className="text-xs text-gray-400">秒</div>
         </div>
         <div className="mt-2 text-xs text-gray-500 text-center">
-          {genre}
+          {effectiveGenre}
         </div>
       </div>
     );
@@ -254,7 +248,7 @@ export default function QuizTimer({ genre, isActive, onTimeUp, resetKey, localAn
 
           {/* ジャンル表示 */}
           <div className="mt-2 text-xs text-gray-600 text-center">
-            {genre}
+            {effectiveGenre}
           </div>
         </div>
 
