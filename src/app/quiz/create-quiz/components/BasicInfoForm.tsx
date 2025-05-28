@@ -27,15 +27,15 @@ const BasicInfoForm: FC<BasicInfoFormProps> = ({
   disableTitleGenre = false
 }) => {
   return (
-    <div>
-      <h2 className="text-xl font-semibold mb-4">基本情報</h2>
+    <div className="mb-6">
+      <h2 className="text-xl font-semibold mb-6">基本情報</h2>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <div>
           <label htmlFor="genre" className="form-label">ジャンル</label>
           <select
             id="genre"
-            className="form-select"
+            className="form-input"
             value={genre}
             onChange={(e) => setGenre(e.target.value)}
             disabled={disableTitleGenre}
@@ -87,8 +87,8 @@ const BasicInfoForm: FC<BasicInfoFormProps> = ({
           className="form-textarea"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          placeholder="この単元についての説明"
-          rows={3}
+          placeholder="この単元についての説明を詳しく入力してください。例：この単元では〇〇について学習し、△△のスキルを身につけることができます。"
+          rows={6}
         ></textarea>
       </div>
     </div>

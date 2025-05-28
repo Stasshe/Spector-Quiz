@@ -373,8 +373,8 @@ const QuizFormEditor: FC<QuizFormEditorProps> = ({
             className="form-textarea"
             value={explanation}
             onChange={(e) => setExplanation(e.target.value)}
-            placeholder="解説を入力"
-            rows={3}
+            placeholder="解説を入力してください。正解の根拠や関連する背景知識なども含めて詳しく説明すると学習効果が高まります。"
+            rows={5}
           ></textarea>
         </div>
         

@@ -306,7 +306,7 @@ quizzes:
     `;
 
   return (
-    <div className="border border-gray-200 rounded-lg p-4 mb-6">
+    <div className="border border-gray-200 rounded-lg p-6 mb-6">
       <h2 className="text-xl font-semibold mb-4">YAML一括インポート</h2>
       
       <p className="text-sm text-gray-600 mb-4">
@@ -320,9 +320,9 @@ quizzes:
       </p>
 
       {showExample && (
-        <div className="bg-gray-50 p-4 rounded-lg mb-4">
-          <h3 className="font-medium mb-2">YAMLフォーマット例:</h3>
-          <pre className="text-xs overflow-auto whitespace-pre-wrap bg-gray-100 p-3 rounded">
+        <div className="bg-gray-50 p-6 rounded-lg mb-6">
+          <h3 className="font-medium mb-3">YAMLフォーマット例:</h3>
+          <pre className="text-sm overflow-auto whitespace-pre-wrap bg-gray-100 p-4 rounded max-h-64">
             {exampleYaml}
           </pre>
         </div>
@@ -402,7 +402,8 @@ quizzes:
           value={yamlText}
           onChange={(e) => setYamlText(e.target.value)}
           placeholder="YAMLフォーマットでクイズを入力..."
-          rows={10}
+          rows={15}
+          style={{ minHeight: '400px' }}
         ></textarea>
       </div>
       
