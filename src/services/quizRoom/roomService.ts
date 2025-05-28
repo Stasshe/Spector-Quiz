@@ -15,6 +15,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import type { QuizRoom, RoomListing } from '../../types/room';
+import { writeMonitor } from '@/utils/firestoreWriteMonitor';
 
 
 // getRoomById関数はparticipationService.tsに統合されました
@@ -125,7 +126,13 @@ export async function updateUserStatsOnRoomComplete(
       genreSnap = await getDoc(genreRef);
     }
     
-    // トランザクションで統計情報を更新
+    // トランザクションで統計情報を更新（書き込み監視）
+    writeMonitor.logOperation(
+      'batch',
+      `users/${currentUserId}`,
+      `ルーム完了時統計更新 - ルーム${roomId}`,
+      3 // user + genre + room の更新
+    );
     await runTransaction(db, async (transaction) => {
       // スコアに基づいて加算するEXP計算
       let expToAdd = Math.floor(score / 100);
@@ -225,7 +232,13 @@ export async function cleanupRoomAnswersById(roomId: string): Promise<boolean> {
     
     console.log(`[cleanupRoomAnswers] ルーム ${roomId} の回答データ(${answersSnapshot.size}件)を削除します`);
     
-    // バッチ処理で回答を削除
+    // バッチ処理で回答を削除（書き込み監視）
+    writeMonitor.logOperation(
+      'batch',
+      `quiz_rooms/${roomId}/answers/*`,
+      `回答データクリーンアップ - ${answersSnapshot.size}件`,
+      answersSnapshot.size
+    );
     const deletePromises = answersSnapshot.docs.map(doc => deleteDoc(doc.ref));
     const results = await Promise.allSettled(deletePromises);
     

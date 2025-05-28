@@ -5,6 +5,7 @@ import { SCORING, TIMING, getQuestionTimeout } from '@/config/quizConfig';
 import { useAuth } from '@/context/AuthContext';
 import { useQuiz } from '@/context/QuizContext';
 import { useQuizHook } from '@/hooks/useQuiz';
+import { cleanupRoomAnswers, updateUserStatsOnRoomComplete, updateAllQuizStats } from '@/services/quizRoom';
 import { Quiz } from '@/types/quiz';
 import { QuizRoom } from '@/types/room';
 import {
@@ -25,6 +26,7 @@ import {
   writeBatch
 } from 'firebase/firestore';
 import { useCallback, useEffect } from 'react';
+import { writeMonitor } from '../utils/firestoreWriteMonitor';
 
 export function useLeader(roomId: string) {
   const { isLeader, quizRoom, currentQuiz, setCurrentQuiz, setShowChoices } = useQuiz();
@@ -620,52 +622,26 @@ export function useLeader(roomId: string) {
   // クイズゲーム終了時の処理
   const finishQuizGame = useCallback(async () => {
     if (!isLeader || !quizRoom) return;
-    
+
+    writeMonitor.logOperation('batch', `quiz_rooms/${roomId}`, 'finishQuizGame統計更新開始');
+
     try {
-      // 参加者の経験値を更新
-      const batch = writeBatch(db);
+      // 重複防止チェック追加
+      if (quizRoom.statsUpdated) {
+        console.log('このルームの統計は既に更新済みです');
+        return;
+      }
+
+      console.log('クイズゲーム終了処理を開始します');
       
-      // 参加者数を確認
-      const participantCount = Object.keys(quizRoom.participants).length;
-      // 一人プレイの場合は経験値をSOLO_MULTIPLIER倍に
-      const soloMultiplier = participantCount === 1 ? SCORING.SOLO_MULTIPLIER : 1;
+      // 統計更新を一括で実行（最適化済み）
+      const success = await updateAllQuizStats(roomId, quizRoom, { uid: quizRoom.roomLeaderId });
       
-      // 各参加者の処理
-      Object.entries(quizRoom.participants).forEach(([userId, participant]) => {
-        const userRef = doc(db, 'users', userId);
-        
-        // 獲得経験値の計算（例）
-        let expGain = participant.score + SCORING.SESSION_COMPLETION_BONUS; // スコア + セッション完了ボーナス
-        
-        // 一人プレイの場合は1/10に
-        expGain = Math.round(expGain * soloMultiplier);
-        
-        batch.update(userRef, {
-          exp: increment(expGain),
-          'stats.totalAnswered': increment(quizRoom.totalQuizCount),
-          [`stats.genres.${quizRoom.genre}.totalAnswered`]: increment(quizRoom.totalQuizCount)
-        });
-      });
-      
-      try {
-        await batch.commit();
-        console.log('ユーザー統計情報をバッチ処理で更新しました');
-        
-        // 統計更新済みのフラグをルームに設定（書き込み回数削減のため1回のみ）
-        try {
-          const roomRef = doc(db, 'quiz_rooms', roomId);
-          await updateDoc(roomRef, {
-            statsUpdated: true
-          });
-          console.log('統計更新フラグを設定しました');
-        } catch (flagError) {
-          console.error('統計更新フラグの設定に失敗しました:', flagError);
-          // フラグ設定の失敗は無視（書き込み回数削減のため再試行しない）
-        }
-      } catch (statsError) {
-        console.error('統計情報の更新に失敗しました:', statsError);
-        // 統計更新の失敗は無視して処理を続行
-        // フラグ設定は上記で既に実行済み（書き込み回数削減のため重複を避ける）
+      if (success) {
+        console.log('統計情報の一括更新が完了しました');
+        writeMonitor.logOperation('batch', `quiz_rooms/${roomId}`, '統計更新完了');
+      } else {
+        console.warn('統計更新は失敗しましたが、処理を続行します');
       }
       
       console.log(`Quiz room ${roomId} completed - scheduling deletion in 10 seconds`);

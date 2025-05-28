@@ -24,6 +24,7 @@ import {
   subscribeToAvailableRooms,
   updateUserStatsOnRoomComplete
 } from '../services/quizRoom';
+import { writeMonitor } from '../utils/firestoreWriteMonitor';
 
 export function useQuizRoom() {
   // Router
@@ -998,12 +999,16 @@ export function useQuizRoom() {
     try {
       setHasClickedQuiz(true);
       
-      // 直接Firestoreを操作してクリック時間を登録（頻繁な更新はupdatedAtを省略）
+      // 書き込み監視：頻繁な更新の最適化効果を測定
+      writeMonitor.logOperation('updateDoc', `quiz_rooms/${roomId}`, 'クリック時間更新（updatedAt省略）');
+      
+      // 直接Firestoreを操作してクリック時間を登録（頻繁な更新はupdatedAtを省略し、書き込み回数削減）
       const roomRef = doc(db, 'quiz_rooms', roomId);
       const now = new Date();
       
       await updateDoc(roomRef, {
         [`participants.${currentUser.uid}.clickTime`]: now.getTime()
+        // updatedAtを省略（頻繁な更新のため）
       });
       
       return true;

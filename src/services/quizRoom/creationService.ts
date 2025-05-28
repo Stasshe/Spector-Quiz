@@ -15,6 +15,7 @@ import {
 } from 'firebase/firestore';
 
 import { QUIZ_UNIT } from '@/config/quizConfig';
+import { writeMonitor } from '@/utils/firestoreWriteMonitor';
 
 
 // 参加機能をインポート
@@ -113,13 +114,23 @@ export async function createRoomService(
       }
     };
     
-    // まずルームを作成
+    // まずルームを作成（書き込み監視）
+    writeMonitor.logOperation(
+      'addDoc',
+      'quiz_rooms',
+      `ルーム作成 - ${name} (${classType})`
+    );
     const roomRef = await addDoc(collection(db, 'quiz_rooms'), newRoom);
     const roomId = roomRef.id;
     console.log(`新しいルーム(${roomId})を作成しました`);
     
     try {
-      // ユーザーに現在のルームIDを設定
+      // ユーザーに現在のルームIDを設定（書き込み監視）
+      writeMonitor.logOperation(
+        'updateDoc',
+        `users/${userId}`,
+        'ルーム作成時のユーザー情報更新'
+      );
       await updateDoc(userRef, { currentRoomId: roomId });
     } catch (updateErr) {
       console.error('Error updating user room ID:', updateErr);
@@ -267,14 +278,24 @@ export async function createRoomWithUnitService(
       }
     };
     
-    // まずルームを作成
+    // まずルームを作成（書き込み監視）
+    writeMonitor.logOperation(
+      'addDoc',
+      'quiz_rooms',
+      `単元ルーム作成 - ${genreId}/${unitId} (${classType})`
+    );
     const roomRef = await addDoc(collection(db, 'quiz_rooms'), newRoom);
     const roomId = roomRef.id;
     console.log(`新しいルーム(${roomId})を作成しました`);
     
     try {
-      // ユーザーに現在のルームIDを設定（公式クイズ対応改善）
+      // ユーザーに現在のルームIDを設定（公式クイズ対応改善 + 書き込み監視）
       console.log(`[createRoomWithUnitService] ユーザー(${userId})にルームID(${roomId})を設定中... classType=${classType}`);
+      writeMonitor.logOperation(
+        'updateDoc',
+        `users/${userId}`,
+        `単元ルーム作成時のユーザー情報更新 (${classType})`
+      );
       await updateDoc(userRef, { currentRoomId: roomId });
       console.log(`[createRoomWithUnitService] ユーザーのcurrentRoomID設定完了: ${roomId}`);
     } catch (updateErr) {

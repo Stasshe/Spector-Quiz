@@ -14,6 +14,7 @@ import {
   updateDoc,
   writeBatch
 } from 'firebase/firestore';
+import { writeMonitor } from '@/utils/firestoreWriteMonitor';
 
 // ------ ルーム参加・退出関連のサービス関数 ------
 
@@ -106,7 +107,13 @@ export async function joinRoomService(
       // ユーザーに現在のルームIDを設定
       batch.update(userRef, { currentRoomId: roomId });
       
-      // バッチ実行
+      // バッチ実行（書き込み監視）
+      writeMonitor.logOperation(
+        'batch',
+        `quiz_rooms/${roomId}`,
+        `ルーム参加処理 - ユーザー${userId}`,
+        2 // room + user 文書
+      );
       await batch.commit();
       
       console.log(`[joinRoomService] ルーム(${roomId})への参加に成功しました`);
@@ -162,6 +169,11 @@ export async function leaveRoomService(
     
     // まず、ユーザー自身のルーム情報をクリア（エラーが発生しても最低限これは行う）
     try {
+      writeMonitor.logOperation(
+        'updateDoc',
+        `users/${userId}`,
+        'ルーム退出時のユーザー情報クリア'
+      );
       await updateDoc(doc(db, 'users', userId), {
         currentRoomId: null
       });
@@ -193,6 +205,11 @@ export async function leaveRoomService(
       const updatePromises = participantIds.map(async (pid) => {
         if (pid !== userId) { // 自分自身は既にクリア済み
           try {
+            writeMonitor.logOperation(
+              'updateDoc',
+              `users/${pid}`,
+              'リーダー退出時の参加者情報クリア'
+            );
             await updateDoc(doc(db, 'users', pid), {
               currentRoomId: null
             });
@@ -214,16 +231,20 @@ export async function leaveRoomService(
       // まずanswersサブコレクションを削除
       try {
         const answersRef = collection(db, 'quiz_rooms', roomId, 'answers');
-        const answersSnapshot = await getDocs(answersRef);
-        
-        if (!answersSnapshot.empty) {
-          console.log(`[leaveRoomService] ルーム(${roomId})の回答データ(${answersSnapshot.size}件)を削除します`);
-          
-          // バッチ処理で回答を削除
-          const deletePromises = answersSnapshot.docs.map(doc => deleteDoc(doc.ref));
-          await Promise.allSettled(deletePromises);
-          console.log(`[leaveRoomService] ルーム(${roomId})の回答データを削除しました`);
-        }
+        const answersSnapshot = await getDocs(answersRef);          if (!answersSnapshot.empty) {
+            console.log(`[leaveRoomService] ルーム(${roomId})の回答データ(${answersSnapshot.size}件)を削除します`);
+            
+            // バッチ処理で回答を削除
+            writeMonitor.logOperation(
+              'batch',
+              `quiz_rooms/${roomId}/answers/*`,
+              `回答データ削除 - ${answersSnapshot.size}件`,
+              answersSnapshot.size
+            );
+            const deletePromises = answersSnapshot.docs.map(doc => deleteDoc(doc.ref));
+            await Promise.allSettled(deletePromises);
+            console.log(`[leaveRoomService] ルーム(${roomId})の回答データを削除しました`);
+          }
       } catch (answersErr) {
         console.warn(`[leaveRoomService] ルーム(${roomId})の回答データ削除中にエラー:`, answersErr);
         // 回答削除のエラーは無視して続行
@@ -231,6 +252,11 @@ export async function leaveRoomService(
       
       // ルームを削除
       try {
+        writeMonitor.logOperation(
+          'deleteDoc',
+          `quiz_rooms/${roomId}`,
+          'リーダー退出によるルーム削除'
+        );
         await deleteDoc(roomRef);
         console.log(`[leaveRoomService] ルーム(${roomId})を削除しました`);
       } catch (deleteErr) {
@@ -246,6 +272,11 @@ export async function leaveRoomService(
       console.log(`[leaveRoomService] 一般参加者としてルーム(${roomId})から退出します`);
       // リーダー以外の場合、参加者リストから自分を削除
       try {
+        writeMonitor.logOperation(
+          'updateDoc',
+          `quiz_rooms/${roomId}`,
+          `参加者退出 - ユーザー${userId}`
+        );
         await updateDoc(roomRef, {
           [`participants.${userId}`]: deleteField(),
           updatedAt: serverTimestamp()
