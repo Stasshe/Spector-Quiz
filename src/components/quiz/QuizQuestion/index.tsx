@@ -67,6 +67,19 @@ export default function QuizQuestion({ quiz, isAnswerRevealed }: QuizQuestionPro
     // サーバー側のタイムアウト処理は useLeader の startQuestionTimer で実行される
   };
   
+  // デバッグログを追加
+  useEffect(() => {
+    const resetKey = `${quiz.quizId}-${quizRoom?.currentQuizIndex || 0}`;
+    console.log('[QuizQuestion] タイマー状態確認:', {
+      quizId: quiz.quizId,
+      currentQuizIndex: quizRoom?.currentQuizIndex,
+      resetKey,
+      timerActive,
+      quizRoomStatus: quizRoom?.status,
+      isAnswerRevealed
+    });
+  }, [quiz.quizId, quizRoom?.currentQuizIndex, timerActive, quizRoom?.status, isAnswerRevealed]);
+  
   return (
     <div className="quiz-question relative">
       

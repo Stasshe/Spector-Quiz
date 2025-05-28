@@ -28,8 +28,17 @@ export default function QuizTimer({ genre, isActive, onTimeUp, resetKey, isAnswe
 
   // タイマーをリセット（resetKeyが変わった時のみ）
   useEffect(() => {
+    console.log('[QuizTimer] リセット処理チェック:', {
+      resetKey,
+      lastResetKey: lastResetKeyRef.current,
+      totalTime,
+      isInitialized: isInitializedRef.current
+    });
+    
     // resetKeyが存在し、前回と異なる場合のみリセット
     if (resetKey && resetKey !== lastResetKeyRef.current) {
+      console.log('[QuizTimer] タイマーリセット実行:', resetKey);
+      
       // 既存のインターバルをクリア
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
@@ -38,16 +47,28 @@ export default function QuizTimer({ genre, isActive, onTimeUp, resetKey, isAnswe
       setTimeLeft(totalTime);
       lastResetKeyRef.current = resetKey;
       isInitializedRef.current = true;
+      
+      // 初期化完了後に表示状態を更新
+      setIsVisible(true);
     }
   }, [resetKey, totalTime]);
 
-  // 表示状態の決定（resetKeyが存在する場合は常に表示）
+  // 表示状態の決定（resetKeyまたは答え表示状態が変わった時）
   useEffect(() => {
-    // resetKeyが存在する場合は常に表示
+    // resetKeyが存在する場合は表示
     const shouldBeVisible = !!resetKey;
     
-    setIsVisible(shouldBeVisible);
-  }, [resetKey, isAnswerRevealed]);
+    console.log('[QuizTimer] 表示状態チェック:', {
+      resetKey,
+      shouldBeVisible,
+      currentIsVisible: isVisible,
+      isAnswerRevealed
+    });
+    
+    if (shouldBeVisible !== isVisible) {
+      setIsVisible(shouldBeVisible);
+    }
+  }, [resetKey, isAnswerRevealed, isVisible]);
 
   // カウントダウン処理（isActiveが変わった時のみ）
   useEffect(() => {
