@@ -1,6 +1,6 @@
 'use client';
 
-import { db } from '@/config/firebase';
+import { db, usersDb } from '@/config/firebase';
 import { QuizRoom } from '@/types/room';
 import {
   addDoc,
@@ -64,7 +64,7 @@ export async function createRoomService(
     }
     
     // ユーザーが既に別のルームに参加しているか確認
-    const userRef = doc(db, 'users', userId);
+    const userRef = doc(usersDb, 'users', userId);
     const userDoc = await getDoc(userRef);
     
     // 注意: ここでは前のルームからの自動退室を行うが、
@@ -167,7 +167,7 @@ export async function createRoomWithUnitService(
 ): Promise<QuizRoom> {
   try {
     // ユーザーが既に別のルームに参加しているか確認
-    const userRef = doc(db, 'users', userId);
+    const userRef = doc(usersDb, 'users', userId);
     const userDoc = await getDoc(userRef);
     
     if (userDoc.exists() && userDoc.data().currentRoomId) {

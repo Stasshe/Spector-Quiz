@@ -1,6 +1,9 @@
 'use client';
 
-import { db } from '@/config/firebase';
+import { useState, useEffect } from 'react';
+import { db, usersDb } from '@/config/firebase';
+import { collection, getDocs, query, orderBy, limit, doc, updateDoc, deleteDoc, getDoc } from 'firebase/firestore';
+import { User } from '@/types/user';
 import { useAuth } from '@/context/AuthContext';
 import { User } from '@/types/user';
 import { collection, doc, getDocs, updateDoc } from 'firebase/firestore';
@@ -41,7 +44,12 @@ export default function UserManagement() {
     async function fetchUsers() {
       try {
         setLoading(true);
-        const usersSnapshot = await getDocs(collection(db, 'users'));
+        const usersQuery = query(
+          collection(usersDb, 'users'),
+          orderBy('lastLoginAt', 'desc')
+        );
+        
+        const usersSnapshot = await getDocs(usersQuery);
         let allUsers = usersSnapshot.docs.map(doc => ({
           ...doc.data(),
           userId: doc.data().userId || doc.id,
@@ -104,7 +112,7 @@ export default function UserManagement() {
         return;
       }
       
-      const userRef = doc(db, 'users', targetUser.firestoreId);
+      const userRef = doc(usersDb, 'users', targetUser.firestoreId);
       await updateDoc(userRef, { rank });
       
       // ローカルの状態を更新

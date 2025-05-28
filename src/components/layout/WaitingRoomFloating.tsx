@@ -1,6 +1,6 @@
 'use client';
 
-import { db } from '@/config/firebase';
+import { db, usersDb } from '@/config/firebase';
 import { TIMING } from '@/config/quizConfig';
 import { useAuth } from '@/context/AuthContext';
 import { useQuiz } from '@/context/QuizContext';
@@ -40,7 +40,7 @@ export default function WaitingRoomFloating() {
         isChecking = true;
         
         // ユーザーのドキュメントから現在のルームIDを取得
-        const userRef = doc(db, 'users', currentUser.uid);
+        const userRef = doc(usersDb, 'users', currentUser.uid);
         const userDoc = await getDoc(userRef);
         
         if (userDoc.exists() && userDoc.data().currentRoomId) {

@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { doc, getDoc, collection, query, where, limit, getDocs } from 'firebase/firestore';
-import { db } from '@/config/firebase';
+import { db, usersDb } from '@/config/firebase';
 import { User, UserProfile } from '@/types/user';
 import { FaUser, FaTrophy, FaGamepad, FaCheck, FaArrowLeft, FaFileAlt } from 'react-icons/fa';
 import Link from 'next/link';
@@ -57,7 +57,7 @@ function UserProfileContent() {
         if (isNumericId) {
           // 数値形式のIDの場合、userIdフィールドで検索
           console.log(`数値形式IDでユーザーを検索: ${userId}`);
-          const usersRef = collection(db, 'users');
+          const usersRef = collection(usersDb, 'users');
           const q = query(usersRef, where('userId', '==', userId), limit(1));
           const querySnapshot = await getDocs(q);
           
@@ -69,7 +69,7 @@ function UserProfileContent() {
         } else {
           // Firebase UIDの場合、ドキュメントIDで直接検索
           console.log(`Firebase UIDでユーザーを検索: ${userId}`);
-          const userRef = doc(db, 'users', userId);
+          const userRef = doc(usersDb, 'users', userId);
           userSnap = await getDoc(userRef);
         }
         

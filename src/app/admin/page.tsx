@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { db } from '@/config/firebase';
+import { db, usersDb } from '@/config/firebase';
 import { collection, getDocs, query, limit, orderBy, getCountFromServer } from 'firebase/firestore';
 import { User } from '@/types/user';
 import { QuizUnit } from '@/types/quiz';
@@ -60,7 +60,7 @@ export default function AdminDashboard() {
         };
         
         // ユーザー数のカウント
-        const usersSnapshot = await getCountFromServer(collection(db, 'users'));
+        const usersSnapshot = await getCountFromServer(collection(usersDb, 'users'));
         statsData.totalUsers = usersSnapshot.data().count;
         
         // オンラインユーザー数（24時間以内にログイン）のカウント
@@ -69,7 +69,7 @@ export default function AdminDashboard() {
         
         // 最近追加されたユーザーを取得
         const recentUsersQuery = query(
-          collection(db, 'users'),
+          collection(usersDb, 'users'),
           orderBy('createdAt', 'desc'),
           limit(5)
         );
