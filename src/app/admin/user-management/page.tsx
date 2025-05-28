@@ -1,13 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { db, usersDb } from '@/config/firebase';
+import { usersDb } from '@/config/firebase';
 import { collection, getDocs, query, orderBy, limit, doc, updateDoc, deleteDoc, getDoc } from 'firebase/firestore';
 import { User } from '@/types/user';
 import { useAuth } from '@/context/AuthContext';
-import { User } from '@/types/user';
-import { collection, doc, getDocs, updateDoc } from 'firebase/firestore';
-import { useEffect, useState } from 'react';
+
+
+
 
 // Firebaseドキュメント情報を含む拡張ユーザータイプ
 interface UserWithFirestoreId extends User {

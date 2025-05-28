@@ -3,7 +3,7 @@
 import { doc, getDoc, onSnapshot, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
-import { db } from '../config/firebase';
+import { db, usersDb } from '../config/firebase';
 import { useAuth } from '../context/AuthContext';
 import { useQuiz } from '../context/QuizContext';
 import { Quiz } from '../types/quiz';
