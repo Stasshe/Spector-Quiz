@@ -95,9 +95,9 @@ export default function QuizQuestion({ quiz, isAnswerRevealed }: QuizQuestionPro
             opacity: { duration: 0.6 }
           }}
         >
-          {/* タイマーコンポーネント - コンパクトに */}
+          {/* タイマーコンポーネント - 超コンパクトに */}
           <motion.div 
-            className="mb-4"
+            className="mb-2"
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.1, duration: 0.3 }}
@@ -124,30 +124,30 @@ export default function QuizQuestion({ quiz, isAnswerRevealed }: QuizQuestionPro
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: showContent ? 1 : 0, y: showContent ? 0 : -20 }}
             transition={{ delay: 0.2, duration: 0.4, ease: "easeOut" }}
-            className="text-xl md:text-2xl font-bold mb-4 text-gray-800 leading-tight"
+            className="text-lg md:text-xl font-bold mb-2 text-gray-800 leading-tight"
           >
             <LatexRenderer text={quiz.title} />
           </motion.h2>
           
-          {/* 問題文表示 - コンパクトに */}
+          {/* 問題文表示 - 超コンパクトに */}
           <motion.div 
-            className="bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-200 rounded-lg p-4 mb-4 shadow-sm"
+            className="bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-200 rounded-lg p-3 mb-2 shadow-sm"
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: showContent ? 1 : 0, scale: showContent ? 1 : 0.98 }}
             transition={{ delay: 0.3, duration: 0.4, ease: "easeOut" }}
           >
-            <div className="text-base md:text-lg font-medium leading-relaxed">
+            <div className="text-sm md:text-base font-medium leading-snug">
               <LatexRenderer text={quiz.question} />
             </div>
           </motion.div>
           
-          {/* 入力式問題の場合のガイダンス - よりコンパクトに */}
+          {/* 入力式問題の場合のガイダンス - 超コンパクトに */}
           {quiz.type === 'input' && (
             <motion.div 
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: showContent ? 1 : 0, y: showContent ? 0 : 10 }}
               transition={{ delay: 0.4, duration: 0.3 }}
-              className="text-gray-600 text-sm mb-3 text-center bg-gray-50 rounded-md p-2"
+              className="text-gray-600 text-xs mb-1 text-center bg-gray-50 rounded-md p-1"
             >
               💡 解答を入力してください
             </motion.div>
@@ -160,7 +160,7 @@ export default function QuizQuestion({ quiz, isAnswerRevealed }: QuizQuestionPro
             transition={{ delay: 0.5, duration: 0.3 }}
           >
             <div className="flex items-center space-x-2">
-              <span className="bg-indigo-100 text-indigo-800 px-2 py-1 rounded-full text-xs font-medium">
+              <span className="bg-indigo-100 text-indigo-800 px-1.5 py-0.5 rounded-full text-xs font-medium">
                 {quiz.genre}
               </span>
             </div>

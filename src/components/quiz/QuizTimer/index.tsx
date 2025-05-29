@@ -183,18 +183,18 @@ export default function QuizTimer({ genre, isActive, onTimeUp, resetKey, localAn
   if (isTimerPaused && resetKey) {
     const statusText = localAnswerRevealed ? '正答表示中' : '時間切れ / 停止中';
     return (
-      <div className="relative bg-gray-100 rounded-lg shadow-lg border-2 border-gray-300 p-4 w-full opacity-80">
-        <div className="flex items-center mb-2">
-          <FaClock className="mr-2 text-gray-500" />
-          <span className="text-sm font-medium text-gray-500">{statusText}</span>
+      <div className="relative bg-gray-100 rounded-lg shadow border border-gray-300 p-2 w-full opacity-80">
+        <div className="flex items-center mb-1">
+          <FaClock className="mr-1 text-gray-500 text-sm" />
+          <span className="text-xs font-medium text-gray-500">{statusText}</span>
         </div>
         <div className="text-center">
-          <div className="text-2xl font-bold text-gray-500">
+          <div className="text-lg font-bold text-gray-500">
             {formatTime(timeLeft)}
           </div>
           <div className="text-xs text-gray-400">秒</div>
         </div>
-        <div className="mt-2 text-xs text-gray-500 text-center">
+        <div className="mt-1 text-xs text-gray-500 text-center">
           {effectiveGenre}
         </div>
       </div>
@@ -217,7 +217,7 @@ export default function QuizTimer({ genre, isActive, onTimeUp, resetKey, localAn
         }}
         className={`relative w-full ${getTimerColor()}`}
       >
-        <div className={`relative bg-white rounded-lg shadow-lg border-2 p-4 w-full ${getTimerColor().split(' ')[1]}`}>
+        <div className={`relative bg-white rounded-lg shadow border p-2 w-full ${getTimerColor().split(' ')[1]}`}>
           {/* 危険時の警告アイコン */}
           {isDangerous && (
             <motion.div
@@ -229,15 +229,15 @@ export default function QuizTimer({ genre, isActive, onTimeUp, resetKey, localAn
                 duration: isCritical ? 0.5 : 1,
                 repeat: Infinity
               }}
-              className="absolute -top-2 -right-2"
+              className="absolute -top-1 -right-1"
             >
               <FaExclamationTriangle 
-                className={`text-xl ${isCritical ? 'text-red-500' : 'text-yellow-500'}`} 
+                className={`text-sm ${isCritical ? 'text-red-500' : 'text-yellow-500'}`} 
               />
             </motion.div>
           )}
 
-          <div className="flex items-center mb-2">
+          <div className="flex items-center mb-1">
             <motion.div
               animate={{ rotate: isDangerous ? [0, 10, -10, 0] : 0 }}
               transition={{ 
@@ -245,9 +245,9 @@ export default function QuizTimer({ genre, isActive, onTimeUp, resetKey, localAn
                 repeat: isDangerous ? Infinity : 0 
               }}
             >
-              <FaClock className="mr-2" />
+              <FaClock className="mr-1 text-sm" />
             </motion.div>
-            <span className="text-sm font-medium">残り時間</span>
+            <span className="text-xs font-medium">残り時間</span>
           </div>
 
           <div className="text-center">
@@ -260,7 +260,7 @@ export default function QuizTimer({ genre, isActive, onTimeUp, resetKey, localAn
                 duration: isCritical ? 0.3 : 0.5,
                 repeat: isDangerous ? Infinity : 0
               }}
-              className={`text-2xl font-bold ${getTimerColor().split(' ')[0]}`}
+              className={`text-lg font-bold ${getTimerColor().split(' ')[0]}`}
             >
               {formatTime(timeLeft)}
             </motion.div>
@@ -268,20 +268,15 @@ export default function QuizTimer({ genre, isActive, onTimeUp, resetKey, localAn
           </div>
 
           {/* プログレスバー */}
-          <div className="mt-3">
-            <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-              <motion.div
-                className={`h-full rounded-full ${getProgressColor()}`}
-                initial={{ width: '0%' }}
-                animate={{ width: `${progress * 100}%` }}
-                transition={{ duration: 0.1 }}
+          <div className="mt-2">
+            <div className="progress-container">
+              <motion.div 
+                className={`progress-bar ${getProgressColor()}`}
+                initial={{ width: "100%" }}
+                animate={{ width: `${(1 - progress) * 100}%` }}
+                transition={{ duration: 0.1, ease: "linear" }}
               />
             </div>
-          </div>
-
-          {/* ジャンル表示 */}
-          <div className="mt-2 text-xs text-gray-600 text-center">
-            ジャンルごとに制限時間が違います。
           </div>
         </div>
 

@@ -218,30 +218,30 @@ function QuizRoomContent() {
   const isRevealed = displayRoom.currentState?.isRevealed;
 
   return (
-    <div className="min-h-screen max-h-screen overflow-hidden bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* ヘッダー代わりのシンプルなナビゲーション - 高さ固定 */}
       <div className="bg-white shadow-sm border-b flex-shrink-0">
-        <div className="container mx-auto px-4 py-2 flex justify-between items-center h-14">
-          <h1 className="text-lg font-bold text-gray-800 truncate">{displayRoom.name}</h1>
+        <div className="container mx-auto px-4 py-2 flex justify-between items-center h-12">
+          <h1 className="text-base font-bold text-gray-800 truncate">{displayRoom.name}</h1>
           <button
             onClick={handleLeaveRoom}
-            className="bg-red-600 text-white px-3 py-2 rounded-lg flex items-center hover:bg-red-700 transition-colors text-sm"
+            className="bg-red-600 text-white px-3 py-1.5 rounded-lg flex items-center hover:bg-red-700 transition-colors text-sm"
           >
             <FaSignOutAlt className="mr-1" /> 退出
           </button>
         </div>
       </div>
 
-      {/* メインコンテンツエリア - 残りの高さを使用し、スクロール禁止 */}
-      <div className="flex-1 container mx-auto px-4 py-3 overflow-hidden">
-        <div className="h-full flex flex-col gap-4">
+      {/* メインコンテンツエリア - 残りの高さを使用し、スクロール可能 */}
+      <div className="flex-1 container mx-auto px-3 py-2 overflow-y-auto">
+        <div className="flex flex-col gap-3">
           {/* スコアボード - 横並びで上部に配置 */}
-          <div className="bg-white rounded-xl shadow-md p-4 h-[110px] flex-shrink-0">
+          <div className="bg-white rounded-xl shadow-md p-3 flex-shrink-0">
             <ScoreBoard participants={displayRoom.participants || {}} isHorizontal />
           </div>
 
-          {/* クイズエリア - 残りの高さを使用 */}
-          <div className="bg-white rounded-xl shadow-md p-4 flex-1 min-h-0 overflow-y-auto">
+          {/* クイズエリア - 自動サイズ調整 */}
+          <div className="bg-white rounded-xl shadow-md p-3 flex-shrink-0">
               <AnimatePresence mode="wait">
                 {/* 待機中の場合 */}
                 {displayRoom.status === 'waiting' && (
@@ -312,7 +312,7 @@ function QuizRoomContent() {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.3, duration: 0.4 }}
-                        className="mt-8 text-center"
+                        className="mt-4 text-center"
                       >
                         <button
                           onClick={handleBuzzer}
@@ -330,7 +330,7 @@ function QuizRoomContent() {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.4 }}
-                        className="mt-8"
+                        className="mt-4"
                       >
                         <AnswerInput
                           quiz={currentQuiz}
@@ -345,7 +345,7 @@ function QuizRoomContent() {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5 }}
-                        className="mt-8"
+                        className="mt-4"
                       >
                         <QuizResult
                           quiz={currentQuiz}
@@ -395,13 +395,13 @@ function QuizRoomContent() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.2 }}
-              className="bg-white rounded-xl shadow-md p-4 flex-shrink-0"
+              className="bg-white rounded-xl shadow-md p-3 flex-shrink-0"
             >
-              <div className="flex items-center justify-between text-sm text-gray-600">
+              <div className="flex items-center justify-between text-xs text-gray-600">
                 <span>進行状況</span>
                 <span>{displayRoom.currentQuizIndex + 1} / {displayRoom.totalQuizCount || 0}</span>
               </div>
-              <div className="progress-container mt-2">
+              <div className="progress-container mt-1">
                 <motion.div 
                   className="progress-bar bg-indigo-600"
                   initial={{ width: 0 }}
