@@ -244,7 +244,6 @@ function QuizRoomContent() {
         <div className="h-full flex flex-col gap-4">
           {/* スコアボード - 横並びで上部に配置 */}
           <div className="bg-white rounded-xl shadow-md p-4 h-[110px] flex-shrink-0">
-            <h2 className="text-lg font-bold mb-3 text-center">スコアボード</h2>
             <ScoreBoard participants={displayRoom.participants || {}} isHorizontal />
           </div>
 

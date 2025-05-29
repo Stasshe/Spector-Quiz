@@ -4,11 +4,11 @@
 
 // タイミング関連の設定（ミリ秒）
 export const TIMING = {
-  // ルーム自動解散時間（8分）
-  AUTO_DISBAND_TIME_MS: 8 * 60 * 1000,
+  // ルーム自動解散時間（3分）
+  AUTO_DISBAND_TIME_MS: 3 * 60 * 10005,
 
   // 正解後、次の問題に進むまでの待機時間
-  NEXT_QUESTION_DELAY: 4000,
+  NEXT_QUESTION_DELAY: 5000,
   
   // 解答制限時間（早押し後の制限時間）
   ANSWER_TIMEOUT: 8000, // 8秒
