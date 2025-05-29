@@ -17,7 +17,7 @@ interface QuizTimerProps {
 export default function QuizTimer({ genre, isActive, onTimeUp, resetKey, localAnswerRevealed, forceStart }: QuizTimerProps) {
   // ジャンルまたは制限時間が無効な場合はデフォルト値を使用
   const effectiveGenre = genre || 'general';
-  //console.log(`[QuizTimer] ${genre}のタイマーを開始`, { isActive, resetKey, localAnswerRevealed, forceStart });
+  
   // totalTimeをuseRefで保持し、最初の有効な値をキャッシュする
   const totalTimeRef = useRef<number>(0);
   // 初回のみジャンル別の制限時間を計算し、以降は同じ値を使用
@@ -30,6 +30,8 @@ export default function QuizTimer({ genre, isActive, onTimeUp, resetKey, localAn
   const lastResetKeyRef = useRef<string>(''); // 前回のresetKeyを記録
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const isInitializedRef = useRef(false);
+  const startTimeRef = useRef<number>(0); // タイマー開始時刻を記録
+  const pausedTimeRef = useRef<number>(0); // 一時停止時の残り時間
 
   // 制限時間が無効な場合は処理しない
   if (totalTimeRef.current <= 0) {
@@ -43,6 +45,48 @@ export default function QuizTimer({ genre, isActive, onTimeUp, resetKey, localAn
     return null;
   }
 
+  // タイマーの開始機能（より正確な時間計算）
+  const startTimer = () => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+    }
+    
+    startTimeRef.current = Date.now();
+    const targetEndTime = startTimeRef.current + timeLeft;
+    
+    console.log('[QuizTimer] タイマー開始:', { 
+      startTime: startTimeRef.current, 
+      timeLeft, 
+      targetEndTime 
+    });
+    
+    intervalRef.current = setInterval(() => {
+      const currentTime = Date.now();
+      const remaining = Math.max(0, targetEndTime - currentTime);
+      
+      setTimeLeft(remaining);
+      
+      if (remaining <= 0) {
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+          intervalRef.current = null;
+        }
+        console.log('[QuizTimer] 時間切れ');
+        onTimeUp?.();
+      }
+    }, 50); // より高頻度で更新して精度を向上
+  };
+
+  // タイマーの停止機能
+  const stopTimer = () => {
+    if (intervalRef.current) {
+      console.log('[QuizTimer] タイマー停止');
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+      pausedTimeRef.current = timeLeft;
+    }
+  };
+
   // タイマーをリセット（resetKeyが変わった時のみ）
   useEffect(() => {
     // resetKeyが存在し、前回と異なる場合のみリセット
@@ -50,75 +94,59 @@ export default function QuizTimer({ genre, isActive, onTimeUp, resetKey, localAn
       console.log('[QuizTimer] 新しい問題検出 - タイマーリセット:', resetKey);
       
       // 既存のインターバルをクリア
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
+      stopTimer();
       
-      setTimeLeft(totalTimeRef.current);
+      const newTimeLeft = totalTimeRef.current;
+      setTimeLeft(newTimeLeft);
       lastResetKeyRef.current = resetKey;
       isInitializedRef.current = true;
+      pausedTimeRef.current = newTimeLeft;
       
       console.log('[QuizTimer] タイマーリセット完了:', { genre: effectiveGenre, totalTime: totalTimeRef.current });
       
       // 新しい問題では即座にタイマーを開始（localAnswerRevealedの初期値はfalseなので）
-      if (isActive) {
+      if (isActive && !localAnswerRevealed) {
         console.log('[QuizTimer] 新しい問題で即座にタイマー開始');
-        intervalRef.current = setInterval(() => {
-          setTimeLeft(prev => {
-            if (prev <= 100) {
-              if (intervalRef.current) {
-                clearInterval(intervalRef.current);
-                intervalRef.current = null;
-              }
-              onTimeUp?.();
-              return 0;
-            }
-            return prev - 100;
-          });
-        }, 100);
+        setTimeout(() => startTimer(), 100); // 少し遅延させて状態の安定化を図る
       }
     }
-  }, [resetKey, isActive, onTimeUp, effectiveGenre]);
+  }, [resetKey, isActive, localAnswerRevealed, effectiveGenre, onTimeUp]);
 
   // 答え表示状態が変わった時にタイマーを停止/再開
   useEffect(() => {
-    if (!isInitializedRef.current) return; // 初期化前はスキップ
+    if (!isInitializedRef.current || !resetKey) return; // 初期化前またはresetKeyがない場合はスキップ
     
-    if (localAnswerRevealed && intervalRef.current) {
+    if (localAnswerRevealed) {
       console.log('[QuizTimer] 答え表示のためタイマーを停止');
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    } else if (!localAnswerRevealed && !intervalRef.current && isActive) {
+      stopTimer();
+    } else if (isActive && !intervalRef.current) {
       console.log('[QuizTimer] 答え非表示のためタイマーを再開');
-      intervalRef.current = setInterval(() => {
-        setTimeLeft(prev => {
-          if (prev <= 100) {
-            if (intervalRef.current) {
-              clearInterval(intervalRef.current);
-              intervalRef.current = null;
-            }
-            onTimeUp?.();
-            return 0;
-          }
-          return prev - 100;
-        });
-      }, 100);
+      setTimeout(() => startTimer(), 100); // 少し遅延させて状態の安定化を図る
     }
-  }, [localAnswerRevealed, isActive, onTimeUp]);
+  }, [localAnswerRevealed, isActive]);
 
-  // 時間の表示形式を変換
+  // コンポーネントのクリーンアップ
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, []);
+
+  // 時間の表示形式を変換（より安定した計算）
   const formatTime = (milliseconds: number) => {
-    const seconds = Math.ceil(milliseconds / 1000);
+    // 正確な秒数計算（四捨五入ではなく切り上げ）
+    const seconds = Math.max(0, Math.ceil(milliseconds / 1000));
     return seconds;
   };
 
-  // 進行率を計算（0-1）
-  const progress = 1 - (timeLeft / totalTimeRef.current);
+  // 進行率を計算（0-1）- より安定した計算
+  const progress = Math.min(1, Math.max(0, 1 - (timeLeft / totalTimeRef.current)));
   
-  // 時間に基づく色の計算
+  // 時間に基づく色の計算（安全な除算）
   const getTimerColor = () => {
-    const remainingRatio = timeLeft / totalTimeRef.current;
+    const remainingRatio = totalTimeRef.current > 0 ? timeLeft / totalTimeRef.current : 0;
     
     if (remainingRatio > 0.5) {
       return 'text-green-600 border-green-500';
@@ -129,9 +157,9 @@ export default function QuizTimer({ genre, isActive, onTimeUp, resetKey, localAn
     }
   };
 
-  // 背景色の計算
+  // 背景色の計算（安全な除算）
   const getProgressColor = () => {
-    const remainingRatio = timeLeft / totalTimeRef.current;
+    const remainingRatio = totalTimeRef.current > 0 ? timeLeft / totalTimeRef.current : 0;
     
     if (remainingRatio > 0.5) {
       return 'bg-green-500';
