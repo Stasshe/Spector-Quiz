@@ -158,12 +158,18 @@ export default function AnswerInput({ quiz, onSubmit }: AnswerInputProps) {
     <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
       <div className="mb-4">
         <h3 className="font-bold text-yellow-800">回答してください</h3>
-        {/* ネットワーク状況の表示 */}
-        <div className="flex items-center mt-2 text-sm">
-          <FaWifi className={`mr-2 ${isOnline ? 'text-green-500' : 'text-red-500'}`} />
-          <span className={isOnline ? 'text-green-600' : 'text-red-600'}>
-            {isOnline ? 'オンライン' : 'オフライン'}
-          </span>
+        <div className="flex items-center justify-between mt-2">
+          {/* ネットワーク状況の表示 */}
+          <div className="flex items-center text-sm">
+            <FaWifi className={`mr-2 ${isOnline ? 'text-green-500' : 'text-red-500'}`} />
+            <span className={isOnline ? 'text-green-600' : 'text-red-600'}>
+              {isOnline ? 'オンライン' : 'オフライン'}
+            </span>
+          </div>
+          {/* 回答制限時間の表示 */}
+          <div className="text-sm text-yellow-700">
+            <span className="font-medium">制限時間: 8秒</span>
+          </div>
         </div>
       </div>
 

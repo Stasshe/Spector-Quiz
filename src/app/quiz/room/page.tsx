@@ -317,10 +317,35 @@ function QuizRoomContent() {
                         <button
                           onClick={handleBuzzer}
                           className="buzzer-button"
-                          disabled={hasAnsweringRight}
+                          disabled={hasAnsweringRight || displayRoom.currentState?.answerStatus === 'answering_in_progress'}
                         >
                           押す！
                         </button>
+                      </motion.div>
+                    )}
+                    
+                    {/* 回答中の状態表示 */}
+                    {currentQuiz && !isRevealed && !hasAnsweringRight && 
+                     displayRoom.currentState?.answerStatus === 'answering_in_progress' && (
+                      <motion.div 
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.4 }}
+                        className="mt-4 text-center"
+                      >
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                          <div className="flex items-center justify-center space-x-2">
+                            <div className="animate-pulse">
+                              <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                            </div>
+                            <span className="text-blue-700 font-medium">
+                              {displayRoom.participants[displayRoom.currentState?.currentAnswerer || '']?.username || 'プレイヤー'}さんが回答中です
+                            </span>
+                            <div className="animate-pulse">
+                              <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                            </div>
+                          </div>
+                        </div>
                       </motion.div>
                     )}
                     
