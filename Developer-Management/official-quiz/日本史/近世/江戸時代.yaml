@@ -1,4 +1,429 @@
-# filepath: public/official-quiz/日本史/近世/江戸時代.yaml
 quizzes:
-  # ここにクイズを追加
+  - title: 武家諸法度の制定年
+    question: 元和令武家諸法度が制定されたのは何年ですか？
+    type: multiple_choice
+    choices:
+      - 1615年
+      - 1617年
+      - 1619年
+      - 1621年
+    correctAnswer: 1615年
+    explanation: 元和令武家諸法度は1615年（元和元年）に制定され、大名統制の基本法となりました。
 
+  - title: 寛永通宝の鋳造開始
+    question: 寛永通宝の鋳造が開始されたのは何年ですか？
+    type: multiple_choice
+    choices:
+      - 1626年
+      - 1636年
+      - 1644年
+      - 1654年
+    correctAnswer: 1636年
+    explanation: 寛永通宝は1636年（寛永13年）から鋳造が開始され、江戸時代を通じて使用されました。
+
+  - title: 慶安の触書
+    question: 慶安の触書（慶安御触書）の内容として含まれていないのはどれですか？
+    type: multiple_choice
+    choices:
+      - 農民の服装規制
+      - 酒造りの禁止
+      - 武士への転身禁止
+      - 茶の栽培奨励
+    correctAnswer: 茶の栽培奨励
+    explanation: 慶安の触書は農民統制を目的とし、茶の栽培奨励は含まれていませんでした。
+
+  - title: 田沼意次の改革
+    question: 田沼意次が推進した経済政策として正しくないのはどれですか？
+    type: multiple_choice
+    choices:
+      - 株仲間の奨励
+      - 蝦夷地開発
+      - 印旛沼干拓事業
+      - 地丁銀制の廃止
+    correctAnswer: 地丁銀制の廃止
+    explanation: 地丁銀制は田沼時代に導入された制度で、廃止されたわけではありません。
+
+  - title: 寛政異学の禁
+    question: 寛政異学の禁を発令した老中は誰ですか？
+    type: multiple_choice
+    choices:
+      - 田沼意次
+      - 松平定信
+      - 水野忠邦
+      - 阿部正弘
+    correctAnswer: 松平定信
+    explanation: 松平定信は1790年に寛政異学の禁を発令し、朱子学以外の学問を禁止しました。
+
+  - title: 天保の改革の人返し令
+    question: 天保の改革で発令された人返し令の目的は何ですか？
+    type: multiple_choice
+    choices:
+      - 武士の帰農促進
+      - 農民の江戸からの帰村
+      - 商人の特権剥奪
+      - 職人の技術向上
+    correctAnswer: 農民の江戸からの帰村
+    explanation: 人返し令は江戸に流入した農民を農村に帰し、農業労働力を確保することが目的でした。
+
+  - title: 享保の改革の新田開発
+    question: 享保の改革期に開発された新田の面積はおよそ何万町歩ですか？
+    type: multiple_choice
+    choices:
+      - 3万町歩
+      - 5万町歩
+      - 8万町歩
+      - 12万町歩
+    correctAnswer: 8万町歩
+    explanation: 享保の改革期には約8万町歩の新田開発が行われ、米の増産に貢献しました。
+
+  - title: 元禄文化の特徴
+    question: 元禄文化の担い手として最も適切なのはどれですか？
+    type: multiple_choice
+    choices:
+      - 武士階級
+      - 上方の町人
+      - 江戸の町人
+      - 農民階級
+    correctAnswer: 上方の町人
+    explanation: 元禄文化は大坂・京都を中心とした上方の町人が担い手となった町人文化でした。
+
+  - title: 近松門左衛門の代表作
+    question: 近松門左衛門の世話物の代表作はどれですか？
+    type: multiple_choice
+    choices:
+      - 国性爺合戦
+      - 曽根崎心中
+      - 義経千本桜
+      - 仮名手本忠臣蔵
+    correctAnswer: 曽根崎心中
+    explanation: 曽根崎心中は近松門左衛門の世話物の代表作で、実際の心中事件を題材にしています。
+
+  - title: 化政文化の中心地
+    question: 化政文化の中心地として正しいのはどこですか？
+    type: multiple_choice
+    choices:
+      - 大坂
+      - 京都
+      - 江戸
+      - 名古屋
+    correctAnswer: 江戸
+    explanation: 化政文化は江戸を中心として発達し、町人文化の爛熟期を迎えました。
+
+  - title: 歌舞伎の創始者
+    question: 歌舞伎踊りを始めたとされる人物は誰ですか？
+    type: multiple_choice
+    choices:
+      - 出雲の阿国
+      - 中村勘三郎
+      - 市川團十郎
+      - 坂田藤十郎
+    correctAnswer: 出雲の阿国
+    explanation: 出雲の阿国が京都で始めた歌舞伎踊りが歌舞伎の起源とされています。
+
+  - title: 浮世絵の技法
+    question: 錦絵と呼ばれる多色刷りの浮世絵技法を完成させた絵師は誰ですか？
+    type: multiple_choice
+    choices:
+      - 鈴木春信
+      - 喜多川歌麿
+      - 東洲斎写楽
+      - 葛飾北斎
+    correctAnswer: 鈴木春信
+    explanation: 鈴木春信が1765年頃に錦絵（多色刷り）の技法を完成させました。
+
+  - title: 俳諧の完成者
+    question: 俳諧を文学として完成させた人物は誰ですか？
+    type: multiple_choice
+    choices:
+      - 西山宗因
+      - 松尾芭蕉
+      - 与謝蕪村
+      - 小林一茶
+    correctAnswer: 松尾芭蕉
+    explanation: 松尾芭蕉は俳諧を高度な文学として完成させ、「奥の細道」などを残しました。
+
+  - title: 井原西鶴の代表作
+    question: 井原西鶴の町人物の代表作はどれですか？
+    type: multiple_choice
+    choices:
+      - 好色一代男
+      - 日本永代蔵
+      - 世間胸算用
+      - 好色五人女
+    correctAnswer: 日本永代蔵
+    explanation: 日本永代蔵は井原西鶴の町人物の代表作で、商人の成功譚を描いています。
+
+  - title: 儒学の官学化
+    question: 徳川幕府が朱子学を官学として採用したのは何代将軍の時代ですか？
+    type: multiple_choice
+    choices:
+      - 3代家光
+      - 4代家綱
+      - 5代綱吉
+      - 6代家宣
+    correctAnswer: 5代綱吉
+    explanation: 5代将軍綱吉の時代に朱子学が官学として採用され、湯島聖堂が建設されました。
+
+  - title: 国学の大成者
+    question: 古事記の研究により国学を大成した人物は誰ですか？
+    type: multiple_choice
+    choices:
+      - 荷田春満
+      - 賀茂真淵
+      - 本居宣長
+      - 平田篤胤
+    correctAnswer: 本居宣長
+    explanation: 本居宣長は古事記伝を著し、古事記の研究を通じて国学を大成しました。
+
+  - title: 蘭学の発展
+    question: 解体新書の翻訳に中心的役割を果たした人物は誰ですか？
+    type: multiple_choice
+    choices:
+      - 杉田玄白
+      - 前野良沢
+      - 中川淳庵
+      - 桂川甫周
+    correctAnswer: 前野良沢
+    explanation: 前野良沢が解体新書翻訳の中心的役割を果たしましたが、名を連ねることを辞退しました。
+
+  - title: 寺子屋教育
+    question: 江戸時代末期の寺子屋数として最も近いのはどれですか？
+    type: multiple_choice
+    choices:
+      - 約5,000校
+      - 約15,000校
+      - 約40,000校
+      - 約70,000校
+    correctAnswer: 約40,000校
+    explanation: 江戸時代末期には全国で約4万校の寺子屋があったとされています。
+
+  - title: 参勤交代制度
+    question: 参勤交代制度が法制化されたときの規定で正しいのはどれですか？
+    type: multiple_choice
+    choices:
+      - 毎年4月に参府
+      - 江戸滞在期間は1年
+      - 妻子の江戸常住
+      - すべて正しい
+    correctAnswer: すべて正しい
+    explanation: 参勤交代制度では毎年4月参府、1年間江戸滞在、妻子江戸常住が規定されました。
+
+  - title: 幕末の開港場
+    question: 日米和親条約で開港が約束された港はどこですか？
+    type: multiple_choice
+    choices:
+      - 函館と新潟
+      - 下田と函館
+      - 横浜と長崎
+      - 神戸と新潟
+    correctAnswer: 下田と函館
+    explanation: 日米和親条約（1854年）では下田と函館の開港が約束されました。
+
+  - title: 生類憐みの令
+    question: 生類憐みの令が最初に出されたのは何年ですか？
+    type: multiple_choice
+    choices:
+      - 1682年
+      - 1685年
+      - 1687年
+      - 1690年
+    correctAnswer: 1682年
+    explanation: 生類憐みの令は1682年から段階的に発令され、動物愛護を目的としました。
+
+  - title: 新井白石の外交政策
+    question: 新井白石が実施した対外政策として正しいのはどれですか？
+    type: multiple_choice
+    choices:
+      - 朝鮮通信使の廃止
+      - オランダ貿易の拡大
+      - 長崎貿易の制限
+      - 琉球との断交
+    correctAnswer: 長崎貿易の制限
+    explanation: 新井白石は正徳新例により長崎貿易を制限し、金銀の海外流出を防ごうとしました。
+
+  - title: 享保の飢饉
+    question: 享保の大飢饉が起こったのは何年ですか？
+    type: multiple_choice
+    choices:
+      - 1732年
+      - 1735年
+      - 1738年
+      - 1741年
+    correctAnswer: 1732年
+    explanation: 享保の大飢饉は1732年に起こり、西日本を中心に大きな被害をもたらしました。
+
+  - title: 田沼時代の商業政策
+    question: 田沼意次が設立を認めた株仲間の目的として正しいのはどれですか？
+    type: multiple_choice
+    choices:
+      - 商品価格の統制
+      - 運上金・冥加金の徴収
+      - 外国貿易の独占
+      - 手工業の保護
+    correctAnswer: 運上金・冥加金の徴収
+    explanation: 株仲間は商業統制と運上金・冥加金徴収による財政収入確保が主目的でした。
+
+  - title: 寛政の改革の出版統制
+    question: 寛政の改革で出された出版統制令の内容として正しいのはどれですか？
+    type: multiple_choice
+    choices:
+      - 実名による風刺の禁止
+      - 好色本の出版禁止
+      - 町奉行所の検閲強化
+      - すべて正しい
+    correctAnswer: すべて正しい
+    explanation: 寛政の改革では実名風刺禁止、好色本禁止、検閲強化などの出版統制が行われました。
+
+  - title: 天保の改革の株仲間解散
+    question: 天保の改革で株仲間解散令が出されたのは何年ですか？
+    type: multiple_choice
+    choices:
+      - 1841年
+      - 1843年
+      - 1845年
+      - 1847年
+    correctAnswer: 1841年
+    explanation: 株仲間解散令は1841年（天保12年）に出され、物価引き下げを目的としました。
+
+  - title: 歌川広重の代表作
+    question: 歌川広重の風景画の代表作はどれですか？
+    type: multiple_choice
+    choices:
+      - 富嶽三十六景
+      - 東海道五十三次
+      - 名所江戸百景
+      - 諸国瀧廻り
+    correctAnswer: 東海道五十三次
+    explanation: 東海道五十三次は歌川広重の風景画の代表作で、街道の風景を美しく描いています。
+
+  - title: 葛飾北斎の代表作
+    question: 葛飾北斎の代表作「冨嶽三十六景」のうち最も有名な作品はどれですか？
+    type: multiple_choice
+    choices:
+      - 凱風快晴
+      - 神奈川沖浪裏
+      - 山下白雨
+      - 江戸日本橋
+    correctAnswer: 神奈川沖浪裏
+    explanation: 神奈川沖浪裏（通称「Great Wave」）は北斎の最も有名な作品の一つです。
+
+  - title: 十返舎一九の作品
+    question: 十返舎一九の代表作はどれですか？
+    type: multiple_choice
+    choices:
+      - 南総里見八犬伝
+      - 東海道中膝栗毛
+      - 雨月物語
+      - 好色一代男
+    correctAnswer: 東海道中膝栗毛
+    explanation: 東海道中膝栗毛は十返舎一九の代表作で、弥次郎兵衛と喜多八の道中記です。
+
+  - title: 曲亭馬琴の大作
+    question: 曲亭馬琴が28年をかけて完成させた長編小説はどれですか？
+    type: multiple_choice
+    choices:
+      - 椿説弓張月
+      - 南総里見八犬伝
+      - 朧月猫の草子
+      - 近世説美少年録
+    correctAnswer: 南総里見八犬伝
+    explanation: 南総里見八犬伝は曲亭馬琴が28年かけて完成させた長編読本の傑作です。
+
+  - title: 上田秋成の代表作
+    question: 上田秋成の代表的な読本はどれですか？
+    type: multiple_choice
+    choices:
+      - 雨月物語
+      - 春雨物語
+      - 胆大小心録
+      - 世間娘容気
+    correctAnswer: 雨月物語
+    explanation: 雨月物語は上田秋成の代表作で、幻想的な怪異譚を収めた読本です。
+
+  - title: 川柳の祖
+    question: 川柳の祖とされる人物は誰ですか？
+    type: multiple_choice
+    choices:
+      - 柄井川柳
+      - 大田南畝
+      - 朱楽菅江
+      - 蜀山人
+    correctAnswer: 柄井川柳
+    explanation: 柄井川柳は川柳の選者として活動し、川柳という文芸の名前の由来となりました。
+
+  - title: 洋学の発展
+    question: 「ビードロ」という言葉の語源となった言語はどれですか？
+    type: multiple_choice
+    choices:
+      - オランダ語
+      - ポルトガル語
+      - スペイン語
+      - 英語
+    correctAnswer: ポルトガル語
+    explanation: 「ビードロ」はポルトガル語の「vidro」（ガラス）が語源です。
+
+  - title: 医学の発展
+    question: 華岡青洲が世界で初めて行った医学的業績は何ですか？
+    type: multiple_choice
+    choices:
+      - 種痘法の導入
+      - 全身麻酔による手術
+      - 解剖学の研究
+      - 蘭方医学の普及
+    correctAnswer: 全身麻酔による手術
+    explanation: 華岡青洲は通仙散という麻酔薬を開発し、世界初の全身麻酔手術を成功させました。
+
+  - title: 農学の発展
+    question: 「農業全書」を著した農学者は誰ですか？
+    type: multiple_choice
+    choices:
+      - 宮崎安貞
+      - 大蔵永常
+      - 佐藤信淵
+      - 二宮尊徳
+    correctAnswer: 宮崎安貞
+    explanation: 宮崎安貞は1697年に「農業全書」を著し、江戸時代の農業技術書の古典となりました。
+
+  - title: 心学の開祖
+    question: 石門心学を開いた人物は誰ですか？
+    type: multiple_choice
+    choices:
+      - 石田梅岩
+      - 手島堵庵
+      - 中沢道二
+      - 柴田鳩翁
+    correctAnswer: 石田梅岩
+    explanation: 石田梅岩は石門心学を開き、商人の職業倫理を説いて町人教育に大きな影響を与えました。
+
+  - title: 古学派の祖
+    question: 古学派（古文辞学）の祖とされる儒学者は誰ですか？
+    type: multiple_choice
+    choices:
+      - 山鹿素行
+      - 伊藤仁斎
+      - 荻生徂徠
+      - 太宰春台
+    correctAnswer: 伊藤仁斎
+    explanation: 伊藤仁斎は古義学を唱え、朱子学を批判して古学派の祖となりました。
+
+  - title: 蘭学事始
+    question: 「蘭学事始」を著した人物は誰ですか？
+    type: multiple_choice
+    choices:
+      - 杉田玄白
+      - 前野良沢
+      - 中川淳庵
+      - 桂川甫周
+    correctAnswer: 杉田玄白
+    explanation: 杉田玄白は晩年に「蘭学事始」を著し、解体新書翻訳の経緯を記録しました。
+
+  - title: 江戸時代の人口
+    question: 江戸時代中期（18世紀）の日本の総人口として最も近いのはどれですか？
+    type: multiple_choice
+    choices:
+      - 約2,000万人
+      - 約3,000万人
+      - 約4,000万人
+      - 約5,000万人
+    correctAnswer: 約3,000万人
+    explanation: 江戸時代中期の日本の総人口は約3,000万人程度で推移していたとされています。
