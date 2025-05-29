@@ -1158,7 +1158,7 @@ export function useQuizRoom() {
             // 解答権の判定
             const hasRight = 
               roomData.currentState.currentAnswerer === currentUser.uid && 
-              roomData.currentState.answerStatus === 'answering';
+              roomData.currentState.answerStatus === 'answering_in_progress';
             
             setHasAnsweringRight(hasRight);
           }
