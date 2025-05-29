@@ -188,11 +188,11 @@
 
   /* 進行バー */
   .progress-container {
-    @apply w-full bg-gray-200 rounded-full h-2.5 overflow-hidden;
+    @apply w-full bg-gray-200 rounded-full h-2.5 overflow-hidden relative;
   }
 
   .progress-bar {
-    @apply h-full rounded-full transition-all duration-300 ease-out;
+    @apply h-full rounded-full transition-all duration-300 ease-out absolute left-0 top-0;
   }
 
   /* タイマー進行アニメーション */

@@ -207,15 +207,18 @@ export default function QuizTimer({ genre, isActive, onTimeUp, resetKey, localAn
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ 
           opacity: 1, 
-          scale: isDangerous ? (isCritical ? 1.1 : 1.05) : 1, 
+          scale: 1, // スケールアニメーションを削除してレイアウト崩れを防ぐ
           y: 0 
         }}
         exit={{ opacity: 0, scale: 0.9 }}
         transition={{ 
-          duration: 0.3,
-          scale: { duration: 0.2 }
+          duration: 0.3
         }}
         className={`relative w-full ${getTimerColor()}`}
+        style={{ 
+          padding: isDangerous ? '8px' : '4px', // 危険時により多くのスペースを確保
+          margin: isDangerous ? '4px' : '2px'
+        }}
       >
         <div className={`relative bg-white rounded-lg shadow border p-2 w-full ${getTimerColor().split(' ')[1]}`}>
           {/* 危険時の警告アイコン */}
@@ -253,7 +256,7 @@ export default function QuizTimer({ genre, isActive, onTimeUp, resetKey, localAn
           <div className="text-center">
             <motion.div
               animate={{ 
-                scale: isDangerous ? [1, 1.1, 1] : 1,
+                scale: isDangerous ? [1, 1.05, 1] : 1, // スケールを小さくして切れを防ぐ
                 color: isCritical ? ['#dc2626', '#ef4444', '#dc2626'] : undefined
               }}
               transition={{ 
@@ -272,8 +275,8 @@ export default function QuizTimer({ genre, isActive, onTimeUp, resetKey, localAn
             <div className="progress-container">
               <motion.div 
                 className={`progress-bar ${getProgressColor()}`}
-                initial={{ width: "100%" }}
-                animate={{ width: `${(1 - progress) * 100}%` }}
+                initial={{ width: "0%" }}
+                animate={{ width: `${progress * 100}%` }} // 左から右に進むように変更
                 transition={{ duration: 0.1, ease: "linear" }}
               />
             </div>
