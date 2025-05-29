@@ -1348,9 +1348,15 @@ export function useQuizRoom() {
       
       if (quizDoc.exists()) {
         const quizData = quizDoc.data() as Quiz;
-        setCurrentQuizData({ ...quizData, quizId: quizDoc.id });
-        setCurrentQuiz({ ...quizData, quizId: quizDoc.id });
-        console.log(`[useQuizRoom] クイズデータ復旧成功: ${quizDoc.id} (${isOfficial ? '公式' : 'ユーザー作成'})`);
+        // ジャンル情報をroomDataから取得して明示的に設定
+        const quizWithGenre = { 
+          ...quizData, 
+          quizId: quizDoc.id,
+          genre: roomData.genre // roomDataから正しいジャンル情報を設定
+        };
+        setCurrentQuizData(quizWithGenre);
+        setCurrentQuiz(quizWithGenre);
+        console.log(`[useQuizRoom] クイズデータ復旧成功: ${quizDoc.id} (${isOfficial ? '公式' : 'ユーザー作成'}), genre: ${roomData.genre}`);
       } else {
         console.error(`[useQuizRoom] クイズが見つかりません: ${quizId} (${isOfficial ? '公式' : 'ユーザー作成'})`);
       }

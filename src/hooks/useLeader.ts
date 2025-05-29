@@ -69,7 +69,7 @@ export function useLeader(roomId: string) {
           title: 'エラー: クイズデータが不完全です',
           question: 'ルーム設定が不完全なため、このクイズに回答することはできません。',
           type: 'multiple_choice',
-          genre: '',
+          genre: quizRoom.genre || 'general', // quizRoomから取得、フォールバックはgeneral
           choices: ['エラー', 'エラー', 'エラー', 'エラー'],
           correctAnswer: 'エラー',
           acceptableAnswers: [],
@@ -107,8 +107,14 @@ export function useLeader(roomId: string) {
         
         if (quizSnap.exists()) {
           const quizData = quizSnap.data() as Quiz;
-          setCurrentQuiz({ ...quizData, quizId: quizSnap.id });
-          console.log(`[useLeader] クイズ取得成功: ${quizSnap.id}`);
+          // ジャンル情報をquizRoomから取得して明示的に設定
+          const quizWithGenre = { 
+            ...quizData, 
+            quizId: quizSnap.id,
+            genre: quizRoom.genre // quizRoomから正しいジャンル情報を設定
+          };
+          setCurrentQuiz(quizWithGenre);
+          console.log(`[useLeader] クイズ取得成功: ${quizSnap.id}, genre: ${quizRoom.genre}`);
           // 新しい問題が表示されたら選択肢を非表示に戻す
           setShowChoices(false);
           

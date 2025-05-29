@@ -103,7 +103,16 @@ export default function QuizQuestion({ quiz, isAnswerRevealed }: QuizQuestionPro
             transition={{ delay: 0.1, duration: 0.3 }}
           >
             <QuizTimer
-              genre={quiz.genre || 'general'}
+              genre={(() => {
+                const genreToUse = quiz.genre || 'general';
+                if (!quiz.genre) {
+                  console.warn('[QuizQuestion] quiz.genreが未設定です。フォールバック値"general"を使用します', {
+                    quizId: quiz.quizId,
+                    title: quiz.title
+                  });
+                }
+                return genreToUse;
+              })()}
               isActive={quizRoom?.status === 'in_progress'}
               onTimeUp={handleTimeUp}
               resetKey={resetKey}

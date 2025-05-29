@@ -116,9 +116,6 @@
 │   │   └── ranking
 │   │       └── page.tsx
 │   ├── components
-│   │   ├── common
-│   │   │   ├── LatexGuide.tsx
-│   │   │   └── LatexRenderer.tsx
 │   │   ├── latex
 │   │   │   ├── LatexGuide.tsx
 │   │   │   └── LatexRenderer.tsx
@@ -177,9 +174,9 @@
 ├── tsconfig.tsbuildinfo
 └── version
 
-52 directories, 125 files
+51 directories, 123 files
 
 src/*.ts, *.tsx の統計:
-合計行数: 14562
-合計文字数: 484712
-合計ファイルサイズ(bytes): 562197
+合計行数: 14588
+合計文字数: 485696
+合計ファイルサイズ(bytes): 562729
