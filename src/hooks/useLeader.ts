@@ -1429,7 +1429,7 @@ function normalizeAnswer(answer: string): string {
 }
 
 // 正誤判定ヘルパー関数
-function judgeCorrectness(quizData: Quiz, userAnswer: string): boolean {
+export function judgeCorrectness(quizData: Quiz, userAnswer: string): boolean {
   // 空文字列や無効な回答の場合は不正解とする
   if (!userAnswer || typeof userAnswer !== 'string' || !userAnswer.trim()) {
     console.log('空の解答のため不正解です');

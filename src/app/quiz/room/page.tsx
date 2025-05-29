@@ -1,21 +1,18 @@
 'use client';
 
-import { useEffect, useState, Suspense, useRef } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
-import { useAuth } from '@/hooks/useAuth';
-import { useQuiz } from '@/hooks/useQuiz';
-import { useQuizRoom } from '@/hooks/useQuizRoom';
-import { useLeader } from '@/hooks/useLeader';
-import { RoomStatus } from '@/types/room';
-import { TIMING } from '@/config/quizConfig';
-import QuizQuestion from '@/components/quiz/QuizQuestion';
 import AnswerInput from '@/components/quiz/AnswerInput';
+import QuizQuestion from '@/components/quiz/QuizQuestion';
 import QuizResult from '@/components/quiz/QuizResult';
 import ScoreBoard from '@/components/quiz/ScoreBoard';
-import { FaSignOutAlt, FaPlay } from 'react-icons/fa';
-import { db } from '@/config/firebase';
-import { deleteDoc, doc } from 'firebase/firestore';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '@/hooks/useAuth';
+import { useLeader, judgeCorrectness } from '@/hooks/useLeader';
+import { useQuiz } from '@/hooks/useQuiz';
+import { useQuizRoom } from '@/hooks/useQuizRoom';
+import { RoomStatus } from '@/types/room';
+import { AnimatePresence, motion } from 'framer-motion';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense, useEffect, useRef, useState } from 'react';
+import { FaSignOutAlt } from 'react-icons/fa';
 
 // ローディングフォールバックコンポーネント
 function QuizRoomLoading() {
@@ -41,6 +38,9 @@ function QuizRoomContent() {
   
   // 以前のルームステータスを追跡
   const prevStatusRef = useRef<RoomStatus | null>(null);
+  
+  // ユーザーが現在のクイズで不正解したかどうかを追跡
+  const [hasFailedCurrentQuiz, setHasFailedCurrentQuiz] = useState(false);
   
   // ルームデータをリアルタイム監視
   const room = useRoomListener(roomId);
@@ -176,9 +176,19 @@ function QuizRoomContent() {
       answerStatus: displayRoom.currentState?.answerStatus,
       currentAnswerer: displayRoom.currentState?.currentAnswerer,
       hasAnsweringRight: hasAnsweringRight,
-      isRestoredFromMidway: !currentQuiz && displayRoom.status === 'in_progress' && displayRoom.currentState?.quizId
+      isRestoredFromMidway: !currentQuiz && displayRoom.status === 'in_progress' && displayRoom.currentState?.quizId,
+      hasFailedCurrentQuiz: hasFailedCurrentQuiz
     });
-  }, [currentQuiz, displayRoom?.currentState?.isRevealed, displayRoom?.status, displayRoom?.currentQuizIndex, displayRoom?.currentState?.answerStatus, displayRoom?.currentState?.currentAnswerer, hasAnsweringRight]);
+  }, [currentQuiz, displayRoom?.currentState?.isRevealed, displayRoom?.status, displayRoom?.currentQuizIndex, displayRoom?.currentState?.answerStatus, displayRoom?.currentState?.currentAnswerer, hasAnsweringRight, hasFailedCurrentQuiz]);
+
+  // クイズインデックスが変わったら間違えフラグをリセット
+  useEffect(() => {
+    if (displayRoom && displayRoom.status === 'in_progress') {
+      // 問題が切り替わったら間違えフラグをリセット
+      setHasFailedCurrentQuiz(false);
+      console.log('[QuizRoomPage] 新しい問題に進んだため間違えフラグをリセットしました');
+    }
+  }, [displayRoom?.currentQuizIndex]);
 
   // 認証とルーム情報のチェック（すべてのフック呼び出しの後）
   useEffect(() => {
@@ -216,6 +226,19 @@ function QuizRoomContent() {
   const isCorrect = displayRoom.currentState?.answerStatus === 'correct';
   const isIncorrect = displayRoom.currentState?.answerStatus === 'incorrect';
   const isRevealed = displayRoom.currentState?.isRevealed;
+
+  // 不正解状態の検知
+  useEffect(() => {
+    if (!displayRoom || !currentUser) return;
+    
+    // 不正解かつ自分が回答者の場合、間違えフラグを設定
+    if (isIncorrect && 
+        displayRoom.currentState?.currentAnswerer === currentUser.uid && 
+        !isRevealed) {
+      console.log('[QuizRoomPage] 不正解を検出しました。間違えフラグを設定します');
+      setHasFailedCurrentQuiz(true);
+    }
+  }, [isIncorrect, displayRoom?.currentState?.currentAnswerer, isRevealed, currentUser]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -307,7 +330,7 @@ function QuizRoomContent() {
                     )}
                     
                     {/* ブザーエリア */}
-                    {currentQuiz && !isRevealed && !hasAnsweringRight && 
+                    {currentQuiz && !isRevealed && !hasAnsweringRight && !hasFailedCurrentQuiz && 
                      (displayRoom.currentState?.answerStatus === 'waiting' ||
                       displayRoom.currentState?.answerStatus === 'waiting_for_buzz' ||
                       displayRoom.currentState?.answerStatus === 'incorrect') && (
@@ -326,6 +349,27 @@ function QuizRoomContent() {
                         >
                           押す！
                         </button>
+                      </motion.div>
+                    )}
+                    
+                    {/* すでに間違えた場合のメッセージ（ブザーの代わりに表示） */}
+                    {currentQuiz && !isRevealed && !hasAnsweringRight && hasFailedCurrentQuiz && 
+                     (displayRoom.currentState?.answerStatus === 'waiting' ||
+                      displayRoom.currentState?.answerStatus === 'waiting_for_buzz' ||
+                      displayRoom.currentState?.answerStatus === 'incorrect') && (
+                      <motion.div 
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.3, duration: 0.4 }}
+                        className="mt-4 text-center"
+                      >
+                        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                          <div className="flex items-center justify-center space-x-2">
+                            <span className="text-gray-700">
+                              すでに不正解のため、この問題ではブザーを押せません
+                            </span>
+                          </div>
+                        </div>
                       </motion.div>
                     )}
                     
@@ -385,7 +429,26 @@ function QuizRoomContent() {
                       >
                         <AnswerInput
                           quiz={currentQuiz}
-                          onSubmit={submitAnswer}
+                          onSubmit={async (answer) => {
+                            try {
+                              // 回答を送信
+                              await submitAnswer(answer);
+                              
+                              // currentQuizがnullでないことを確認
+                              if (currentQuiz) {
+                                // 正誤をチェックして結果に応じた処理
+                                const isCorrect = judgeCorrectness(currentQuiz, answer);
+                                
+                                // 不正解の場合、ローカルの状態を更新
+                                if (!isCorrect) {
+                                  console.log('[QuizRoomPage] 不正解のため、ローカルの間違えフラグを設定します');
+                                  setHasFailedCurrentQuiz(true);
+                                }
+                              }
+                            } catch (error) {
+                              console.error('[QuizRoomPage] 回答送信中にエラーが発生しました:', error);
+                            }
+                          }}
                         />
                       </motion.div>
                     )}
