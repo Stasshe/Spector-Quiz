@@ -331,20 +331,8 @@ export const updateAllQuizStats = async (
     // 自分の統計を更新
     const userStatsSuccess = await updateUserStats(roomId, roomData, user.uid);
     
-    // リーダーの場合のみルーム完了フラグを設定
-    if (user.uid === roomData.roomLeaderId && !roomData.statsUpdated) {
-      try {
-        const roomRef = doc(db, 'quiz_rooms', roomId);
-        await updateDoc(roomRef, {
-          statsUpdated: true,
-          updatedAt: serverTimestamp()
-        });
-        console.log('[updateAllQuizStats] ルーム完了フラグを設定しました');
-      } catch (roomError) {
-        console.error('[updateAllQuizStats] ルーム完了フラグ設定エラー:', roomError);
-        // ユーザー統計が成功していれば成功として扱う
-      }
-    }
+    // ルーム完了フラグの設定は削除（ルーム自体が削除されるため不要）
+    // useLeaderのfinishQuizGameで5秒後にルーム全体が削除される
     
     return userStatsSuccess;
   } catch (error) {
