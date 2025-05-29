@@ -668,11 +668,18 @@ export function useLeader(roomId: string) {
           batch.update(answerRef, { isCorrect });
           
           // ルーム状態の更新（頻繁な状態変更はupdatedAtを省略）
-          batch.update(doc(db, 'quiz_rooms', roomId), {
+          const roomUpdate: any = {
             'currentState.answerStatus': isCorrect ? 'correct' : 'incorrect',
             'currentState.isRevealed': isCorrect, // 不正解の場合は正答を表示しない
             [`participants.${userId}.score`]: increment(isCorrect ? 10 : 0)
-          });
+          };
+          
+          // 不正解の場合は解答権をリセットして他の人が早押しできるようにする
+          if (!isCorrect) {
+            roomUpdate['currentState.currentAnswerer'] = null;
+          }
+          
+          batch.update(doc(db, 'quiz_rooms', roomId), roomUpdate);
           
           // バッチ実行
           await batch.commit();

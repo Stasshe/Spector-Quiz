@@ -309,7 +309,9 @@ function QuizRoomContent() {
                     {/* ブザーエリア */}
                     {currentQuiz && !isRevealed && !hasAnsweringRight && 
                      (displayRoom.currentState?.answerStatus === 'waiting' ||
-                      displayRoom.currentState?.answerStatus === 'waiting_for_buzz') && (
+                      displayRoom.currentState?.answerStatus === 'waiting_for_buzz' ||
+                      (displayRoom.currentState?.answerStatus === 'incorrect' && 
+                       displayRoom.currentState?.currentAnswerer !== currentUser?.uid)) && (
                       <motion.div 
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
