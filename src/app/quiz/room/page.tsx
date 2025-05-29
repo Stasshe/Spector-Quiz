@@ -318,7 +318,10 @@ function QuizRoomContent() {
                         className="mt-4 text-center"
                       >
                         <button
-                          onClick={handleBuzzer}
+                          onClick={() => {
+                            console.log(`ブザー押下: answerStatus=${displayRoom.currentState?.answerStatus}, hasAnsweringRight=${hasAnsweringRight}, currentAnswerer=${displayRoom.currentState?.currentAnswerer}`);
+                            handleBuzzer();
+                          }}
                           className="buzzer-button"
                         >
                           押す！
@@ -372,7 +375,7 @@ function QuizRoomContent() {
                     
                     {/* 回答エリア */}
                     {hasAnsweringRight && !isRevealed && 
-                     displayRoom.currentState?.answerStatus !== 'incorrect' && (
+                     displayRoom.currentState?.answerStatus === 'answering_in_progress' && (
                       <motion.div 
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}

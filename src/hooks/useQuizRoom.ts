@@ -1287,7 +1287,12 @@ export function useQuizRoom() {
             
             // 解答権の状態を更新
             if (roomData.currentState && roomData.currentState.currentAnswerer) {
-              setHasAnsweringRight(roomData.currentState.currentAnswerer === currentUser.uid);
+              // 解答権の判定を改善: answering_in_progress または incorrect 状態で解答権を持つ
+              const hasRight = 
+                roomData.currentState.currentAnswerer === currentUser.uid && 
+                (roomData.currentState.answerStatus === 'answering_in_progress' || 
+                 roomData.currentState.answerStatus === 'incorrect');
+              setHasAnsweringRight(hasRight);
             } else {
               setHasAnsweringRight(false);
             }

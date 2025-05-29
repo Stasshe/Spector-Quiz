@@ -929,15 +929,9 @@ export function useLeader(roomId: string) {
           return;
         }
         
-        // 現在解答権を持っている人がいないことを確認
-        if (roomData.currentState?.currentAnswerer && 
-            roomData.currentState?.answerStatus === 'answering_in_progress') {
-          console.log('既に別のユーザーが解答権を持っています: ' + roomData.currentState.currentAnswerer);
-          return;
-        }
-        
-        // 解答中でない場合は早押し可能（間違えた状態でも早押しできる）
+        // 現在誰かが解答中かチェック（ただし、間違えた状態なら早押し可能）
         if (roomData.currentState?.answerStatus === 'answering_in_progress' &&
+            roomData.currentState?.currentAnswerer &&
             roomData.currentState?.currentAnswerer !== currentUser.uid) {
           console.log('他のプレイヤーが回答中のため、早押しできません');
           return;
@@ -945,6 +939,8 @@ export function useLeader(roomId: string) {
         
         // 解答権を取得する処理
         try {
+          console.log(`早押し処理開始: 現在の状態 = ${roomData.currentState?.answerStatus}, 現在の解答者 = ${roomData.currentState?.currentAnswerer}`);
+          
           // ルームの状態を更新（解答権を取得）
           // 早押し時点で即座に answering_in_progress に設定して他のプレイヤーに通知
           await updateDoc(roomRef, {
