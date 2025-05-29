@@ -1157,26 +1157,62 @@ export function useLeader(roomId: string) {
                 moveToNextQuestion();
               }, TIMING.NEXT_QUESTION_DELAY);
             } else if (!isCorrect) {
-              // 不正解の場合、短時間「間違えました」を表示してから解答権をリセット
+              // 不正解の場合、まず全員の解答状況をチェック
               if (isLeader) {
-                console.log('[リーダー] 不正解のため、1.5秒後に解答権をリセットします');
+                console.log('[リーダー] 不正解のため、全員の解答状況をチェックします');
                 setTimeout(async () => {
                   try {
-                    // 解答権をリセットして他の人が回答できるようにする
-                    await updateDoc(roomRef, {
-                      'currentState.currentAnswerer': null,
-                      'currentState.answerStatus': 'waiting_for_buzz'
-                    });
-                    console.log('[リーダー] 解答権をリセットしました');
+                    // 全員の解答状況をチェック
+                    const answersRef = collection(db, 'quiz_rooms', roomId, 'answers');
+                    const currentQuizAnswers = query(
+                      answersRef,
+                      where('quizId', '==', currentQuiz.quizId)
+                    );
                     
-                    // さらに全員の解答状況をチェック
-                    setTimeout(async () => {
-                      await checkAndProgressGame();
-                    }, TIMING.NEXT_QUESTION_DELAY);
+                    const answersSnap = await getDocs(currentQuizAnswers);
+                    
+                    // 解答したプレイヤーのリストと正解者の存在確認
+                    const answeredPlayers = new Set();
+                    let hasCorrectAnswer = false;
+                    
+                    answersSnap.docs.forEach(doc => {
+                      const answerData = doc.data();
+                      answeredPlayers.add(answerData.userId);
+                      if (answerData.isCorrect) {
+                        hasCorrectAnswer = true;
+                      }
+                    });
+                    
+                    const totalParticipants = Object.keys(quizRoom.participants).length;
+                    const answeredCount = answeredPlayers.size;
+                    
+                    console.log(`解答状況チェック: ${answeredCount}/${totalParticipants}人が解答済み, 正解者: ${hasCorrectAnswer ? 'あり' : 'なし'}`);
+                    
+                    // 全員が解答済みで正解者がいない場合は正答表示
+                    if (answeredCount >= totalParticipants && !hasCorrectAnswer) {
+                      console.log('[リーダー] 全員不正解のため、正答と解説を表示します');
+                      await updateDoc(roomRef, {
+                        'currentState.currentAnswerer': null,
+                        'currentState.answerStatus': 'all_answered',
+                        'currentState.isRevealed': true
+                      });
+                      
+                      // 一定時間後に次の問題に進む
+                      setTimeout(() => {
+                        moveToNextQuestion();
+                      }, TIMING.NEXT_QUESTION_DELAY);
+                    } else {
+                      // まだ解答していない人がいる場合は解答権をリセット
+                      console.log('[リーダー] まだ解答していない人がいるため、解答権をリセットします');
+                      await updateDoc(roomRef, {
+                        'currentState.currentAnswerer': null,
+                        'currentState.answerStatus': 'waiting_for_buzz'
+                      });
+                    }
                   } catch (resetError) {
                     console.error('[リーダー] 解答権のリセットに失敗:', resetError);
                   }
-                }, 1000); // 1.0秒後に解答権をリセット
+                }, 1000); // 1.0秒後に状況をチェック
               } else {
                 console.log('[非リーダー] 不正解のため、リーダーによる処理を待機します');
                 // 非リーダーの場合、リーダーが処理しない場合のフォールバック
@@ -1189,12 +1225,47 @@ export function useLeader(roomId: string) {
                       // まだ状態がリセットされていない場合（リーダーが処理していない）
                       if (latestRoomData.currentState.answerStatus === 'incorrect' &&
                           latestRoomData.currentState.currentAnswerer === currentUser.uid) {
-                        console.log('[非リーダー] リーダーからの応答がないため、自分で解答権を解放します');
-                        // 緊急措置として自分の解答権のみを解放
-                        await updateDoc(roomRef, {
-                          'currentState.currentAnswerer': null,
-                          'currentState.answerStatus': 'waiting_for_buzz'
+                        console.log('[非リーダー] リーダーからの応答がないため、全員の解答状況をチェックします');
+                        
+                        // 全員の解答状況をチェック
+                        const answersRef = collection(db, 'quiz_rooms', roomId, 'answers');
+                        const currentQuizAnswers = query(
+                          answersRef,
+                          where('quizId', '==', currentQuiz.quizId)
+                        );
+                        
+                        const answersSnap = await getDocs(currentQuizAnswers);
+                        
+                        const answeredPlayers = new Set();
+                        let hasCorrectAnswer = false;
+                        
+                        answersSnap.docs.forEach(doc => {
+                          const answerData = doc.data();
+                          answeredPlayers.add(answerData.userId);
+                          if (answerData.isCorrect) {
+                            hasCorrectAnswer = true;
+                          }
                         });
+                        
+                        const totalParticipants = Object.keys(latestRoomData.participants).length;
+                        const answeredCount = answeredPlayers.size;
+                        
+                        // 全員が解答済みで正解者がいない場合は正答表示
+                        if (answeredCount >= totalParticipants && !hasCorrectAnswer) {
+                          console.log('[非リーダー] 全員不正解のため、正答と解説を表示します');
+                          await updateDoc(roomRef, {
+                            'currentState.currentAnswerer': null,
+                            'currentState.answerStatus': 'all_answered',
+                            'currentState.isRevealed': true
+                          });
+                        } else {
+                          // まだ解答していない人がいる場合は解答権をリセット
+                          console.log('[非リーダー] まだ解答していない人がいるため、解答権をリセットします');
+                          await updateDoc(roomRef, {
+                            'currentState.currentAnswerer': null,
+                            'currentState.answerStatus': 'waiting_for_buzz'
+                          });
+                        }
                       }
                     }
                   } catch (error) {
@@ -1257,15 +1328,15 @@ export function useLeader(roomId: string) {
 
   // 不正解時の自動進行処理
   const handleIncorrectAnswer = useCallback(async () => {
-    if (!isLeader || !quizRoom) return;
+    if (!isLeader || !quizRoom || !currentQuiz) return;
     
     try {
       console.log('不正解時の自動進行処理を開始します');
       
-      // 1.5秒後に「押す！」ボタンを復帰させる（リーダーが処理）
+      // 1.5秒後に全員の解答状況をチェック（リーダーが処理）
       setTimeout(async () => {
         try {
-          console.log('間違えた答えの後、解答権をリセットします');
+          console.log('間違えた答えの後、全員の解答状況をチェックします');
           const roomRef = doc(db, 'quiz_rooms', roomId);
           
           // シングルプレイヤーの場合は次の問題に進む
@@ -1277,22 +1348,63 @@ export function useLeader(roomId: string) {
             return;
           }
           
-          // マルチプレイヤーの場合は解答権をリセット
-          await updateDoc(roomRef, {
-            'currentState.currentAnswerer': null,
-            'currentState.answerStatus': 'waiting_for_buzz',
-            'currentState.isRevealed': false
+          // マルチプレイヤーの場合は全員の解答状況をチェック
+          const answersRef = collection(db, 'quiz_rooms', roomId, 'answers');
+          const currentQuizAnswers = query(
+            answersRef,
+            where('quizId', '==', currentQuiz.quizId)
+          );
+          
+          const answersSnap = await getDocs(currentQuizAnswers);
+          
+          const answeredPlayers = new Set();
+          let hasCorrectAnswer = false;
+          
+          answersSnap.docs.forEach(doc => {
+            const answerData = doc.data();
+            answeredPlayers.add(answerData.userId);
+            if (answerData.isCorrect) {
+              hasCorrectAnswer = true;
+            }
           });
-          console.log('解答権がリセットされ、他の参加者が早押しできるようになりました');
+          
+          const totalParticipants = Object.keys(quizRoom.participants).length;
+          const answeredCount = answeredPlayers.size;
+          
+          console.log(`解答状況チェック: ${answeredCount}/${totalParticipants}人が解答済み, 正解者: ${hasCorrectAnswer ? 'あり' : 'なし'}`);
+          
+          // 全員が解答済みで正解者がいない場合は正答表示
+          if (answeredCount >= totalParticipants && !hasCorrectAnswer) {
+            console.log('全員不正解のため、正答と解説を表示します');
+            await updateDoc(roomRef, {
+              'currentState.currentAnswerer': null,
+              'currentState.answerStatus': 'all_answered',
+              'currentState.isRevealed': true
+            });
+            
+            // 一定時間後に次の問題に進む
+            setTimeout(() => {
+              moveToNextQuestion();
+            }, TIMING.NEXT_QUESTION_DELAY);
+          } else {
+            // まだ解答していない人がいる場合は解答権をリセット
+            console.log('まだ解答していない人がいるため、解答権をリセットします');
+            await updateDoc(roomRef, {
+              'currentState.currentAnswerer': null,
+              'currentState.answerStatus': 'waiting_for_buzz',
+              'currentState.isRevealed': false
+            });
+          }
+          console.log('解答権処理が完了しました');
         } catch (error) {
           console.error('解答権リセット中にエラーが発生しました:', error);
         }
-      }, 1500); // 1.5秒後にリセット
+      }, 1500); // 1.5秒後にチェック
       
     } catch (error) {
       console.error('不正解時の自動進行処理でエラーが発生しました:', error);
     }
-  }, [isLeader, quizRoom, roomId, moveToNextQuestion]);
+  }, [isLeader, quizRoom, currentQuiz, roomId, moveToNextQuestion]);
 
   return {
     startQuizGame,
