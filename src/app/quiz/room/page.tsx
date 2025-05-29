@@ -9,7 +9,6 @@ import { useLeader } from '@/hooks/useLeader';
 import { RoomStatus } from '@/types/room';
 import { TIMING } from '@/config/quizConfig';
 import QuizQuestion from '@/components/quiz/QuizQuestion';
-import ParticipantList from '@/components/quiz/ParticipantList';
 import AnswerInput from '@/components/quiz/AnswerInput';
 import QuizResult from '@/components/quiz/QuizResult';
 import ScoreBoard from '@/components/quiz/ScoreBoard';
@@ -242,24 +241,15 @@ function QuizRoomContent() {
 
       {/* メインコンテンツエリア - 残りの高さを使用し、スクロール禁止 */}
       <div className="flex-1 container mx-auto px-4 py-3 overflow-hidden">
-        <div className="h-full grid grid-cols-1 xl:grid-cols-4 gap-4">
-          {/* 左側：参加者リスト（xl画面以上で表示） - 高さ制限 */}
-          <div className="xl:col-span-1 order-2 xl:order-1 flex flex-col h-full max-h-full">
-            <div className="bg-white rounded-xl shadow-md p-3 mb-3 flex-1 min-h-0 overflow-y-auto">
-              <h2 className="text-base font-medium mb-3">参加者</h2>
-              <ParticipantList participants={displayRoom.participants || {}} leaderId={displayRoom.roomLeaderId} />
-            </div>
-
-            {/* スコアボード */}
-            <div className="bg-white rounded-xl shadow-md p-3 flex-1 min-h-0 overflow-y-auto">
-              <h2 className="text-base font-medium mb-3">スコアボード</h2>
-              <ScoreBoard participants={displayRoom.participants || {}} />
-            </div>
+        <div className="h-full flex flex-col gap-4">
+          {/* スコアボード - 横並びで上部に配置 */}
+          <div className="bg-white rounded-xl shadow-md p-4 h-[110px] flex-shrink-0">
+            <h2 className="text-lg font-bold mb-3 text-center">スコアボード</h2>
+            <ScoreBoard participants={displayRoom.participants || {}} isHorizontal />
           </div>
 
-          {/* 中央・右側：クイズエリア（より広く） - 高さ制限 */}
-          <div className="xl:col-span-3 order-1 xl:order-2 flex flex-col h-full max-h-full">
-            <div className="bg-white rounded-xl shadow-md p-4 flex-1 min-h-0 overflow-y-auto">
+          {/* クイズエリア - 残りの高さを使用 */}
+          <div className="bg-white rounded-xl shadow-md p-4 flex-1 min-h-0 overflow-y-auto">
               <AnimatePresence mode="wait">
                 {/* 待機中の場合 */}
                 {displayRoom.status === 'waiting' && (
@@ -337,7 +327,7 @@ function QuizRoomContent() {
                           className="buzzer-button"
                           disabled={hasAnsweringRight}
                         >
-                          🔔 ブザー
+                          押す！
                         </button>
                       </motion.div>
                     )}
@@ -401,31 +391,30 @@ function QuizRoomContent() {
               </AnimatePresence>
             </div>
 
-            {/* クイズ進行状況 */}
-            {displayRoom.status === 'in_progress' && (
-              <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.2 }}
-                className="bg-white rounded-xl shadow-md p-4"
-              >
-                <div className="flex items-center justify-between text-sm text-gray-600">
-                  <span>進行状況</span>
-                  <span>{displayRoom.currentQuizIndex + 1} / {displayRoom.totalQuizCount || 0}</span>
-                </div>
-                <div className="progress-container mt-2">
-                  <motion.div 
-                    className="progress-bar bg-indigo-600"
-                    initial={{ width: 0 }}
-                    animate={{ 
-                      width: `${((displayRoom.currentQuizIndex + 1) / (displayRoom.totalQuizCount || 1)) * 100}%` 
-                    }}
-                    transition={{ duration: 0.8, ease: "easeOut" }}
-                  />
-                </div>
-              </motion.div>
-            )}
-          </div>
+          {/* クイズ進行状況 */}
+          {displayRoom.status === 'in_progress' && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className="bg-white rounded-xl shadow-md p-4 flex-shrink-0"
+            >
+              <div className="flex items-center justify-between text-sm text-gray-600">
+                <span>進行状況</span>
+                <span>{displayRoom.currentQuizIndex + 1} / {displayRoom.totalQuizCount || 0}</span>
+              </div>
+              <div className="progress-container mt-2">
+                <motion.div 
+                  className="progress-bar bg-indigo-600"
+                  initial={{ width: 0 }}
+                  animate={{ 
+                    width: `${((displayRoom.currentQuizIndex + 1) / (displayRoom.totalQuizCount || 1)) * 100}%` 
+                  }}
+                  transition={{ duration: 0.8, ease: "easeOut" }}
+                />
+              </div>
+            </motion.div>
+          )}
         </div>
       </div>
     </div>
