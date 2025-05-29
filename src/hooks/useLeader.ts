@@ -514,12 +514,14 @@ export function useLeader(roomId: string) {
         // 既に解答権が割り当てられていないか確認
         if (roomSnap.data().currentState?.currentAnswerer) {
           console.log('既に解答権が割り当てられています');
-          // 保留中の回答をすべて処理済みにマーク
-          const cancelBatch = writeBatch(db);
-          snapshot.docs.forEach(doc => {
-            cancelBatch.update(doc.ref, { processingStatus: 'processed' });
-          });
-          await cancelBatch.commit();
+          // 保留中の回答をすべて処理済みにマーク（個別updateDoc使用）
+          for (const docSnap of snapshot.docs) {
+            try {
+              await updateDoc(docSnap.ref, { processingStatus: 'processed' });
+            } catch (updateError) {
+              console.error('個別解答更新エラー:', updateError);
+            }
+          }
           return;
         }
         
@@ -581,41 +583,28 @@ export function useLeader(roomId: string) {
           }
         }
         
-        // 全ての解答を一度のバッチ処理で更新（書き込み回数削減）
+        // 全ての解答を個別に更新
         try {
-          const batch = writeBatch(db);
-          
           // 最初の解答を処理済みにマーク
-          batch.update(fastestAnswer.ref, {
+          await updateDoc(fastestAnswer.ref, {
             processingStatus: 'processed'
           });
           
-          // 他の保留中の解答もキャンセル
-          snapshot.docs.slice(1).forEach(doc => {
-            batch.update(doc.ref, { processingStatus: 'processed' });
-          });
-          
-          await batch.commit();
-          console.log(`解答処理完了: 1件処理済み、${snapshot.docs.length - 1}件キャンセル`);
-        } catch (batchError: any) {
-          console.error('解答のバッチ処理に失敗しました:', batchError);
-          if (batchError?.code === 'permission-denied') {
-            console.error('権限エラー: 解答のバッチ処理が拒否されました');
-            
-            // フォールバック: 個別更新を試みる
+          // 他の保留中の解答もキャンセル（個別処理）
+          for (const docSnap of snapshot.docs.slice(1)) {
             try {
-              await updateDoc(fastestAnswer.ref, { processingStatus: 'processed' });
-            } catch (individualError) {
-              console.error('個別の解答更新に失敗しました:', individualError);
+              await updateDoc(docSnap.ref, { processingStatus: 'processed' });
+            } catch (updateError) {
+              console.error(`解答 ${docSnap.id} の更新に失敗しました:`, updateError);
             }
-            
-            snapshot.docs.slice(1).forEach(async (doc) => {
-              try {
-                await updateDoc(doc.ref, { processingStatus: 'processed' });
-              } catch (individualError) {
-                console.error(`解答 ${doc.id} の更新に失敗しました:`, individualError);
-              }
-            });
+          }
+          
+          console.log(`解答処理完了: 1件処理済み、${snapshot.docs.length - 1}件キャンセル`);
+        } catch (updateError: any) {
+          console.error('解答の更新に失敗しました:', updateError);
+          if (updateError?.code === 'permission-denied') {
+            console.error('権限エラー: 解答の更新が拒否されました');
+            return; // 以降の処理をスキップ
           }
         }
       } catch (error) {
