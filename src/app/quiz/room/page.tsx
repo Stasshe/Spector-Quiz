@@ -310,8 +310,7 @@ function QuizRoomContent() {
                     {currentQuiz && !isRevealed && !hasAnsweringRight && 
                      (displayRoom.currentState?.answerStatus === 'waiting' ||
                       displayRoom.currentState?.answerStatus === 'waiting_for_buzz' ||
-                      (displayRoom.currentState?.answerStatus === 'incorrect' && 
-                       displayRoom.currentState?.currentAnswerer !== currentUser?.uid)) && (
+                      displayRoom.currentState?.answerStatus === 'incorrect') && (
                       <motion.div 
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -372,7 +371,8 @@ function QuizRoomContent() {
                     )}
                     
                     {/* 回答エリア */}
-                    {hasAnsweringRight && !isRevealed && (
+                    {hasAnsweringRight && !isRevealed && 
+                     displayRoom.currentState?.answerStatus !== 'incorrect' && (
                       <motion.div 
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}

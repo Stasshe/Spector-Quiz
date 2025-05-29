@@ -929,13 +929,16 @@ export function useLeader(roomId: string) {
           return;
         }
         
-        // 現在解答権を持っている人がいないことと、他に解答中の人がいないことを再確認
-        if (roomData.currentState?.currentAnswerer) {
+        // 現在解答権を持っている人がいないことを確認
+        if (roomData.currentState?.currentAnswerer && 
+            roomData.currentState?.answerStatus === 'answering_in_progress') {
           console.log('既に別のユーザーが解答権を持っています: ' + roomData.currentState.currentAnswerer);
           return;
         }
         
-        if (roomData.currentState?.answerStatus === 'answering_in_progress') {
+        // 解答中でない場合は早押し可能（間違えた状態でも早押しできる）
+        if (roomData.currentState?.answerStatus === 'answering_in_progress' &&
+            roomData.currentState?.currentAnswerer !== currentUser.uid) {
           console.log('他のプレイヤーが回答中のため、早押しできません');
           return;
         }
