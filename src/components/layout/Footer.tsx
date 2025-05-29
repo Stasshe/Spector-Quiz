@@ -1,8 +1,15 @@
 'use client';
 
 import { FaBolt } from 'react-icons/fa';
+import { usePathname } from 'next/navigation';
 
 export default function Footer() {
+  const pathname = usePathname();
+
+  // クイズルームページではフッターを非表示
+  if (pathname.startsWith('/quiz/room')) {
+    return null;
+  }
   return (
     <footer className="bg-indigo-800 text-white py-6">
       <div className="container mx-auto px-4">
