@@ -45,17 +45,12 @@ export function calculateBaseExperience(userPerformance: UserPerformance): numbe
   const score = userPerformance.score || 0;
   const missCount = userPerformance.missCount || 0;
 
-  // スコア10ポイントで1経験値
-  let expToAdd = Math.floor(score / 10);
-  
-  // 最低1経験値保証（スコアが0より大きい場合）
-  if (expToAdd < 1 && score > 0) {
-    expToAdd = 1;
-  }
+  // ex.スコア10ポイントで1経験値
+  let expToAdd = Math.floor(score / SCORING.SCORE_PER_EXP);
   
   // 完答ボーナス（ミスが0かつスコアが0より大きい場合）
   if (missCount === 0 && score > 0) {
-    expToAdd++;
+    expToAdd += SCORING.EXP_PERFECT_ANSWER;
   }
   
   return expToAdd;

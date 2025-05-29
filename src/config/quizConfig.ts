@@ -57,15 +57,18 @@ export const QUIZ_UNIT = {
 
 // スコア関連の設定
 export const SCORING = {
-  SOLO_MULTIPLIER: 0.1, // 一人プレイ時の経験値倍率 (0~1)
+
+  SOLO_MULTIPLIER: 0.3, // 一人プレイ時の経験値倍率 (0~1)
 
   // 正解時の得点
-  CORRECT_ANSWER_SCORE: 10,
+  CORRECT_ANSWER_SCORE: 50,
+
   // 不正解時の減点
-  INCORRECT_ANSWER_PENALTY: -1,
-  
-  // クイズ完了時のボーナス
-  SESSION_COMPLETION_BONUS: 20
+  INCORRECT_ANSWER_PENALTY: -20,
+
+  SCORE_PER_EXP: 10, // 1経験値あたりのスコア（10ポイントで1経験値）
+
+  EXP_PERFECT_ANSWER: 5, // 完答時の経験値
 };
 
 /**
