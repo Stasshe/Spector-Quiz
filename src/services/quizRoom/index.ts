@@ -5,6 +5,7 @@ import { SCORING } from '@/config/quizConfig';
 import { QuizRoom } from '@/types/room';
 import { doc, getDoc, updateDoc, serverTimestamp, writeBatch, increment } from 'firebase/firestore';
 import { hasRankUp, calculateUserRankInfo, generateRankUpMessage } from '@/utils/rankCalculator';
+import { calculateTotalExperience, generateScoreCalculationLog } from '@/utils/scoreCalculator';
 
 // roomService.ts からのインポート
 import {
@@ -263,31 +264,26 @@ export const updateUserStats = async (
     const userDoc = await getDoc(userRef);
     const currentExp = userDoc.exists() ? (userDoc.data().exp || 0) : 0;
     
-    // 経験値計算
-    let expToAdd = Math.floor((userPerformance.score || 0) / 10); // スコア10ポイントで1経験値
-    if (expToAdd < 1 && (userPerformance.score || 0) > 0) expToAdd = 1; // 最低1経験値
-    if (userPerformance.missCount === 0 && (userPerformance.score || 0) > 0) expToAdd++; // 完答ボーナス
-    
-    // 一人プレイの場合は経験値を削減
+    // スコア計算ユーティリティを使用して経験値と正解数を計算
     const participantCount = Object.keys(roomData.participants).length;
-    if (participantCount === 1) {
-      expToAdd = Math.round(expToAdd * SCORING.SOLO_MULTIPLIER);
-    }
+    const calculationResult = calculateTotalExperience(
+      userPerformance,
+      participantCount
+    );
     
+    const { expToAdd, actualCorrectAnswers } = calculationResult;
     const newExp = currentExp + expToAdd;
     
     // ランクアップしたかチェック
     const didRankUp = hasRankUp(currentExp, newExp);
     const newRankInfo = calculateUserRankInfo(newExp);
     
-    // 正解数を正確に計算（スコアから算出）
-    // スコア = 正解数 × 10 - 不正解数 × 1
-    // 正解数 = (スコア + 不正解数) / 10
-    const missCount = userPerformance.missCount || 0;
-    const score = userPerformance.score || 0;
-    const actualCorrectAnswers = Math.max(0, Math.floor((score + missCount * SCORING.INCORRECT_ANSWER_PENALTY) / SCORING.CORRECT_ANSWER_SCORE));
-    
-    console.log(`[updateUserStats] 統計計算: スコア=${score}, ミス数=${missCount}, 正解数=${actualCorrectAnswers}, 総回答数=${roomData.totalQuizCount}`);
+    // 計算ログを出力
+    console.log(`[updateUserStats] ${generateScoreCalculationLog(
+      userPerformance,
+      roomData.totalQuizCount || 1,
+      calculationResult
+    )}`);
     
     // ユーザー統計を更新（個別updateDoc使用）
     const updateData: any = {
