@@ -355,7 +355,7 @@ function QuizRoomContent() {
                     )}
                     
                     {/* 回答エリア */}
-                    {hasAnsweringRight && (!isRevealed || isIncorrect) && (
+                    {hasAnsweringRight && !isRevealed && (
                       <motion.div 
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}

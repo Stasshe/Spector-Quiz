@@ -1155,10 +1155,11 @@ export function useQuizRoom() {
           if (roomData.status === 'in_progress' && roomData.currentState) {
             await fetchCurrentQuizData(roomData);
             
-            // 解答権の判定
+            // 解答権の判定を改善
             const hasRight = 
               roomData.currentState.currentAnswerer === currentUser.uid && 
-              roomData.currentState.answerStatus === 'answering_in_progress';
+              (roomData.currentState.answerStatus === 'answering_in_progress' || 
+               roomData.currentState.answerStatus === 'incorrect');
             
             setHasAnsweringRight(hasRight);
           }
