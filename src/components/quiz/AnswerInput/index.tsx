@@ -2,6 +2,7 @@ import { useState, FormEvent, useRef, useEffect } from 'react';
 import { Quiz } from '@/types/quiz';
 import { FaPaperPlane, FaWifi, FaExclamationTriangle } from 'react-icons/fa';
 import LatexRenderer from '@/components/latex/LatexRenderer';
+import { useQuiz } from '@/context/QuizContext';
 
 interface AnswerInputProps {
   quiz: Quiz | null;
@@ -16,6 +17,9 @@ export default function AnswerInput({ quiz, onSubmit }: AnswerInputProps) {
   const [submitAttempts, setSubmitAttempts] = useState(0);
   const submitTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const networkCheckTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // クイズコンテキストから解答権の状態を取得
+  const { hasAnsweringRight } = useQuiz();
 
   // ネットワーク状況を監視
   useEffect(() => {
@@ -50,24 +54,35 @@ export default function AnswerInput({ quiz, onSubmit }: AnswerInputProps) {
     const now = Date.now();
     const timeSinceLastSubmit = now - lastSubmitTime;
     
-    // ネットワークがオフラインの場合は送信を制限
+    // ネットワークがオフラインの場合は送信を制限（ただし警告表示）
     if (!isOnline) {
       return false;
     }
 
-    // 送信中の場合は制限
+    // 送信中の場合は制限（連続送信防止）
     if (isSubmitting) {
       return false;
     }
 
+    // 回答権を持っている場合は制限を緩和
+    if (hasAnsweringRight) {
+      // 回答権があるユーザーは基本的に送信可能
+      // ただし、極端な連続クリック（100ms以内）は防ぐ
+      if (timeSinceLastSubmit < 100) {
+        return false;
+      }
+      return true;
+    }
+
+    // 回答権がない場合は従来通りの制限を適用
     // 連続送信制限（0.1秒以内の連続送信を防ぐ）
     if (timeSinceLastSubmit < 100) {
       setSubmitAttempts(prev => prev + 1);
       return false;
     }
 
-    // 短時間での大量送信を検出（10秒以内に5回以上）
-    if (submitAttempts >= 5) {
+    // 極端な大量送信を検出（10秒以内に10回以上）
+    if (submitAttempts >= 10) {
       return false;
     }
 
@@ -135,7 +150,8 @@ export default function AnswerInput({ quiz, onSubmit }: AnswerInputProps) {
         color: 'text-red-600 bg-red-50 border-red-200'
       };
     }
-    if (submitAttempts >= 5) {
+    // 回答権がない場合のみ送信制限メッセージを表示
+    if (!hasAnsweringRight && submitAttempts >= 10) {
       return {
         text: '送信回数制限に達しました。しばらくお待ちください',
         icon: <FaExclamationTriangle className="mr-2" />,

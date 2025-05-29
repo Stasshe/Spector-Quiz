@@ -317,7 +317,11 @@ function QuizRoomContent() {
                         <button
                           onClick={handleBuzzer}
                           className="buzzer-button"
-                          disabled={hasAnsweringRight || displayRoom.currentState?.answerStatus === 'answering_in_progress'}
+                          disabled={
+                            // 他の人が解答中の場合は無効化（自分が解答権を持っている場合は除く）
+                            displayRoom.currentState?.answerStatus === 'answering_in_progress' && 
+                            !hasAnsweringRight
+                          }
                         >
                           押す！
                         </button>
