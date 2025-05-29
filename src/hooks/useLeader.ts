@@ -1165,7 +1165,7 @@ export function useLeader(roomId: string) {
                     // 解答権をリセットして他の人が回答できるようにする
                     await updateDoc(roomRef, {
                       'currentState.currentAnswerer': null,
-                      'currentState.answerStatus': 'answering_in_progress'
+                      'currentState.answerStatus': 'waiting_for_buzz'
                     });
                     console.log('[リーダー] 解答権をリセットしました');
                     
