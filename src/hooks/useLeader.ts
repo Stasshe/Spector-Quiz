@@ -578,7 +578,7 @@ export function useLeader(roomId: string) {
                 // 解答権をリセットして他の人が解答できるようにする
                 await updateDoc(roomRef, {
                   'currentState.currentAnswerer': null,
-                  'currentState.answerStatus': 'answering_in_progress'
+                  'currentState.answerStatus': 'waiting_for_buzz'
                 });
                 
                 console.log('解答権をリセットしました。他の参加者が早押しできます');
@@ -1193,7 +1193,7 @@ export function useLeader(roomId: string) {
                         // 緊急措置として自分の解答権のみを解放
                         await updateDoc(roomRef, {
                           'currentState.currentAnswerer': null,
-                          'currentState.answerStatus': 'answering_in_progress'
+                          'currentState.answerStatus': 'waiting_for_buzz'
                         });
                       }
                     }
