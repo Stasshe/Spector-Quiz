@@ -94,26 +94,26 @@ export async function joinRoomService(
         isReady: false
       };
       
-      // バッチ処理でルーム参加とユーザー情報を一度に更新（書き込み回数削減）
-      const batch = writeBatch(db);
+      // 異なるデータベースのため、バッチ処理ではなく順次実行
       
-      // ルームに参加者を追加
-      batch.update(roomRef, {
+      // 1. ルームに参加者を追加
+      writeMonitor.logOperation(
+        'updateDoc',
+        `quiz_rooms/${roomId}`,
+        `ルーム参加処理 - 参加者追加: ユーザー${userId}`
+      );
+      await updateDoc(roomRef, {
         [`participants.${userId}`]: participantInfo,
         updatedAt: serverTimestamp()
       });
       
-      // ユーザーに現在のルームIDを設定
-      batch.update(userRef, { currentRoomId: roomId });
-      
-      // バッチ実行（書き込み監視）
+      // 2. ユーザーに現在のルームIDを設定
       writeMonitor.logOperation(
-        'batch',
-        `quiz_rooms/${roomId}`,
-        `ルーム参加処理 - ユーザー${userId}`,
-        2 // room + user 文書
+        'updateDoc',
+        `users/${userId}`,
+        `ルーム参加処理 - ユーザー情報更新: ルーム${roomId}`
       );
-      await batch.commit();
+      await updateDoc(userRef, { currentRoomId: roomId });
       
       console.log(`[joinRoomService] ルーム(${roomId})への参加に成功しました`);
       
