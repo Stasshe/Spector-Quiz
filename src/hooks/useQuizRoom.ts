@@ -1222,38 +1222,18 @@ export function useQuizRoom() {
                   console.error('統計更新エラー:', err);
                 });
                 
-                // statsUpdatedフラグが設定されない場合のバックアップとして機能
-                // 統計が更新されないエラーケースでも、ユーザーが画面に残されないようにする
-                console.log('クイズが完了しました。統計更新フラグが8秒以内に設定されない場合は自動リダイレクト実行します');
-                setTimeout(() => {
-                  // 最新のルーム情報を取得して確認
-                  getDoc(roomRef).then(latestSnapshot => {
-                    if (latestSnapshot.exists()) {
-                      const latestData = latestSnapshot.data();
-                      // statsUpdatedフラグが設定されていない場合のみリダイレクト
-                      if (!latestData.statsUpdated) {
-                        console.log('統計更新フラグが設定されていないため、バックアップリダイレクトを実行します');
-                        router.push('/quiz');
-                      }
-                    } else {
-                      // ルームが存在しなくなった場合もリダイレクト
-                      router.push('/quiz');
-                    }
-                  }).catch(err => {
-                    console.error('バックアップリダイレクトチェック中にエラー:', err);
-                    // エラー時はデフォルトでリダイレクト
-                    router.push('/quiz');
-                  });
-                }, 8000);
+                // statsUpdatedフラグが設定されない場合のバックアップは無効化
+                // ユーザーが手動で退出するまで結果画面に留まる
+                console.log('クイズが完了しました。統計更新処理が完了しました。ユーザーの操作を待機します。');
               }
             }
             
             // statsUpdatedフラグが変更されたか確認（undefinedからtrueへの変更も検出）
             if ((previousStatsUpdated === undefined && roomData.statsUpdated === true) || 
                 (previousStatsUpdated === false && roomData.statsUpdated === true)) {
-              console.log('統計更新フラグが設定されました。クイズ選択画面に戻ります...');
-              // 統計更新完了時にクイズ選択画面にリダイレクト
-              router.push('/quiz');
+              console.log('統計更新フラグが設定されました。ユーザーが手動で退出するまで待機します...');
+              // 統計更新完了はログのみで、自動リダイレクトは行わない
+              // ユーザーが結果画面で「ホームに戻る」ボタンを押すまで待機
             }
             
             // クイズインデックスの変更を検知（必要時のみログ出力）
