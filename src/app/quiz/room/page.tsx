@@ -329,8 +329,9 @@ function QuizRoomContent() {
                     )}
                     
                     {/* 回答中の状態表示 */}
-                    {currentQuiz && !isRevealed && !hasAnsweringRight && 
-                     displayRoom.currentState?.answerStatus === 'answering_in_progress' && (
+                    {currentQuiz && !hasAnsweringRight && 
+                     displayRoom.currentState?.answerStatus === 'answering_in_progress' && 
+                     displayRoom.currentState?.currentAnswerer && (
                       <motion.div 
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -354,7 +355,7 @@ function QuizRoomContent() {
                     )}
                     
                     {/* 回答エリア */}
-                    {hasAnsweringRight && !isRevealed && (
+                    {hasAnsweringRight && (!isRevealed || isIncorrect) && (
                       <motion.div 
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
