@@ -204,6 +204,22 @@ function QuizRoomContent() {
     }
   }, [currentUser, roomId, router]);
 
+  // 不正解状態の検知（すべてのフックはearly returnの前に配置）
+  useEffect(() => {
+    if (!displayRoom || !currentUser) return;
+    
+    // 不正解かつ自分が回答者の場合、間違えフラグを設定
+    const isIncorrect = displayRoom.currentState?.answerStatus === 'incorrect';
+    const isRevealed = displayRoom.currentState?.isRevealed;
+    
+    if (isIncorrect && 
+        displayRoom.currentState?.currentAnswerer === currentUser.uid && 
+        !isRevealed) {
+      console.log('[QuizRoomPage] 不正解を検出しました。間違えフラグを設定します');
+      setHasFailedCurrentQuiz(true);
+    }
+  }, [displayRoom, currentUser]);
+
   // ルーム情報が読み込まれていない場合のローディング表示
   if (!room) {
     return (
@@ -212,7 +228,7 @@ function QuizRoomContent() {
       </div>
     );
   }
-
+  
   // displayRoomが存在しない場合は早期リターン
   if (!displayRoom) {
     return (
@@ -226,19 +242,6 @@ function QuizRoomContent() {
   const isCorrect = displayRoom.currentState?.answerStatus === 'correct';
   const isIncorrect = displayRoom.currentState?.answerStatus === 'incorrect';
   const isRevealed = displayRoom.currentState?.isRevealed;
-
-  // 不正解状態の検知
-  useEffect(() => {
-    if (!displayRoom || !currentUser) return;
-    
-    // 不正解かつ自分が回答者の場合、間違えフラグを設定
-    if (isIncorrect && 
-        displayRoom.currentState?.currentAnswerer === currentUser.uid && 
-        !isRevealed) {
-      console.log('[QuizRoomPage] 不正解を検出しました。間違えフラグを設定します');
-      setHasFailedCurrentQuiz(true);
-    }
-  }, [isIncorrect, displayRoom?.currentState?.currentAnswerer, isRevealed, currentUser]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
