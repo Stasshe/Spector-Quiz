@@ -670,7 +670,7 @@ export function useLeader(roomId: string) {
           // ルーム状態の更新（頻繁な状態変更はupdatedAtを省略）
           batch.update(doc(db, 'quiz_rooms', roomId), {
             'currentState.answerStatus': isCorrect ? 'correct' : 'incorrect',
-            'currentState.isRevealed': true,
+            'currentState.isRevealed': isCorrect, // 不正解の場合は正答を表示しない
             [`participants.${userId}.score`]: increment(isCorrect ? 10 : 0)
           });
           
@@ -1111,10 +1111,10 @@ export function useLeader(roomId: string) {
               updateData['readyForNextQuestion'] = true;
               updateData['lastCorrectTimestamp'] = serverTimestamp();
             } else {
-              // 不正解の場合は、解答権は維持しつつ状態を「不正解」に設定
-              // 解答権のリセットは後で行う
+              // 不正解の場合は、解答権をリセットして他の人が回答できるようにする
+              // 正答は表示せず、「間違えました」メッセージを表示
               updateData['currentState.answerStatus'] = 'incorrect';
-              updateData['currentState.isRevealed'] = true;
+              updateData['currentState.isRevealed'] = false; // 正答は表示しない
               updateData[`participants.${currentUser.uid}.score`] = increment(SCORING.INCORRECT_ANSWER_PENALTY);
               // お手つきカウントを増やす
               updateData[`participants.${currentUser.uid}.missCount`] = increment(1);
@@ -1151,16 +1151,15 @@ export function useLeader(roomId: string) {
                 moveToNextQuestion();
               }, TIMING.NEXT_QUESTION_DELAY);
             } else if (!isCorrect) {
-              // 不正解の場合、役割に応じて処理を実行
+              // 不正解の場合、短時間「間違えました」を表示してから解答権をリセット
               if (isLeader) {
-                console.log('[リーダー] 不正解のため、2秒後に解答権をリセットします');
+                console.log('[リーダー] 不正解のため、1.5秒後に解答権をリセットします');
                 setTimeout(async () => {
                   try {
                     // 解答権をリセットして他の人が回答できるようにする
                     await updateDoc(roomRef, {
                       'currentState.currentAnswerer': null,
-                      'currentState.answerStatus': 'answering_in_progress',
-                      'currentState.isRevealed': false
+                      'currentState.answerStatus': 'answering_in_progress'
                     });
                     console.log('[リーダー] 解答権をリセットしました');
                     
@@ -1171,11 +1170,10 @@ export function useLeader(roomId: string) {
                   } catch (resetError) {
                     console.error('[リーダー] 解答権のリセットに失敗:', resetError);
                   }
-                }, 2000);
+                }, 1000); // 1.0秒後に解答権をリセット
               } else {
                 console.log('[非リーダー] 不正解のため、リーダーによる処理を待機します');
-                // 非リーダーの場合、念のためリーダーが処理を行うように促す
-                // これは、リーダーが存在しない場合やネットワーク問題に対する保険
+                // 非リーダーの場合、リーダーが処理しない場合のフォールバック
                 setTimeout(async () => {
                   try {
                     const latestRoomSnap = await getDoc(roomRef);
@@ -1189,15 +1187,14 @@ export function useLeader(roomId: string) {
                         // 緊急措置として自分の解答権のみを解放
                         await updateDoc(roomRef, {
                           'currentState.currentAnswerer': null,
-                          'currentState.answerStatus': 'answering_in_progress',
-                          'currentState.isRevealed': false
+                          'currentState.answerStatus': 'answering_in_progress'
                         });
                       }
                     }
                   } catch (error) {
                     console.error('[非リーダー] 緊急処理でエラー:', error);
                   }
-                }, 5000); // リーダーより少し遅れて実行
+                }, 3000); // リーダーより少し遅れて実行
               }
             }
           } catch (roomUpdateErr: any) {
@@ -1259,22 +1256,34 @@ export function useLeader(roomId: string) {
     try {
       console.log('不正解時の自動進行処理を開始します');
       
-      // シングルプレイヤーの場合は即座に次の問題へ
+      // 1.5秒後に「押す！」ボタンを復帰させる（リーダーが処理）
+      setTimeout(async () => {
+        try {
+          console.log('間違えた答えの後、解答権をリセットします');
+          const roomRef = doc(db, 'quiz_rooms', roomId);
+          await updateDoc(roomRef, {
+            'currentState.currentAnswerer': null,
+            'currentState.answerStatus': 'answering_in_progress',
+            'currentState.isRevealed': false
+          });
+          console.log('解答権がリセットされ、他の参加者が早押しできるようになりました');
+        } catch (error) {
+          console.error('解答権リセット中にエラーが発生しました:', error);
+        }
+      }, 1500); // 1.5秒後にリセット
+      
+      // シングルプレイヤーの場合は少し待ってから次の問題へ
       if (Object.keys(quizRoom.participants).length === 1) {
         console.log('シングルプレイヤー: 次の問題に進みます');
         setTimeout(() => {
           moveToNextQuestion();
         }, TIMING.NEXT_QUESTION_DELAY);
-        return;
       }
-      
-      // マルチプレイヤーの場合は全員の解答状況をチェック
-      await checkAndProgressGame();
       
     } catch (error) {
       console.error('不正解時の自動進行処理でエラーが発生しました:', error);
     }
-  }, [isLeader, quizRoom, moveToNextQuestion]);
+  }, [isLeader, quizRoom, roomId, moveToNextQuestion]);
 
   return {
     startQuizGame,

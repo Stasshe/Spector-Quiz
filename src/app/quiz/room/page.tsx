@@ -354,6 +354,24 @@ function QuizRoomContent() {
                       </motion.div>
                     )}
                     
+                    {/* 間違えた時のメッセージ表示 */}
+                    {isIncorrect && !isRevealed && displayRoom.currentState?.currentAnswerer && (
+                      <motion.div 
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.4 }}
+                        className="mt-4 text-center"
+                      >
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                          <div className="flex items-center justify-center space-x-2">
+                            <span className="text-red-700 font-medium">
+                              {displayRoom.participants[displayRoom.currentState?.currentAnswerer || '']?.username || 'プレイヤー'}さんは間違えました
+                            </span>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                    
                     {/* 回答エリア */}
                     {hasAnsweringRight && !isRevealed && (
                       <motion.div 
