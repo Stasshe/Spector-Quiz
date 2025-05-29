@@ -1,9 +1,8 @@
 'use client';
 
-import { db, usersDb } from '@/config/firebase';
+import { db, usersDb, usersAuth } from '@/config/firebase';
 import { SCORING } from '@/config/quizConfig';
 import { QuizRoom } from '@/types/room';
-import { getAuth } from 'firebase/auth';
 import { doc, getDoc, updateDoc, serverTimestamp, writeBatch, increment } from 'firebase/firestore';
 import { hasRankUp, calculateUserRankInfo, generateRankUpMessage } from '@/utils/rankCalculator';
 
@@ -176,8 +175,7 @@ export {
 export const updateUserStatsOnRoomComplete = async (roomId: string): Promise<boolean> => {
   try {
     // firebaseからcurrentUserIdを取得
-    const auth = getAuth();
-    const user = auth.currentUser;
+    const user = usersAuth.currentUser;
     
     if (!user) {
       console.warn('認証されていないユーザーです。統計は更新されません。');
@@ -298,8 +296,7 @@ export const updateUserStats = async (
       console.log(`🎉 ユーザー ${userId} がランクアップ！ ${newRankInfo.rank.name} にランクアップしました！`);
       
       // ランクアップ通知をローカルストレージに保存（現在のユーザーのみ）
-      const auth = getAuth();
-      if (typeof window !== 'undefined' && auth.currentUser && auth.currentUser.uid === userId) {
+      if (typeof window !== 'undefined' && usersAuth.currentUser && usersAuth.currentUser.uid === userId) {
         const rankUpMessage = generateRankUpMessage(newRankInfo.rank);
         localStorage.setItem('rankUpNotification', JSON.stringify({
           message: rankUpMessage,
