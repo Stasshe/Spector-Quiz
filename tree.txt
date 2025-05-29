@@ -166,7 +166,8 @@
 │   │   └── user.ts
 │   └── utils
 │       ├── firestoreWriteMonitor.ts
-│       └── rankCalculator.ts
+│       ├── rankCalculator.ts
+│       └── scoreCalculator.ts
 ├── tailwind.config.ts
 ├── tree.sh
 ├── tree.txt
@@ -174,9 +175,9 @@
 ├── tsconfig.tsbuildinfo
 └── version
 
-51 directories, 123 files
+51 directories, 124 files
 
 src/*.ts, *.tsx の統計:
-合計行数: 14588
-合計文字数: 485696
-合計ファイルサイズ(bytes): 562729
+合計行数: 14906
+合計文字数: 494323
+合計ファイルサイズ(bytes): 573152
