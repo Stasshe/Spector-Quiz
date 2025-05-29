@@ -1,4 +1,432 @@
-# filepath: public/official-quiz/世界史/古代/メソポタミア文明.yaml
+# 世界史・古代メソポタミア文明の問題です。難易度は、中堅国公立から難関私立大学入試レベル（偏差値58以上）です。
+# 高校生向けです。
 quizzes:
-  # ここにクイズを追加
+  - title: シュメール人の起源
+    question: シュメール人について正しい説明はどれですか？
+    type: multiple_choice
+    choices:
+      - セム語族に属する
+      - インド・ヨーロッパ語族に属する
+      - 系統不明の言語を使用
+      - 中国語族に属する
+    correctAnswer: 系統不明の言語を使用
+    explanation: シュメール人の言語は孤立語であり、他のどの語族にも属さない系統不明の言語です。
+
+  - title: 楔形文字の起源
+    question: 楔形文字の最初の用途は何でしたか？
+    type: multiple_choice
+    choices:
+      - 宗教的祈祷文
+      - 王の業績記録
+      - 商業帳簿
+      - 文学作品
+    correctAnswer: 商業帳簿
+    explanation: 楔形文字は紀元前3400年頃に商品の記録・計算のために発明され、後に表音文字として発達しました。
+
+  - title: ウルクの重要性
+    question: 初期メソポタミアの都市ウルクの特徴として正しいものはどれですか？
+    type: multiple_choice
+    choices:
+      - 最初の鉄器使用
+      - 世界最古の都市の一つ
+      - アッシリアの首都
+      - ペルシア支配の拠点
+    correctAnswer: 世界最古の都市の一つ
+    explanation: ウルクは紀元前4000年頃に成立した世界最古の都市の一つで、都市文明の発祥地とされています。
+
+  - title: ギルガメシュ叙事詩
+    question: 『ギルガメシュ叙事詩』で描かれている大洪水の物語と類似する記述がある宗教書はどれですか？
+    type: multiple_choice
+    choices:
+      - 旧約聖書
+      - 新約聖書
+      - クルアーン
+      - 仏典
+    correctAnswer: 旧約聖書
+    explanation: ギルガメシュ叙事詩の大洪水の物語は、旧約聖書のノアの方舟の話と多くの共通点があります。
+
+  - title: サルゴン1世
+    question: アッカド王国を建設したサルゴン1世の業績として正しいものはどれですか？
+    type: multiple_choice
+    choices:
+      - ハンムラビ法典の制定
+      - メソポタミア最初の統一
+      - バビロン捕囚の実施
+      - 鉄器の導入
+    correctAnswer: メソポタミア最初の統一
+    explanation: サルゴン1世（紀元前2334年頃～2279年頃）はメソポタミアを初めて統一し、世界最初の帝国を築きました。
+
+  - title: ウル第3王朝
+    question: ウル第3王朝（紀元前2112年頃～2004年頃）の特徴として正しいものはどれですか？
+    type: multiple_choice
+    choices:
+      - 鉄器技術の普及
+      - 高度な官僚制の発達
+      - アルファベットの発明
+      - 一神教の確立
+    correctAnswer: 高度な官僚制の発達
+    explanation: ウル第3王朝では中央集権的な官僚制が高度に発達し、詳細な行政記録が残されています。
+
+  - title: ハンムラビ法典の特徴
+    question: ハンムラビ法典の法原理として正しいものはどれですか？
+    type: multiple_choice
+    choices:
+      - 身分の平等
+      - 同害復讐法（タリオ法）
+      - 罪刑法定主義
+      - 人権思想
+    correctAnswer: 同害復讐法（タリオ法）
+    explanation: ハンムラビ法典は「目には目を、歯には歯を」の同害復讐法を基本原理としていますが、身分制社会を前提としています。
+
+  - title: 古バビロニア王国の滅亡
+    question: 古バビロニア王国を滅ぼした民族はどれですか？
+    type: multiple_choice
+    choices:
+      - アッシリア人
+      - ヒッタイト人
+      - ペルシア人
+      - カッシート人
+    correctAnswer: ヒッタイト人
+    explanation: 紀元前1595年頃にヒッタイト王ムルシリ1世がバビロンを攻撃し、古バビロニア王国は滅亡しました。
+
+  - title: アッシリア帝国の軍事技術
+    question: アッシリア帝国の軍事的優位を支えた技術として正しいものはどれですか？
+    type: multiple_choice
+    choices:
+      - 鉄製武器の使用
+      - 火薬の発明
+      - 戦象の利用
+      - 十字弓の開発
+    correctAnswer: 鉄製武器の使用
+    explanation: アッシリアは鉄製武器を大量使用し、騎兵・攻城兵器などの軍事技術で古代オリエント世界を征服しました。
+
+  - title: ニネヴェの図書館
+    question: ニネヴェに大図書館を建設したアッシリア王は誰ですか？
+    type: multiple_choice
+    choices:
+      - ティグラト・ピレセル3世
+      - サルゴン2世
+      - アッシュルバニパル
+      - エサルハッドン
+    correctAnswer: アッシュルバニパル
+    explanation: アッシュルバニパル王（紀元前668年頃～627年頃）はニネヴェに大図書館を建設し、古代の文献を収集保存しました。
+
+  - title: 新バビロニア王国
+    question: 新バビロニア王国を建設したのは誰ですか？
+    type: multiple_choice
+    choices:
+      - ナボポラッサル
+      - ネブカドネザル2世
+      - ナボニドゥス
+      - ベルシャザル
+    correctAnswer: ナボポラッサル
+    explanation: ナボポラッサルが紀元前625年頃に新バビロニア王国を建国し、アッシリア帝国を滅ぼしました。
+
+  - title: バビロンの空中庭園
+    question: バビロンの空中庭園を建設したとされる王は誰ですか？
+    type: multiple_choice
+    choices:
+      - ハンムラビ
+      - ナボポラッサル
+      - ネブカドネザル2世
+      - ナボニドゥス
+    correctAnswer: ネブカドネザル2世
+    explanation: ネブカドネザル2世（紀元前605年頃～562年頃）が王妃のために建設したとされる空中庭園は、古代世界七不思議の一つです。
+
+  - title: バビロン捕囚
+    question: バビロン捕囚（紀元前586年）で捕虜となった民族はどれですか？
+    type: multiple_choice
+    choices:
+      - フェニキア人
+      - ヘブライ人（ユダヤ人）
+      - ペルシア人
+      - エジプト人
+    correctAnswer: ヘブライ人（ユダヤ人）
+    explanation: ネブカドネザル2世がエルサレムを攻略し、ユダ王国の人々をバビロンに強制移住させました。
+
+  - title: ペルシア帝国による解放
+    question: バビロン捕囚からヘブライ人を解放したペルシア王は誰ですか？
+    type: multiple_choice
+    choices:
+      - キュロス2世
+      - カンビュセス2世
+      - ダレイオス1世
+      - クセルクセス1世
+    correctAnswer: キュロス2世
+    explanation: キュロス2世（紀元前539年）がバビロンを征服し、ヘブライ人の帰還を許可しました。
+
+  - title: ゾロアスター教の特徴
+    question: ゾロアスター教の根本的な特徴として正しいものはどれですか？
+    type: multiple_choice
+    choices:
+      - 多神教
+      - 善悪二元論
+      - 偶像崇拝
+      - 輪廻転生
+    correctAnswer: 善悪二元論
+    explanation: ゾロアスター教は善神アフラ・マズダと悪神アーリマンの対立を説く善悪二元論的宗教です。
+
+  - title: ペルセポリス
+    question: ペルセポリスを建設したペルシア王は誰ですか？
+    type: multiple_choice
+    choices:
+      - キュロス2世
+      - カンビュセス2世
+      - ダレイオス1世
+      - クセルクセス1世
+    correctAnswer: ダレイオス1世
+    explanation: ダレイオス1世（紀元前522年～486年）が儀礼都市ペルセポリスの建設を開始しました。
+
+  - title: 王の道
+    question: ペルシア帝国の「王の道」の起点と終点として正しい組み合わせはどれですか？
+    type: multiple_choice
+    choices:
+      - スサからサルディス
+      - ペルセポリスからバビロン
+      - エクバタナからメンフィス
+      - バクトラからスサ
+    correctAnswer: スサからサルディス
+    explanation: 「王の道」は首都スサから小アジアのサルディスまでの約2400kmの街道で、駅伝制が整備されていました。
+
+  - title: サトラップ制
+    question: ペルシア帝国のサトラップ制の特徴として正しいものはどれですか？
+    type: multiple_choice
+    choices:
+      - 完全な地方分権
+      - 州総督による地方統治
+      - 直接統治のみ
+      - 都市国家制の採用
+    correctAnswer: 州総督による地方統治
+    explanation: サトラップ制は州総督（サトラップ）に地方統治を委任する制度で、効率的な帝国統治を可能にしました。
+
+  - title: ミトラ教
+    question: ミトラ教の特徴として正しいものはどれですか？
+    type: multiple_choice
+    choices:
+      - 女性のみが信仰
+      - 軍人に人気の宗教
+      - 公開的な儀式中心
+      - 農業神崇拝
+    correctAnswer: 軍人に人気の宗教
+    explanation: ミトラ教は太陽神ミトラを崇拝する密儀宗教で、特にローマの軍人に人気がありました。
+
+  - title: ドラゴンカルト
+    question: ペルシア王権の象徴として正しいものはどれですか？
+    type: multiple_choice
+    choices:
+      - 黄金の鷲
+      - 翼ある太陽円盤
+      - 三日月
+      - 十字架
+    correctAnswer: 翼ある太陽円盤
+    explanation: 翼ある太陽円盤（ファルヴァハル）はゾロアスター教とペルシア王権の象徴でした。
+
+  - title: インダス文明との関係
+    question: メソポタミア文明とインダス文明の交流を示す証拠として正しいものはどれですか？
+    type: multiple_choice
+    choices:
+      - 共通の文字体系
+      - インダス印章の発見
+      - 同じ宗教信仰
+      - 同一の政治制度
+    correctAnswer: インダス印章の発見
+    explanation: メソポタミアの遺跡からインダス文明の印章が発見され、両文明間の交易関係が証明されています。
+
+  - title: シュメールの宗教
+    question: シュメールの宗教で各都市の守護神が住むとされた建造物は何ですか？
+    type: multiple_choice
+    choices:
+      - ピラミッド
+      - ジッグラト
+      - ストゥーパ
+      - パルテノン
+    correctAnswer: ジッグラト
+    explanation: ジッグラトは階段状の神殿建築で、シュメールの各都市国家で守護神を祀る聖所でした。
+
+  - title: エンリル神
+    question: メソポタミア神話で大気と嵐の神とされたのは誰ですか？
+    type: multiple_choice
+    choices:
+      - アン（アヌ）
+      - エンリル
+      - エア（エンキ）
+      - マルドゥク
+    correctAnswer: エンリル
+    explanation: エンリルは大気・風・嵐の神で、シュメール・アッカド神話で最高神の地位を占めていました。
+
+  - title: 太陰暦の発明
+    question: メソポタミアで発明された暦制で、現在でも使用されているものはどれですか？
+    type: multiple_choice
+    choices:
+      - 7日制週間
+      - 12か月制
+      - 60進法による時間
+      - これらすべて
+    correctAnswer: これらすべて
+    explanation: メソポタミア人は7日制週間、12か月制、60進法による時間分割を発明し、現在でも使用されています。
+
+  - title: バビロンの数学
+    question: バビロニア数学の特徴として正しいものはどれですか？
+    type: multiple_choice
+    choices:
+      - 10進法の使用
+      - 60進法の使用
+      - 2進法の使用
+      - 16進法の使用
+    correctAnswer: 60進法の使用
+    explanation: バビロニア人は60進法を使用し、これが現在の時間・角度の単位（60分、360度）の基礎となりました。
+
+  - title: アッカド語
+    question: アッカド語の系統として正しいものはどれですか？
+    type: multiple_choice
+    choices:
+      - インド・ヨーロッパ語族
+      - セム語族
+      - ウラル語族
+      - シナ・チベット語族
+    correctAnswer: セム語族
+    explanation: アッカド語はヘブライ語やアラビア語と同じセム語族に属し、楔形文字で記録されました。
+
+  - title: アッシリアの行政区分
+    question: アッシリア帝国の地方行政区分の名称は何ですか？
+    type: multiple_choice
+    choices:
+      - サトラペイア（州）
+      - ノモス（県）
+      - プロウィンキア（属州）
+      - これらの原型
+    correctAnswer: これらの原型
+    explanation: アッシリアの州制度は後のペルシアのサトラップ制やローマの属州制の原型となりました。
+
+  - title: ヒッタイト文明の技術
+    question: ヒッタイト人が古代オリエントで最初に実用化した技術は何ですか？
+    type: multiple_choice
+    choices:
+      - 青銅器製造
+      - 鉄器製造
+      - ガラス製造
+      - 紙の製造
+    correctAnswer: 鉄器製造
+    explanation: ヒッタイト人は紀元前15世紀頃に鉄器製造技術を実用化し、軍事的優位を確立しました。
+
+  - title: エラム文明
+    question: エラム文明の中心地はどこでしたか？
+    type: multiple_choice
+    choices:
+      - スサ
+      - ペルセポリス
+      - エクバタナ
+      - バクトラ
+    correctAnswer: スサ
+    explanation: エラム文明の中心都市はスサで、後にペルシア帝国の冬の首都となりました。
+
+  - title: 新アッシリア帝国の図書館政策
+    question: アッシリア帝国が各地の文献を収集した目的として最も適切なものはどれですか？
+    type: multiple_choice
+    choices:
+      - 学術研究の促進
+      - 文化的統治政策
+      - 占術・宗教的知識の独占
+      - 商業情報の収集
+    correctAnswer: 占術・宗教的知識の独占
+    explanation: アッシリア王は占いや宗教的知識を重視し、それらの文献を収集して統治に活用しました。
+
+  - title: マニ教の起源
+    question: マニ教の開祖マニが活動した地域はどこですか？
+    type: multiple_choice
+    choices:
+      - バビロニア
+      - ペルシア
+      - エジプト
+      - インド
+    correctAnswer: バビロニア
+    explanation: マニ（216年～276年）は3世紀のバビロニア地方で活動し、ゾロアスター教、キリスト教、仏教の要素を融合した宗教を創始しました。
+
+  - title: サマリア人
+    question: サマリア人が生まれた歴史的背景として正しいものはどれですか？
+    type: multiple_choice
+    choices:
+      - エジプトからの移住
+      - アッシリアによる民族移動政策
+      - ペルシアによる強制移住
+      - 自然災害による移住
+    correctAnswer: アッシリアによる民族移動政策
+    explanation: アッシリアが北イスラエル王国を滅ぼした際、各地の民族を強制移住させ、現地民との混血によりサマリア人が生まれました。
+
+  - title: カルデア人
+    question: カルデア人が新バビロニア王国で特に発達させた学問分野は何ですか？
+    type: multiple_choice
+    choices:
+      - 医学
+      - 天文学
+      - 法学
+      - 歴史学
+    correctAnswer: 天文学
+    explanation: カルデア人は天文観測に優れ、「カルデア人＝占星術師」と呼ばれるほど天文学・占星術が発達しました。
+
+  - title: ペルシア戦争の影響
+    question: ペルシア戦争がオリエント世界に与えた影響として正しいものはどれですか？
+    type: multiple_choice
+    choices:
+      - ペルシア帝国の完全な滅亡
+      - ギリシャ文化のオリエント伝播
+      - オリエント文化の完全な消滅
+      - ペルシア帝国の西方拡大阻止
+    correctAnswer: ペルシア帝国の西方拡大阻止
+    explanation: ペルシア戦争によりペルシア帝国の西方拡大が阻止され、ギリシャ文明が独自に発達する基盤ができました。
+
+  - title: メソポタミア農業の特徴
+    question: メソポタミア農業の基本的な技術として正しいものはどれですか？
+    type: multiple_choice
+    choices:
+      - 天水農業
+      - 灌漑農業
+      - 焼畑農業
+      - 遊牧
+    correctAnswer: 灌漑農業
+    explanation: ティグリス・ユーフラテス両河の水を利用した灌漑農業により、メソポタミア文明が発達しました。
+
+  - title: 古代オリエントの商業
+    question: 古代メソポタミアで商業活動の記録に使用された主要な媒体は何ですか？
+    type: multiple_choice
+    choices:
+      - パピルス
+      - 羊皮紙
+      - 粘土板
+      - 絹
+    correctAnswer: 粘土板
+    explanation: メソポタミアでは粘土板に楔形文字で商業取引や契約が記録され、多数の商業文書が残されています。
+
+  - title: 古代ペルシアの宗教政策
+    question: ペルシア帝国の宗教政策の特徴として正しいものはどれですか？
+    type: multiple_choice
+    choices:
+      - ゾロアスター教の強制
+      - 寛容政策
+      - 宗教の禁止
+      - 新宗教の創造
+    correctAnswer: 寛容政策
+    explanation: ペルシア帝国は被征服民の宗教・文化を尊重する寛容政策を取り、安定した統治を実現しました。
+
+  - title: 楔形文字の普及
+    question: 楔形文字が古代オリエント世界で国際文字として使用された理由として正しいものはどれですか？
+    type: multiple_choice
+    choices:
+      - 文字が美しかったため
+      - 書きやすかったため
+      - メソポタミアの政治的影響力
+      - 宗教的権威があったため
+    correctAnswer: メソポタミアの政治的影響力
+    explanation: アッカド帝国以降のメソポタミアの政治的・文化的優位により、楔形文字が古代オリエントの国際文字となりました。
+
+  - title: 古代オリエントの遺産
+    question: 古代オリエント文明が後世に残した最も重要な遺産として正しいものはどれですか？
+    type: multiple_choice
+    choices:
+      - 芸術技法
+      - 文字と法律制度
+      - 建築技術
+      - 軍事技術
+    correctAnswer: 文字と法律制度
+    explanation: 楔形文字による記録保存技術と成文法の概念は、人類文明の発展に決定的な影響を与えました。
 
