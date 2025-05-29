@@ -139,13 +139,6 @@ function QuizRoomContent() {
         if (updated) {
           setStatsUpdated(true);
           console.log('ユーザー統計情報を更新しました');
-          
-          // 統計更新完了済みのフラグを確認
-          if (room.statsUpdated) {
-            // すでに更新済みの場合は即時リダイレクトのバックアップとして機能
-            console.log('統計更新フラグが既に設定されているため、自動リダイレクト実行');
-            handleLeaveRoom();
-          }
         } else {
           console.log('統計情報の更新はスキップされました（ユーザー情報なし）');
           // エラーではないのでゲームプレイは続行
@@ -166,7 +159,7 @@ function QuizRoomContent() {
     
     // 現在のステータスを記録
     prevStatusRef.current = room.status;
-  }, [room, currentUser, roomId, updateUserStatsOnRoomComplete, statsUpdated, handleLeaveRoom]);
+  }, [room, currentUser, roomId, updateUserStatsOnRoomComplete, statsUpdated]);
 
   // displayRoomの計算（roomが存在する場合のみ）
   const displayRoom = room ? (quizRoom || room) : null;
@@ -381,10 +374,16 @@ function QuizRoomContent() {
                     <p className="text-gray-600 mb-8">
                       お疲れ様でした！最終結果をご確認ください。
                     </p>
-                    <div className="bg-gray-50 rounded-xl p-6">
+                    <div className="bg-gray-50 rounded-xl p-6 mb-8">
                       <h3 className="text-xl font-bold mb-4">最終スコア</h3>
                       <ScoreBoard participants={displayRoom.participants || {}} />
                     </div>
+                    <button
+                      onClick={handleLeaveRoom}
+                      className="bg-indigo-600 text-white px-8 py-4 rounded-xl text-lg font-medium hover:bg-indigo-700 transition-colors shadow-lg"
+                    >
+                      ホームに戻る
+                    </button>
                   </motion.div>
                 )}
               </AnimatePresence>
