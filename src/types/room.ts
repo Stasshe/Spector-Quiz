@@ -39,7 +39,7 @@ export interface QuizRoomState {
 }
 
 // 解答状態（使用中のため残す）
-export type AnswerStatus = 'waiting' | 'answering' | 'correct' | 'incorrect' | 'timeout' | 'answering_in_progress' | 'all_answered';
+export type AnswerStatus = 'waiting' | 'answering' | 'correct' | 'incorrect' | 'timeout' | 'answering_in_progress' | 'all_answered' | 'waiting_for_buzz';
 
 // ルーム一覧表示用
 export interface RoomListing {

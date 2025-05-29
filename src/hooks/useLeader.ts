@@ -141,8 +141,8 @@ export function useLeader(roomId: string) {
             if (currentState.currentAnswerer !== null) {
               updateData['currentState.currentAnswerer'] = null;
             }
-            if (currentState.answerStatus !== 'waiting') {
-              updateData['currentState.answerStatus'] = 'waiting';
+            if (currentState.answerStatus !== 'waiting_for_buzz') {
+              updateData['currentState.answerStatus'] = 'waiting_for_buzz';
             }
             if (currentState.isRevealed !== false) {
               updateData['currentState.isRevealed'] = false;
@@ -261,7 +261,7 @@ export function useLeader(roomId: string) {
             updatedAt: serverTimestamp(),
             // ゲーム開始時に状態をリセット
             currentState: {
-              answerStatus: 'waiting',
+              answerStatus: 'waiting_for_buzz',
               currentAnswerer: null,
               isRevealed: false
             }
@@ -312,7 +312,7 @@ export function useLeader(roomId: string) {
           currentQuizIndex: nextIndex,
           // 新しい問題開始時に状態をリセット
           currentState: {
-            answerStatus: 'waiting',
+            answerStatus: 'waiting_for_buzz',
             currentAnswerer: null,
             isRevealed: false // 重要: 答え表示状態をリセット
           }
@@ -1261,9 +1261,20 @@ export function useLeader(roomId: string) {
         try {
           console.log('間違えた答えの後、解答権をリセットします');
           const roomRef = doc(db, 'quiz_rooms', roomId);
+          
+          // シングルプレイヤーの場合は次の問題に進む
+          if (Object.keys(quizRoom.participants).length === 1) {
+            console.log('シングルプレイヤー: 次の問題に進みます');
+            setTimeout(() => {
+              moveToNextQuestion();
+            }, TIMING.NEXT_QUESTION_DELAY);
+            return;
+          }
+          
+          // マルチプレイヤーの場合は解答権をリセット
           await updateDoc(roomRef, {
             'currentState.currentAnswerer': null,
-            'currentState.answerStatus': 'answering_in_progress',
+            'currentState.answerStatus': 'waiting_for_buzz',
             'currentState.isRevealed': false
           });
           console.log('解答権がリセットされ、他の参加者が早押しできるようになりました');
@@ -1271,14 +1282,6 @@ export function useLeader(roomId: string) {
           console.error('解答権リセット中にエラーが発生しました:', error);
         }
       }, 1500); // 1.5秒後にリセット
-      
-      // シングルプレイヤーの場合は少し待ってから次の問題へ
-      if (Object.keys(quizRoom.participants).length === 1) {
-        console.log('シングルプレイヤー: 次の問題に進みます');
-        setTimeout(() => {
-          moveToNextQuestion();
-        }, TIMING.NEXT_QUESTION_DELAY);
-      }
       
     } catch (error) {
       console.error('不正解時の自動進行処理でエラーが発生しました:', error);
