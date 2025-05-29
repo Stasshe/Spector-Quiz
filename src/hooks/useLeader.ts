@@ -545,8 +545,8 @@ export function useLeader(roomId: string) {
           if (currentState.currentAnswerer !== fastestUserId) {
             updateData['currentState.currentAnswerer'] = fastestUserId;
           }
-          if (currentState.answerStatus !== 'answering') {
-            updateData['currentState.answerStatus'] = 'answering';
+          if (currentState.answerStatus !== 'answering_in_progress') {
+            updateData['currentState.answerStatus'] = 'answering_in_progress';
           }
           
           // 実際に変更がある場合のみ書き込み
@@ -572,8 +572,7 @@ export function useLeader(roomId: string) {
               
               // まだ同じユーザーが解答権を持っていて、解答していない場合
               if (currentRoomData.currentState?.currentAnswerer === fastestUserId && 
-                  (currentRoomData.currentState?.answerStatus === 'answering' || 
-                   currentRoomData.currentState?.answerStatus === 'answering_in_progress')) {
+                  currentRoomData.currentState?.answerStatus === 'answering_in_progress') {
                 console.log(`ユーザー ${fastestUserId} の解答時間切れです`);
                 
                 // 解答権をリセットして他の人が解答できるようにする
@@ -937,9 +936,10 @@ export function useLeader(roomId: string) {
         // 解答権を取得する処理
         try {
           // ルームの状態を更新（解答権を取得）
+          // 早押し時点で即座に answering_in_progress に設定して他のプレイヤーに通知
           await updateDoc(roomRef, {
             'currentState.currentAnswerer': currentUser.uid,
-            'currentState.answerStatus': 'answering'
+            'currentState.answerStatus': 'answering_in_progress'
           });
           
           console.log(`ユーザー ${currentUser.uid} が解答権を取得しました`);

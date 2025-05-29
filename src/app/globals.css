@@ -158,6 +158,16 @@
     animation: pulse 2s infinite;
   }
 
+  .buzzer-button:disabled {
+    @apply bg-gray-400 hover:bg-gray-400 cursor-not-allowed opacity-50;
+    animation: none;
+    transform: none;
+  }
+
+  .buzzer-button:disabled:hover {
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  }
+
   /* 回答者表示 */
   .answerer-badge {
     @apply inline-flex items-center bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full text-sm font-semibold;
