@@ -1,4 +1,430 @@
 # filepath: public/official-quiz/日本史/近世/安土桃山時代.yaml
 quizzes:
-  # ここにクイズを追加
+  - title: 織田信長の居城
+    question: 織田信長が1576年に築城を開始し、天主を持った革新的な城として知られるのはどこですか？
+    type: multiple_choice
+    choices:
+      - 清洲城
+      - 小牧山城
+      - 安土城
+      - 岐阜城
+    correctAnswer: 安土城
+    explanation: 安土城は1576年に築城が開始され、日本初の本格的な天主を持つ城として革新的でした。
 
+  - title: 本能寺の変の年
+    question: 本能寺の変が起こったのは何年ですか？
+    type: multiple_choice
+    choices:
+      - 1580年
+      - 1582年
+      - 1584年
+      - 1585年
+    correctAnswer: 1582年
+    explanation: 本能寺の変は1582年6月21日（天正10年6月2日）に起こりました。
+
+  - title: 明智光秀の最期
+    question: 本能寺の変後、明智光秀が羽柴秀吉に敗れた戦いはどれですか？
+    type: multiple_choice
+    choices:
+      - 山崎の戦い
+      - 賤ヶ岳の戦い
+      - 小牧・長久手の戦い
+      - 関ヶ原の戦い
+    correctAnswer: 山崎の戦い
+    explanation: 山崎の戦いは1582年6月13日に行われ、明智光秀は敗北し、その後討ち死にしました。
+
+  - title: 太閤検地の実施者
+    question: 全国規模での太閤検地を実施した人物は誰ですか？
+    type: multiple_choice
+    choices:
+      - 織田信長
+      - 豊臣秀吉
+      - 徳川家康
+      - 毛利輝元
+    correctAnswer: 豊臣秀吉
+    explanation: 太閤検地は豊臣秀吉が1582年から全国規模で実施した土地調査です。
+
+  - title: 刀狩令の目的
+    question: 1588年の刀狩令の主な目的として最も適切なのはどれですか？
+    type: multiple_choice
+    choices:
+      - 武器の材料確保
+      - 農民の武装解除
+      - 武士の特権強化
+      - 商業の発展促進
+    correctAnswer: 農民の武装解除
+    explanation: 刀狩令は農民の武装を解除し、兵農分離を進めることが主目的でした。
+
+  - title: 朝鮮出兵の開始年
+    question: 豊臣秀吉による文禄の役（第一次朝鮮出兵）が開始されたのは何年ですか？
+    type: multiple_choice
+    choices:
+      - 1590年
+      - 1592年
+      - 1594年
+      - 1597年
+    correctAnswer: 1592年
+    explanation: 文禄の役は1592年に開始され、慶長の役は1597年に開始されました。
+
+  - title: バテレン追放令
+    question: 豊臣秀吉がバテレン追放令を出したのは何年ですか？
+    type: multiple_choice
+    choices:
+      - 1585年
+      - 1587年
+      - 1590年
+      - 1593年
+    correctAnswer: 1587年
+    explanation: バテレン追放令は1587年に出され、キリスト教宣教師の国外追放を命じました。
+
+  - title: 石高制の基準
+    question: 太閤検地で採用された石高制の基準として正しいのはどれですか？
+    type: multiple_choice
+    choices:
+      - 土地の面積
+      - 米の収穫量
+      - 人口数
+      - 貨幣価値
+    correctAnswer: 米の収穫量
+    explanation: 石高制は土地の米の収穫量を石という単位で表す制度でした。
+
+  - title: 豊臣秀吉の出自
+    question: 豊臣秀吉の出身地として正しいのはどこですか？
+    type: multiple_choice
+    choices:
+      - 美濃国
+      - 尾張国
+      - 近江国
+      - 山城国
+    correctAnswer: 尾張国
+    explanation: 豊臣秀吉は尾張国愛知郡中村（現在の名古屋市中村区）の出身です。
+
+  - title: 関白就任
+    question: 豊臣秀吉が関白に就任したのは何年ですか？
+    type: multiple_choice
+    choices:
+      - 1583年
+      - 1585年
+      - 1587年
+      - 1590年
+    correctAnswer: 1585年
+    explanation: 豊臣秀吉は1585年に関白に就任し、翌年太政大臣となりました。
+
+  - title: 賤ヶ岳の戦い
+    question: 賤ヶ岳の戦いで豊臣秀吉が破った相手は誰ですか？
+    type: multiple_choice
+    choices:
+      - 明智光秀
+      - 柴田勝家
+      - 徳川家康
+      - 毛利輝元
+    correctAnswer: 柴田勝家
+    explanation: 賤ヶ岳の戦い（1583年）で秀吉は柴田勝家を破り、織田家の実権を握りました。
+
+  - title: 小田原征伐
+    question: 豊臣秀吉による小田原征伐で滅ぼされた大名家はどこですか？
+    type: multiple_choice
+    choices:
+      - 武田氏
+      - 今川氏
+      - 北条氏
+      - 上杉氏
+    correctAnswer: 北条氏
+    explanation: 1590年の小田原征伐で後北条氏が滅ぼされ、秀吉の天下統一が完成しました。
+
+  - title: 千利休の処分
+    question: 千利休が豊臣秀吉によって切腹を命じられたのは何年ですか？
+    type: multiple_choice
+    choices:
+      - 1589年
+      - 1591年
+      - 1593年
+      - 1595年
+    correctAnswer: 1591年
+    explanation: 千利休は1591年に秀吉の怒りを買い、切腹を命じられました。
+
+  - title: 検地奉行
+    question: 太閤検地の実施において中心的役割を果たした奉行は誰ですか？
+    type: multiple_choice
+    choices:
+      - 石田三成
+      - 浅野長政
+      - 前田玄以
+      - 増田長盛
+    correctAnswer: 浅野長政
+    explanation: 浅野長政は検地奉行として太閤検地の実施に中心的役割を果たしました。
+
+  - title: 豊臣政権の五大老
+    question: 豊臣政権の五大老に含まれないのは誰ですか？
+    type: multiple_choice
+    choices:
+      - 徳川家康
+      - 前田利家
+      - 石田三成
+      - 毛利輝元
+    correctAnswer: 石田三成
+    explanation: 石田三成は五奉行の一人で、五大老ではありません。五大老は徳川家康、前田利家、毛利輝元、上杉景勝、宇喜多秀家です。
+
+  - title: 朱印船貿易
+    question: 豊臣秀吉が始めた朱印船貿易の特徴として正しいのはどれですか？
+    type: multiple_choice
+    choices:
+      - 政府が直接貿易を行った
+      - 朱印状を持つ商人のみが海外貿易を行えた
+      - 外国商人のみが参加できた
+      - 特定の港でのみ行われた
+    correctAnswer: 朱印状を持つ商人のみが海外貿易を行えた
+    explanation: 朱印船貿易は政府発行の朱印状を持つ商人のみが東南アジアとの貿易を行える制度でした。
+
+  - title: 身分統制令
+    question: 1591年に出された身分統制令（人掃令）の内容として正しいのはどれですか？
+    type: multiple_choice
+    choices:
+      - 武士の商業参加を禁止
+      - 農民の他国移住を禁止
+      - 商人の武士化を禁止
+      - すべて正しい
+    correctAnswer: すべて正しい
+    explanation: 身分統制令は武士・農民・町人の身分を固定し、相互の移動を禁止しました。
+
+  - title: 大坂城築城
+    question: 豊臣秀吉が大坂城の築城を開始したのは何年ですか？
+    type: multiple_choice
+    choices:
+      - 1583年
+      - 1585年
+      - 1587年
+      - 1590年
+    correctAnswer: 1583年
+    explanation: 大坂城は1583年に築城が開始され、秀吉の居城となりました。
+
+  - title: 太閤検地の単位
+    question: 太閤検地で用いられた土地面積の基本単位は何ですか？
+    type: multiple_choice
+    choices:
+      - 反
+      - 畝
+      - 間
+      - 町
+    correctAnswer: 間
+    explanation: 太閤検地では間（けん）を基本単位とし、6尺3寸（約1.91m）を1間としました。
+
+  - title: 楽市楽座令
+    question: 織田信長が実施した楽市楽座令の効果として最も適切なのはどれですか？
+    type: multiple_choice
+    choices:
+      - 農業生産の向上
+      - 商工業の発展
+      - 武士の統制強化
+      - 宗教活動の規制
+    correctAnswer: 商工業の発展
+    explanation: 楽市楽座令は座の特権を廃止し、商工業の自由な発展を促進しました。
+
+  - title: 豊臣秀次事件
+    question: 豊臣秀次が切腹を命じられた年は何年ですか？
+    type: multiple_choice
+    choices:
+      - 1593年
+      - 1595年
+      - 1597年
+      - 1598年
+    correctAnswer: 1595年
+    explanation: 豊臣秀次は1595年に謀反の疑いをかけられ、切腹を命じられました。
+
+  - title: 文禄・慶長の役の将軍
+    question: 朝鮮出兵において日本軍の総大将を務めたのは誰ですか？
+    type: multiple_choice
+    choices:
+      - 豊臣秀吉
+      - 小早川隆景
+      - 宇喜多秀家
+      - 加藤清正
+    correctAnswer: 宇喜多秀家
+    explanation: 宇喜多秀家が文禄の役で総大将を務めました。慶長の役では小早川秀秋が総大将でした。
+
+  - title: 南蛮貿易の中心地
+    question: 16世紀後半の南蛮貿易において最も重要な港はどこでしたか？
+    type: multiple_choice
+    choices:
+      - 堺
+      - 長崎
+      - 博多
+      - 平戸
+    correctAnswer: 長崎
+    explanation: 長崎は1571年に開港し、ポルトガル船の来航地として南蛮貿易の中心となりました。
+
+  - title: 織田信長の宗教政策
+    question: 織田信長が1571年に焼き討ちした宗教施設はどこですか？
+    type: multiple_choice
+    choices:
+      - 石山本願寺
+      - 比叡山延暦寺
+      - 高野山金剛峯寺
+      - 東大寺
+    correctAnswer: 比叡山延暦寺
+    explanation: 織田信長は1571年に比叡山延暦寺を焼き討ちし、僧侶や民衆を大量に殺害しました。
+
+  - title: 安土桃山文化の特徴
+    question: 安土桃山文化の特徴として最も適切なのはどれですか？
+    type: multiple_choice
+    choices:
+      - 質素で禁欲的
+      - 豪華で装飾的
+      - 外国文化を排除
+      - 庶民中心の文化
+    correctAnswer: 豪華で装飾的
+    explanation: 安土桃山文化は権力者の威厳を示す豪華で装飾的な特徴を持っていました。
+
+  - title: 狩野永徳の作品
+    question: 狩野永徳の代表作として知られるのはどれですか？
+    type: multiple_choice
+    choices:
+      - 風神雷神図屏風
+      - 唐獅子図屏風
+      - 洛中洛外図屏風
+      - 四季花鳥図屏風
+    correctAnswer: 唐獅子図屏風
+    explanation: 狩野永徳の代表作の一つが唐獅子図屏風で、安土桃山時代の豪華な装飾絵画の典型です。
+
+  - title: 茶の湯の完成
+    question: 侘茶を大成し、茶の湯を芸術として完成させた人物は誰ですか？
+    type: multiple_choice
+    choices:
+      - 村田珠光
+      - 武野紹鴎
+      - 千利休
+      - 古田織部
+    correctAnswer: 千利休
+    explanation: 千利休は侘茶を大成し、茶の湯を総合芸術として完成させました。
+
+  - title: 南蛮屏風
+    question: 南蛮屏風に描かれた内容として正しいのはどれですか？
+    type: multiple_choice
+    choices:
+      - 中国との貿易
+      - ポルトガル人の来航
+      - オランダ商館
+      - 朝鮮通信使
+    correctAnswer: ポルトガル人の来航
+    explanation: 南蛮屏風はポルトガル人の来航や南蛮貿易の様子を描いた屏風絵です。
+
+  - title: 豊国神社
+    question: 豊臣秀吉を祀る豊国神社が最初に建立された場所はどこですか？
+    type: multiple_choice
+    choices:
+      - 大坂
+      - 京都
+      - 名古屋
+      - 長浜
+    correctAnswer: 京都
+    explanation: 豊国神社は1599年に京都の東山に最初に建立され、秀吉が「豊国大明神」として祀られました。
+
+  - title: 小早川隆景の役割
+    question: 豊臣政権において小早川隆景が担った重要な役割は何ですか？
+    type: multiple_choice
+    choices:
+      - 五大老の一人
+      - 五奉行の一人
+      - 秀吉の軍師
+      - 朝鮮出兵の総指揮官
+    correctAnswer: 五大老の一人
+    explanation: 小早川隆景は豊臣政権の五大老の一人として重要な役割を果たしました。
+
+  - title: 織田信長の経済政策
+    question: 織田信長が実施した経済政策として正しくないのはどれですか？
+    type: multiple_choice
+    choices:
+      - 楽市楽座令
+      - 関所の廃止
+      - 貨幣統一
+      - 座の保護強化
+    correctAnswer: 座の保護強化
+    explanation: 織田信長は座の特権を廃止する楽市楽座令を出し、座の保護は強化しませんでした。
+
+  - title: 慶長の役の終結
+    question: 慶長の役（第二次朝鮮出兵）が終結したのは何年ですか？
+    type: multiple_choice
+    choices:
+      - 1598年
+      - 1599年
+      - 1600年
+      - 1601年
+    correctAnswer: 1598年
+    explanation: 慶長の役は豊臣秀吉の死（1598年）を受けて同年に終結しました。
+
+  - title: 豊臣秀頼の誕生
+    question: 豊臣秀吉の後継者となった豊臣秀頼が生まれたのは何年ですか？
+    type: multiple_choice
+    choices:
+      - 1591年
+      - 1593年
+      - 1595年
+      - 1597年
+    correctAnswer: 1593年
+    explanation: 豊臣秀頼は1593年に生まれ、秀吉の晩年の子として後継者となりました。
+
+  - title: 石田三成の出身
+    question: 石田三成の出身国はどこですか？
+    type: multiple_choice
+    choices:
+      - 近江国
+      - 尾張国
+      - 美濃国
+      - 越前国
+    correctAnswer: 近江国
+    explanation: 石田三成は近江国坂田郡石田村（現在の滋賀県長浜市）の出身です。
+
+  - title: 豊臣秀吉の朝鮮出兵の目的
+    question: 豊臣秀吉が朝鮮出兵を行った主な目的として最も適切なのはどれですか？
+    type: multiple_choice
+    choices:
+      - 朝鮮の資源獲得
+      - 明（中国）征服の足がかり
+      - 国内武士の統制
+      - キリスト教布教阻止
+    correctAnswer: 明（中国）征服の足がかり
+    explanation: 秀吉は「唐入り」と称して明征服を目指し、その足がかりとして朝鮮出兵を行いました。
+
+  - title: 安土桃山時代の終了
+    question: 安土桃山時代の終了年として一般的に用いられるのは何年ですか？
+    type: multiple_choice
+    choices:
+      - 1598年
+      - 1600年
+      - 1603年
+      - 1615年
+    correctAnswer: 1603年
+    explanation: 安土桃山時代は1603年の徳川家康による江戸幕府開府をもって終了とするのが一般的です。
+
+  - title: 豊臣秀吉の死因
+    question: 豊臣秀吉が1598年に死去した際の死因として有力視されているのはどれですか？
+    type: multiple_choice
+    choices:
+      - 戦死
+      - 病死
+      - 暗殺
+      - 事故死
+    correctAnswer: 病死
+    explanation: 豊臣秀吉は1598年に病気により伏見城で死去したとされています。
+
+  - title: 天正遣欧使節
+    question: 天正遣欧使節が派遣されたのは何年ですか？
+    type: multiple_choice
+    choices:
+      - 1580年
+      - 1582年
+      - 1584年
+      - 1590年
+    correctAnswer: 1582年
+    explanation: 天正遣欧使節は1582年に九州のキリシタン大名によって派遣され、1590年に帰国しました。
+
+  - title: 豊臣政権の特徴
+    question: 豊臣政権の政治体制の特徴として最も適切なのはどれですか？
+    type: multiple_choice
+    choices:
+      - 幕府制
+      - 公家政治
+      - 大名連合政権
+      - 絶対君主制
+    correctAnswer: 大名連合政権
+    explanation: 豊臣政権は五大老・五奉行制により有力大名との連合政権的な性格を持っていました。

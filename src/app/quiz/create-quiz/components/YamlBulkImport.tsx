@@ -123,10 +123,16 @@ const YamlBulkImport: FC<YamlBulkImportProps> = ({
           }
         });
 
-        // 正解が選択肢に含まれているかチェック
-        if (yamlQuiz.correctAnswer && yamlQuiz.choices && 
-            !yamlQuiz.choices.includes(yamlQuiz.correctAnswer)) {
-          errors.push(String(index),'番目のクイズでエラー,正解が選択肢に含まれていません');
+        // 正解が選択肢に含まれているかチェック（テキストまたはインデックス）
+        if (yamlQuiz.correctAnswer && yamlQuiz.choices) {
+          const isValidAnswer = yamlQuiz.choices.includes(yamlQuiz.correctAnswer) || 
+            (/^\d+$/.test(yamlQuiz.correctAnswer) && 
+             parseInt(yamlQuiz.correctAnswer) >= 0 && 
+             parseInt(yamlQuiz.correctAnswer) < yamlQuiz.choices.length);
+          
+          if (!isValidAnswer) {
+            errors.push(String(index),'番目のクイズでエラー,正解が選択肢に含まれていません（選択肢のテキストまたは0から始まるインデックス番号を指定してください）');
+          }
         }
 
         // 選択肢の重複チェック
@@ -212,12 +218,24 @@ const YamlBulkImport: FC<YamlBulkImportProps> = ({
               ? yamlQuiz.type 
               : 'input';
 
+            // correctAnswerがインデックス番号の場合、実際の選択肢テキストに変換
+            let correctAnswer = yamlQuiz.correctAnswer;
+            if (yamlQuiz.type === 'multiple_choice' && yamlQuiz.choices) {
+              // 数字のみの文字列かつ有効なインデックスの場合
+              if (/^\d+$/.test(yamlQuiz.correctAnswer)) {
+                const index = parseInt(yamlQuiz.correctAnswer);
+                if (index >= 0 && index < yamlQuiz.choices.length) {
+                  correctAnswer = yamlQuiz.choices[index];
+                }
+              }
+            }
+
             processedQuizzes.push({
               title: yamlQuiz.title,
               question: yamlQuiz.question,
               type: quizType,
               choices: yamlQuiz.choices || [],
-              correctAnswer: yamlQuiz.correctAnswer,
+              correctAnswer: correctAnswer,
               acceptableAnswers: yamlQuiz.acceptableAnswers || [],
               explanation: yamlQuiz.explanation || '',
               genre,
@@ -272,6 +290,7 @@ const YamlBulkImport: FC<YamlBulkImportProps> = ({
   const exampleYaml = `# クイズユニット一括インポート例
 # このYAMLフォーマットを使用して、複数のクイズを一度にインポートできます。
 # 選択肢の数は3~5つまで。
+# correctAnswerは選択肢のテキストまたは0から始まるインデックス番号で指定できます。
 quizzes:
   - title: 日本の首都
     question: 日本の首都はどこですか？
@@ -292,8 +311,8 @@ quizzes:
       - 中国
       - オーストラリア
       - インド
-    correctAnswer: カナダ
-    explanation: G7加盟国は、アメリカ、日本、イギリス、フランス、ドイツ、イタリア、カナダの7か国です。
+    correctAnswer: 0
+    explanation: G7加盟国は、アメリカ、日本、イギリス、フランス、ドイツ、イタリア、カナダの7か国です。（正解は0番目の「カナダ」）
 
   - title: 富士山の高さ
     question: 富士山の標高は何メートルですか？
