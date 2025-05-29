@@ -280,13 +280,22 @@ export const updateUserStats = async (
     const didRankUp = hasRankUp(currentExp, newExp);
     const newRankInfo = calculateUserRankInfo(newExp);
     
+    // 正解数を正確に計算（スコアから算出）
+    // スコア = 正解数 × 10 - 不正解数 × 1
+    // 正解数 = (スコア + 不正解数) / 10
+    const missCount = userPerformance.missCount || 0;
+    const score = userPerformance.score || 0;
+    const actualCorrectAnswers = Math.max(0, Math.floor((score + missCount * SCORING.INCORRECT_ANSWER_PENALTY) / SCORING.CORRECT_ANSWER_SCORE));
+    
+    console.log(`[updateUserStats] 統計計算: スコア=${score}, ミス数=${missCount}, 正解数=${actualCorrectAnswers}, 総回答数=${roomData.totalQuizCount}`);
+    
     // ユーザー統計を更新（個別updateDoc使用）
     const updateData: any = {
       exp: increment(expToAdd),
       'stats.totalAnswered': increment(roomData.totalQuizCount || 1),
-      'stats.correctAnswers': increment(userPerformance.score || 0),
+      'stats.correctAnswers': increment(actualCorrectAnswers),
       [`stats.genres.${roomData.genre}.totalAnswered`]: increment(roomData.totalQuizCount || 1),
-      [`stats.genres.${roomData.genre}.correctAnswers`]: increment(userPerformance.score || 0),
+      [`stats.genres.${roomData.genre}.correctAnswers`]: increment(actualCorrectAnswers),
       'stats.lastActivity': serverTimestamp()
     };
     
