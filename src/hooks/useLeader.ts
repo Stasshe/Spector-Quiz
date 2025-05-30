@@ -7,12 +7,15 @@ import { GameProgressService } from '@/services/leader/gameProgressService';
 import { GameMonitoringService } from '@/services/leader/gameMonitoringService';
 import { TimerService } from '@/services/leader/timerService';
 import { AnswerService } from '@/services/leader/answerService';
-import { finishQuiz, updateUserStatsOnRoomComplete, deleteAIGeneratedQuizUnit } from '@/services/quizRoom';
-import { useCallback, useEffect } from 'react';
+import { finishQuiz, deleteAIGeneratedQuizUnit } from '@/services/quizRoom';
+import { useCallback, useEffect, useRef } from 'react';
 
 export function useLeader(roomId: string) {
   const { isLeader, quizRoom, currentQuiz, setCurrentQuiz, setShowChoices } = useQuiz();
   const { currentUser } = useAuth();
+  
+  // ゲーム終了処理の重複実行を防ぐフラグ
+  const gameFinishProcessing = useRef(false);
 
   // 現在の問題を取得してセット
   const fetchCurrentQuiz = useCallback(async (overrideIndex?: number) => {
@@ -56,6 +59,14 @@ export function useLeader(roomId: string) {
         return;
       }
 
+      // 重複実行防止チェック
+      if (gameFinishProcessing.current) {
+        console.log('[useLeader] ゲーム終了処理は既に実行中です');
+        return;
+      }
+      
+      gameFinishProcessing.current = true;
+
       try {
         // ルームステータスを完了に更新
         const success = await finishQuiz(roomId);
@@ -73,12 +84,15 @@ export function useLeader(roomId: string) {
             }
           }
           
-          // 統計を更新
-          await updateUserStatsOnRoomComplete(roomId);
-          console.log('[useLeader] ゲーム終了処理が完了しました');
+          console.log('[useLeader] リーダーによるゲーム終了処理が完了しました');
         }
       } catch (error) {
         console.error('[useLeader] ゲーム終了処理中にエラー:', error);
+      } finally {
+        // 処理完了後にフラグをリセット（5秒後にリセットして再実行可能にする）
+        setTimeout(() => {
+          gameFinishProcessing.current = false;
+        }, 5000);
       }
       
       return;

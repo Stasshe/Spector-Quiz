@@ -22,7 +22,8 @@ import {
   joinRoom,
   leaveRoom,
   subscribeToAvailableRooms,
-  updateUserStatsOnRoomComplete
+  updateUserStatsOnRoomComplete,
+  updateAllQuizStats
 } from '../services/quizRoom';
 import { writeMonitor } from '../utils/firestoreWriteMonitor';
 
@@ -45,6 +46,7 @@ export function useQuizRoom() {
   const [currentRoom, setCurrentRoom] = useState<QuizRoom | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [statsUpdated, setStatsUpdated] = useState(false); // 統計更新の重複防止フラグ
   
   // Room switching state
   const [roomToJoin, setRoomToJoin] = useState<{ roomId: string; roomName: string } | null>(null);
@@ -1143,6 +1145,7 @@ export function useQuizRoom() {
           setCurrentRoom(roomData);
           setQuizRoom(roomData);
           setIsLeader(roomData.roomLeaderId === currentUser.uid);
+          setStatsUpdated(false); // 新しいルームに参加時は統計更新フラグをリセット
           
           // 現在のクイズを取得
           if (roomData.status === 'in_progress' && roomData.currentState) {
@@ -1435,6 +1438,36 @@ export function useQuizRoom() {
       handlePendingRoomCreation();
     }
   }, [currentUser, userProfile, currentWaitingRoomId, findOrCreateNewRoom]);
+
+  /**
+   * ゲーム完了時の統計更新（全プレイヤー共通）
+   */
+  useEffect(() => {
+    if (!currentRoom || !currentUser || statsUpdated) return;
+    
+    // ルームステータスが'completed'に変わった時に各プレイヤーが個別に統計更新
+    if (currentRoom.status === 'completed') {
+      const updateOwnStats = async () => {
+        try {
+          console.log(`[useQuizRoom] ゲーム完了を検知 - ユーザー ${currentUser.uid} の統計更新を開始`);
+          
+          // 自分の統計のみを更新（updateAllQuizStatsを使用）
+          const success = await updateAllQuizStats(currentRoom.roomId, currentRoom, { uid: currentUser.uid });
+          
+          if (success) {
+            console.log(`[useQuizRoom] ユーザー ${currentUser.uid} の統計更新が完了しました`);
+            setStatsUpdated(true); // 重複防止フラグを設定
+          } else {
+            console.warn(`[useQuizRoom] ユーザー ${currentUser.uid} の統計更新に失敗しました`);
+          }
+        } catch (error) {
+          console.error(`[useQuizRoom] ユーザー ${currentUser.uid} の統計更新中にエラー:`, error);
+        }
+      };
+      
+      updateOwnStats();
+    }
+  }, [currentRoom?.status, currentUser, statsUpdated]);
 
   return {
     // 状態
