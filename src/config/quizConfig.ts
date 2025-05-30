@@ -31,7 +31,7 @@ export const TIMING = {
     '政治・経済': 30000, // 30秒
     '倫理': 30000,      // 30秒
     '国語': 30000,      // 30秒
-    '英語': 60000       // 60秒
+    '英語': 300000       // 5分
   } as const,
 
 
@@ -53,11 +53,11 @@ export const QUIZ_UNIT = {
   // テキスト長制限
   MAX_TITLE_LENGTH: 50, // タイトルの最大文字数
   MAX_DESCRIPTION_LENGTH: 200, // 説明の最大文字数
-  MAX_QUESTION_LENGTH: 300, // 問題文の最大文字数
-  MAX_CORRECT_ANSWER_LENGTH: 30, // 正解の最大文字数
-  MAX_CHOICE_LENGTH: 50, // 選択肢の最大文字数
-  MAX_EXPLANATION_LENGTH: 500, // 解説の最大文字数
-  MAX_ACCEPTABLE_ANSWER_LENGTH: 200, // 許容回答の最大文字数
+  MAX_QUESTION_LENGTH: 6000, // 問題文の最大文字数
+  MAX_CORRECT_ANSWER_LENGTH: 150, // 正解の最大文字数
+  MAX_CHOICE_LENGTH: 150, // 選択肢の最大文字数
+  MAX_EXPLANATION_LENGTH: 1500, // 解説の最大文字数
+  MAX_ACCEPTABLE_ANSWER_LENGTH: 1200, // 許容回答の最大文字数
   
   // 選択肢関連
   MIN_CHOICES: 3, // 最小選択肢数
