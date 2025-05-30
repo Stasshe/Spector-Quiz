@@ -1,0 +1,299 @@
+# English Reading Comprehension - News Articles
+# 90-150 words each, 1-minute reading time
+quizzes:
+  - title: "New Solar Technology Breakthrough"
+    question: "Scientists at Stanford University have developed a revolutionary solar panel technology that could increase energy efficiency by up to 40%. The new panels use a special coating made from microscopic crystals that can capture light wavelengths previously wasted by traditional solar cells. Dr. Sarah Chen, lead researcher on the project, announced that the breakthrough came after five years of intensive research and development. The technology works by converting infrared light into usable electricity, effectively extending the solar spectrum that can be harvested. Initial tests show the panels maintain their enhanced efficiency even in cloudy conditions. The research team expects commercial production to begin within three years, potentially making solar energy more cost-effective than fossil fuels. Major energy companies have already expressed interest in licensing the technology. If successful, this innovation could significantly accelerate the global transition to renewable energy sources. How much could the new technology increase energy efficiency?"
+    type: multiple_choice
+    choices:
+      - Up to 30%
+      - Up to 40%
+      - Up to 50%
+      - Up to 60%
+    correctAnswer: 1
+    explanation: The article states the new panels could increase energy efficiency by up to 40%.
+
+  - title: "Ancient City Discovered in Amazon"
+    question: "Archaeologists using advanced satellite imaging have discovered the remains of a previously unknown ancient civilization deep in the Amazon rainforest. The settlement, estimated to be over 1,000 years old, spans approximately 15 square kilometers and shows evidence of sophisticated urban planning. Dr. Maria Rodriguez, leading the international research team, believes the city housed between 10,000 and 15,000 inhabitants at its peak. The discovery challenges previous assumptions about pre-Columbian civilizations in South America. Preliminary excavations have uncovered complex irrigation systems, ceremonial structures, and evidence of advanced metallurgy. The team found pottery fragments decorated with intricate designs and tools made from unknown alloys. Local indigenous communities have been collaborating with researchers, sharing oral histories that may help interpret the findings. The discovery is being hailed as one of the most significant archaeological finds of the century. How large is the newly discovered settlement?"
+    type: multiple_choice
+    choices:
+      - 10 square kilometers
+      - 15 square kilometers
+      - 20 square kilometers
+      - 25 square kilometers
+    correctAnswer: 1
+    explanation: The article states the settlement spans approximately 15 square kilometers.
+
+  - title: "Medical AI Diagnoses Rare Diseases"
+    question: "A new artificial intelligence system developed by researchers in Tokyo has successfully diagnosed rare diseases that human doctors had missed in 87% of test cases. The AI, trained on over 100,000 medical records and images, can identify patterns in symptoms that are often overlooked in traditional diagnosis. Dr. Hiroshi Tanaka, the project's director, explains that the system is particularly effective at detecting genetic disorders and autoimmune conditions. The AI analyzes patient data, including blood tests, genetic markers, and medical imaging, in just minutes rather than the weeks or months typically required. Three major hospitals in Japan have begun pilot programs using the technology. Early results show significant improvements in diagnostic accuracy and reduced time to treatment. The system is designed to assist doctors rather than replace them, providing recommendations that medical professionals can verify and act upon. Researchers hope to expand the program internationally within two years. What percentage of missed rare diseases did the AI successfully diagnose?"
+    type: multiple_choice
+    choices:
+      - 75%
+      - 82%
+      - 87%
+      - 93%
+    correctAnswer: 2
+    explanation: The article states the AI successfully diagnosed rare diseases in 87% of test cases.
+
+  - title: "Ocean Cleanup Project Shows Results"
+    question: "The Pacific Ocean cleanup initiative has successfully removed over 50,000 kilograms of plastic waste from the Great Pacific Garbage Patch in its first operational year. The project, led by Dutch inventor Boyan Slat, uses innovative floating systems that collect plastic debris while allowing marine life to pass underneath safely. The cleanup technology consists of long floating barriers that move with ocean currents, concentrating plastic in a central collection area. Environmental scientists monitoring the project report no negative impact on marine ecosystems. The collected plastic is being recycled into consumer products, creating a sustainable cycle. Team leader Emma Wilson announced plans to deploy additional cleanup systems across five major ocean garbage patches. The project has attracted funding from technology companies and environmental organizations worldwide. Researchers estimate that with current technology and expansion plans, they could remove 90% of floating ocean plastic within 20 years. How much plastic waste was removed in the first year?"
+    type: multiple_choice
+    choices:
+      - 40,000 kilograms
+      - 50,000 kilograms
+      - 60,000 kilograms
+      - 70,000 kilograms
+    correctAnswer: 1
+    explanation: The article states that over 50,000 kilograms of plastic waste was removed.
+
+  - title: "Breakthrough in Alzheimer's Treatment"
+    question: "Clinical trials for a new Alzheimer's drug have shown promising results, with 65% of patients experiencing significant improvement in memory and cognitive function. The medication, developed by Phoenix Pharmaceuticals, targets specific proteins that form harmful plaques in the brain. Dr. Lisa Park, the lead clinical researcher, reported that patients showed improvement within six months of starting treatment. The drug works by enhancing the brain's natural ability to clear toxic proteins while protecting healthy neurons from damage. Side effects were minimal, with only 8% of participants experiencing mild headaches. The treatment is currently in Phase III trials involving 2,000 patients across 50 medical centers worldwide. If approved by regulatory agencies, the drug could be available to patients within three years. The research has generated significant interest from the medical community and offers hope to millions of families affected by Alzheimer's disease. What percentage of patients showed significant improvement?"
+    type: multiple_choice
+    choices:
+      - 60%
+      - 65%
+      - 70%
+      - 75%
+    correctAnswer: 1
+    explanation: The article states that 65% of patients experienced significant improvement.
+
+  - title: "Space Tourism Reaches New Milestone"
+    question: "Commercial space company StarVoyage successfully completed its 100th passenger flight to the edge of space yesterday, marking a significant milestone in space tourism. The two-hour journey took six passengers to an altitude of 110 kilometers, providing several minutes of weightlessness and spectacular views of Earth. Company CEO Robert Kim announced that over 800 people have now experienced space travel through their program. The flight used a reusable spacecraft powered by environmentally friendly fuel, making each journey more sustainable than previous space tourism ventures. Passengers undergo three days of training before their flight, learning safety procedures and experiencing simulated weightlessness. The current price per seat is $450,000, but the company plans to reduce costs to $200,000 within five years through technological improvements. StarVoyage has received approval to expand operations to include orbital flights lasting up to 24 hours. The success has sparked interest from competitors planning similar space tourism ventures. How many people have experienced space travel through StarVoyage's program?"
+    type: multiple_choice
+    choices:
+      - Over 600 people
+      - Over 700 people
+      - Over 800 people
+      - Over 900 people
+    correctAnswer: 2
+    explanation: The article states that over 800 people have now experienced space travel through their program.
+
+  - title: "Revolutionary Battery Technology"
+    question: "Engineers at the Massachusetts Institute of Technology have developed a new battery technology that charges to full capacity in just 90 seconds while lasting 20 times longer than conventional batteries. The breakthrough uses a novel combination of silicon nanowires and lithium-metal electrodes to achieve unprecedented charging speeds. Professor Michael Zhang, who led the research team, explains that the batteries maintain their rapid charging ability even after 10,000 charge cycles. The technology could revolutionize electric vehicles by eliminating range anxiety and reducing charging time to less than the time needed to fill a gas tank. Major automotive manufacturers including Tesla and BMW have expressed serious interest in the technology. The batteries also show promise for grid-scale energy storage, potentially solving one of renewable energy's biggest challenges. Laboratory tests demonstrate the batteries remain stable at extreme temperatures and show no signs of degradation after extensive use. Commercial production could begin within four years if current development timelines are maintained. How long do the new batteries take to charge to full capacity?"
+    type: multiple_choice
+    choices:
+      - 60 seconds
+      - 90 seconds
+      - 120 seconds
+      - 180 seconds
+    correctAnswer: 1
+    explanation: The article states the batteries charge to full capacity in just 90 seconds.
+
+  - title: "Climate Change Adaptation Success"
+    question: "The Netherlands has completed construction of the world's largest floating neighborhood, designed to adapt to rising sea levels caused by climate change. The Waterplein district houses 5,000 residents in 1,200 floating homes that rise and fall with water levels. Chief architect Elena Van Der Berg explains that the homes are connected to flexible utility systems that adjust to movement. The project includes floating parks, schools, and shops, creating a complete community on water. Advanced storm protection systems automatically activate during severe weather, ensuring resident safety. The innovative design has reduced construction costs by 30% compared to traditional land reclamation methods. Several other countries experiencing sea level rise have sent delegations to study the Dutch model. The success has led to plans for five additional floating districts across the Netherlands. Environmental monitoring shows minimal impact on marine ecosystems, with some areas showing improved water quality. How many residents does the Waterplein district house?"
+    type: multiple_choice
+    choices:
+      - 4,000 residents
+      - 5,000 residents
+      - 6,000 residents
+      - 7,000 residents
+    correctAnswer: 1
+    explanation: The article states that the Waterplein district houses 5,000 residents.
+
+  - title: "Gene Therapy Cures Blindness"
+    question: "A groundbreaking gene therapy trial has successfully restored sight to 12 patients who had been blind since birth due to a rare genetic condition called Leber congenital amaurosis. The treatment, developed by Vision Therapeutics, involves injecting healthy genes directly into the retina using a modified virus as a delivery mechanism. Dr. Amanda Foster, the lead ophthalmologist, reported that patients began seeing light within weeks of treatment. The therapy targets a specific genetic mutation that prevents the production of proteins essential for vision. All treated patients have maintained their improved vision for over two years with no adverse effects. The success rate of 100% in this small trial has exceeded researchers' expectations. The therapy is now entering larger clinical trials involving 200 patients across multiple countries. If successful, the treatment could be approved for general use within three years. The breakthrough offers hope for treating other forms of inherited blindness affecting thousands of people worldwide. How many patients had their sight successfully restored?"
+    type: multiple_choice
+    choices:
+      - 10 patients
+      - 12 patients
+      - 15 patients
+      - 18 patients
+    correctAnswer: 1
+    explanation: The article states that 12 patients had their sight successfully restored.
+
+  - title: "Quantum Computer Milestone"
+    question: "Tech giant QuantumCore has achieved a major breakthrough by demonstrating quantum supremacy in solving complex mathematical problems 10,000 times faster than the world's most powerful supercomputers. The quantum computer, named Aurora, uses 1,000 quantum bits (qubits) to perform calculations that would take traditional computers thousands of years. Dr. Jennifer Liu, QuantumCore's chief scientist, announced that the achievement opens new possibilities for drug discovery, climate modeling, and cybersecurity. The quantum computer solved a complex optimization problem in just 4 minutes that would require 40,000 years on conventional computers. The breakthrough required maintaining quantum particles at temperatures near absolute zero while preventing interference from external factors. Three major pharmaceutical companies have already signed contracts to use quantum computing for drug development. The technology could revolutionize artificial intelligence by enabling machine learning algorithms to process vast amounts of data instantaneously. QuantumCore plans to make quantum computing services available to researchers worldwide through cloud-based access within two years. How many times faster is the quantum computer compared to supercomputers?"
+    type: multiple_choice
+    choices:
+      - 5,000 times faster
+      - 10,000 times faster
+      - 15,000 times faster
+      - 20,000 times faster
+    correctAnswer: 1
+    explanation: The article states the quantum computer is 10,000 times faster than supercomputers.
+
+  - title: "Sustainable Agriculture Innovation"
+    question: "Vertical farming company GreenTower has opened the world's largest indoor farm, producing the equivalent of 400 traditional farms while using 95% less water and no pesticides. The 50-story facility in Singapore uses LED lighting and hydroponic systems to grow crops year-round in controlled environments. CEO David Chen reports that the farm produces 500 tons of vegetables monthly, supplying 30% of Singapore's fresh produce needs. The innovative system uses artificial intelligence to optimize growing conditions, automatically adjusting light, temperature, and nutrients for each plant. Energy consumption is offset by solar panels and wind turbines installed on the building's exterior. The farm employs 200 workers who monitor crops using robotic systems and automated harvesting equipment. Production costs are 40% lower than traditional farming when accounting for water usage, pesticide costs, and land values. Similar facilities are planned for Tokyo, London, and New York as urbanization increases demand for local food production. The success demonstrates that vertical farming could help address global food security challenges. How much less water does the vertical farm use?"
+    type: multiple_choice
+    choices:
+      - 90% less water
+      - 95% less water
+      - 98% less water
+      - 99% less water
+    correctAnswer: 1
+    explanation: The article states the farm uses 95% less water than traditional farms.
+
+  - title: "Plastic-Eating Enzyme Discovery"
+    question: "Scientists at Oxford University have engineered a powerful enzyme that can break down plastic bottles into their basic components in just six hours. The modified enzyme, based on a naturally occurring bacteria, works at room temperature and could revolutionize plastic recycling. Professor James Wilson, who led the research, explains that the enzyme can process PET plastic, the material used in most beverage bottles and food containers. Laboratory tests show the enzyme can break down plastic 100 times faster than natural decomposition. The process produces chemicals that can be used to manufacture new plastic products, creating a truly circular economy. Environmental groups have praised the discovery as a potential solution to the global plastic pollution crisis. The enzyme works by attacking the molecular bonds that hold plastic polymers together, essentially reversing the manufacturing process. Three major recycling companies have invested in scaling up the technology for industrial use. Commercial deployment could begin within 18 months if current testing continues successfully. How quickly can the enzyme break down plastic bottles?"
+    type: multiple_choice
+    choices:
+      - Four hours
+      - Six hours
+      - Eight hours
+      - Ten hours
+    correctAnswer: 1
+    explanation: The article states the enzyme can break down plastic bottles in just six hours.
+
+  - title: "Renewable Energy Record"
+    question: "Denmark has achieved a historic milestone by generating 120% of its electricity needs from wind power for an entire month, exporting surplus energy to neighboring countries. The achievement was made possible by favorable wind conditions and the country's extensive offshore wind farm network. Energy Minister Lars Andersen announced that Denmark now leads the world in wind energy efficiency and storage technology. The surplus electricity was sold to Germany, Sweden, and Norway, generating significant revenue for the Danish economy. Advanced battery storage systems captured excess energy during peak production periods for use during calm weather. The success demonstrates that small countries can achieve complete energy independence through renewable sources. Denmark's wind farms consist of 2,300 turbines both onshore and offshore, with the newest installations generating enough power for 600,000 homes each. The country plans to expand its wind capacity by 50% over the next five years and aims to become carbon neutral by 2030. Other European nations are studying Denmark's model as they transition away from fossil fuels. What percentage of its electricity needs did Denmark generate from wind power?"
+    type: multiple_choice
+    choices:
+      - 100%
+      - 110%
+      - 120%
+      - 130%
+    correctAnswer: 2
+    explanation: The article states Denmark generated 120% of its electricity needs from wind power.
+
+  - title: "Mental Health App Breakthrough"
+    question: "A new mental health application developed by Stanford researchers has shown remarkable success in treating depression, with 78% of users reporting significant improvement after eight weeks of use. The app, called MindBridge, uses artificial intelligence to provide personalized therapy sessions and mood tracking. Dr. Sarah Martinez, the project's lead psychologist, explains that the app adapts its approach based on user responses and progress. The application combines cognitive behavioral therapy techniques with mindfulness exercises and peer support groups. Clinical trials involving 5,000 participants showed results comparable to traditional therapy but at a fraction of the cost. The app is available free of charge and has already been downloaded by over 100,000 users worldwide. Privacy protection ensures that user data remains completely confidential and is never shared with third parties. Mental health professionals can monitor patient progress with user consent, enabling hybrid treatment approaches. The World Health Organization has endorsed the app as a valuable tool for addressing the global mental health crisis. What percentage of users reported significant improvement?"
+    type: multiple_choice
+    choices:
+      - 72%
+      - 75%
+      - 78%
+      - 81%
+    correctAnswer: 2
+    explanation: The article states that 78% of users reported significant improvement.
+
+  - title: "Urban Wildlife Conservation Success"
+    question: "New York City's urban wildlife conservation program has successfully reintroduced native species to Central Park, with bird populations increasing by 60% over the past three years. The initiative, led by the Urban Wildlife Alliance, has created specialized habitats for species that had disappeared from the city decades ago. Program director Michelle Thompson reports that 45 bird species have returned to the park, including several that were previously extinct in the region. The project involved removing invasive plant species and replanting native vegetation that provides food and nesting sites for wildlife. Community volunteers have contributed over 10,000 hours to habitat restoration efforts. Advanced monitoring systems track animal populations and behavior patterns to ensure the program's effectiveness. The success has inspired similar initiatives in Chicago, Los Angeles, and Seattle. Educational programs in local schools teach children about urban biodiversity and conservation. The project demonstrates that major cities can coexist with wildlife while providing valuable green spaces for residents. By how much have bird populations increased in Central Park?"
+    type: multiple_choice
+    choices:
+      - 50%
+      - 60%
+      - 70%
+      - 80%
+    correctAnswer: 1
+    explanation: The article states that bird populations increased by 60% over the past three years.
+
+  - title: "Water Purification Technology"
+    question: "Engineers in India have developed a solar-powered water purification system that can provide clean drinking water for 10,000 people daily at a cost of just two cents per liter. The innovative system combines solar distillation with advanced filtration to remove bacteria, viruses, and chemical contaminants. Dr. Priya Sharma, the lead engineer, explains that the technology requires no electricity grid connection and can operate in remote areas. The system has been successfully tested in 20 villages where access to clean water was previously limited. Local communities have been trained to operate and maintain the equipment, ensuring long-term sustainability. The purification process removes 99.9% of harmful microorganisms while preserving essential minerals. International aid organizations have funded the installation of 100 systems across Africa and Southeast Asia. The technology costs 80% less than comparable water treatment systems and requires minimal maintenance. Plans are underway to establish local manufacturing facilities to reduce costs further and create employment opportunities. How many people can the system provide clean water for daily?"
+    type: multiple_choice
+    choices:
+      - 8,000 people
+      - 10,000 people
+      - 12,000 people
+      - 15,000 people
+    correctAnswer: 1
+    explanation: The article states the system can provide clean drinking water for 10,000 people daily.
+
+  - title: "Educational Technology Revolution"
+    question: "Virtual reality technology is transforming education as schools worldwide report dramatic improvements in student engagement and learning outcomes. The VR learning platform EduVerse allows students to take virtual field trips to ancient Rome, explore the human circulatory system, and conduct chemistry experiments in safe virtual laboratories. Dr. Rachel Kim, an educational technology researcher, found that students using VR scored 35% higher on tests compared to traditional teaching methods. The technology is particularly effective for visual learners and students with attention difficulties. Over 2,500 schools across 40 countries have adopted VR learning systems in the past year. Teachers report that students are more motivated and retain information longer when learning through immersive experiences. The platform includes content for all subjects from elementary through university level. Costs have decreased significantly as VR headsets become more affordable, making the technology accessible to schools with limited budgets. Early adopters are sharing success stories and best practices through online teacher networks. How much higher did students using VR score on tests?"
+    type: multiple_choice
+    choices:
+      - 25% higher
+      - 30% higher
+      - 35% higher
+      - 40% higher
+    correctAnswer: 2
+    explanation: The article states that students using VR scored 35% higher on tests.
+
+  - title: "Food Waste Reduction Initiative"
+    question: "A revolutionary food waste reduction program in France has successfully diverted 80% of supermarket food waste from landfills, redistributing it to food banks and composting facilities. The national initiative, launched two years ago, requires large retailers to donate unsold but edible food rather than disposing of it. Program coordinator Sophie Laurent reports that the initiative has provided 50 million meals to families in need while reducing methane emissions from decomposing food waste. Participating supermarkets use smart inventory systems to predict demand and minimize overordering. The program has created 3,000 new jobs in food collection, processing, and distribution. Advanced packaging technologies help extend food freshness, reducing waste throughout the supply chain. Public education campaigns teach consumers about proper food storage and meal planning to reduce household waste. The success has influenced legislation in other European Union countries, with similar programs planned across the continent. Environmental scientists estimate the initiative prevents 500,000 tons of CO2 emissions annually. What percentage of supermarket food waste has been diverted from landfills?"
+    type: multiple_choice
+    choices:
+      - 70%
+      - 75%
+      - 80%
+      - 85%
+    correctAnswer: 2
+    explanation: The article states that 80% of supermarket food waste has been diverted from landfills.
+
+  - title: "Autonomous Vehicle Safety Milestone"
+    question: "Self-driving cars manufactured by AutoSafe have achieved a safety record 10 times better than human drivers after completing 10 million miles of autonomous driving without a single accident. The vehicles use a combination of cameras, radar, and artificial intelligence to navigate complex traffic situations. Chief Technology Officer Mark Anderson attributes the success to machine learning algorithms that continuously improve from real-world driving data. The cars have been tested in 25 cities under various weather conditions and traffic scenarios. Safety features include instant reaction times, 360-degree awareness, and the ability to communicate with other autonomous vehicles to prevent collisions. Regulatory approval for commercial use is expected within six months as government testing confirms the vehicles' safety performance. The technology could reduce traffic accidents by 90% once widely adopted, potentially saving thousands of lives annually. Insurance companies are developing new policies specifically for autonomous vehicles, expecting significantly lower accident claims. Public acceptance is growing as successful demonstrations prove the technology's reliability and safety benefits. How many times better is the safety record compared to human drivers?"
+    type: multiple_choice
+    choices:
+      - 5 times better
+      - 8 times better
+      - 10 times better
+      - 12 times better
+    correctAnswer: 2
+    explanation: The article states the vehicles achieved a safety record 10 times better than human drivers.
+
+  - title: "Coral Reef Restoration Success"
+    question: "Marine biologists in Australia have successfully restored a 50-hectare section of the Great Barrier Reef using innovative coral farming techniques. The project, spanning four years, has achieved a 95% survival rate for transplanted corals. Dr. Emma Richardson, the project leader, explains that laboratory-grown coral fragments are attached to damaged reef areas using biodegradable materials. The restored section now hosts 200 species of fish and marine life, demonstrating the ecosystem's recovery. Advanced monitoring systems track water temperature, acidity levels, and coral health in real-time. Climate-resistant coral species developed through selective breeding show greater tolerance to warming ocean temperatures. The success has attracted international funding for expanding restoration efforts to other reef systems worldwide. Local fishing communities report increased fish populations and improved livelihoods as the reef ecosystem recovers. The project combines traditional knowledge from indigenous communities with cutting-edge marine science. Plans are underway to restore an additional 500 hectares using the proven techniques. What survival rate was achieved for transplanted corals?"
+    type: multiple_choice
+    choices:
+      - 90%
+      - 92%
+      - 95%
+      - 98%
+    correctAnswer: 2
+    explanation: The article states the project achieved a 95% survival rate for transplanted corals.
+
+  - title: "Wireless Power Transmission Breakthrough"
+    question: "Scientists in Japan have successfully demonstrated wireless power transmission over a distance of 10 kilometers using microwave technology. The experiment transmitted 50 kilowatts of electricity from a mountaintop facility to a receiver in the valley below with 85% efficiency. Professor Takeshi Nakamura, who led the research team, believes the technology could revolutionize how we distribute electricity. The system uses focused microwave beams that are precisely aimed at receiving antennas, ensuring minimal energy loss during transmission. Safety protocols prevent the beams from affecting aircraft or causing harm to wildlife. The breakthrough could enable power generation in remote locations like offshore wind farms or solar installations in space. Commercial applications could include charging electric vehicles while driving and powering remote communities without traditional power lines. Several energy companies have invested in developing the technology for grid-scale applications. The research team plans to test transmission over 50 kilometers within two years. Environmental groups support the technology as it could reduce the need for extensive power line infrastructure. Over what distance was electricity successfully transmitted?"
+    type: multiple_choice
+    choices:
+      - 8 kilometers
+      - 10 kilometers
+      - 12 kilometers
+      - 15 kilometers
+    correctAnswer: 1
+    explanation: The article states that wireless power transmission was demonstrated over a distance of 10 kilometers.
+
+  - title: "Affordable Housing Innovation"
+    question: "3D printing technology has enabled the construction of 100 affordable homes in Mexico in just six months, each costing only $10,000 to build. The houses, printed using a special concrete mixture, are designed to last 100 years and withstand earthquakes. Construction company BuildFast reports that traditional construction methods would have taken three years and cost five times more. Each 500-square-foot home includes two bedrooms, a bathroom, and a living area with modern amenities. The 3D printing process uses 50% less concrete than conventional building methods while creating stronger structures. Local workers were trained to operate the printing equipment, providing new employment opportunities in the community. Families moved into their new homes immediately after a 24-hour drying period. The success has attracted attention from governments worldwide facing housing shortages. Solar panels integrated into each home's design provide renewable energy and reduce utility costs. Plans are underway to construct 1,000 additional homes using the same technology. How much does each 3D-printed home cost to build?"
+    type: multiple_choice
+    choices:
+      - $8,000
+      - $10,000
+      - $12,000
+      - $15,000
+    correctAnswer: 1
+    explanation: The article states that each home costs only $10,000 to build.
+
+  - title: "Digital Currency Adoption"
+    question: "El Salvador has become the first country to fully adopt Bitcoin as legal tender alongside the US dollar, with 70% of businesses now accepting cryptocurrency payments. The government's digital wallet app has been downloaded by 3 million citizens, representing half the country's population. President Carlos Martinez reports that remittances from overseas workers have increased by 40% since Bitcoin adoption, saving families millions in transfer fees. The country's economy has attracted international investment as tech companies establish regional headquarters to take advantage of crypto-friendly policies. Bitcoin ATMs have been installed in shopping centers and banks across the nation. Economic experts are closely monitoring the experiment as other developing nations consider similar policies. The government has purchased 1,500 Bitcoins as a national reserve asset. Critics worry about Bitcoin's price volatility, but supporters point to increased financial inclusion for previously unbanked populations. Digital literacy programs teach citizens how to use cryptocurrency safely and effectively. The World Bank is studying the economic impacts of nationwide Bitcoin adoption. What percentage of businesses now accept cryptocurrency payments?"
+    type: multiple_choice
+    choices:
+      - 60%
+      - 65%
+      - 70%
+      - 75%
+    correctAnswer: 2
+    explanation: The article states that 70% of businesses now accept cryptocurrency payments.
+
+  - title: "Asteroid Mining Mission Success"
+    question: "Space mining company AsteroidCorp has successfully extracted 500 kilograms of platinum from a near-Earth asteroid, marking humanity's first commercial asteroid mining operation. The robotic spacecraft Aurora completed its 18-month mission using advanced drilling and extraction equipment. CEO Maria Santos announced that the extracted platinum is worth approximately $20 million at current market prices. The mission demonstrates the feasibility of asteroid mining for obtaining rare earth metals essential for electronics and renewable energy technology. The spacecraft used ion propulsion to reach the asteroid and solar panels to power mining operations. Extracted materials were processed in space and packaged for return to Earth in specialized containers. The success has prompted three other companies to accelerate their asteroid mining programs. Scientists estimate that a single metallic asteroid could contain more platinum than has ever been mined on Earth. Future missions will target larger asteroids with higher concentrations of valuable materials. The technology could help reduce mining's environmental impact on Earth while meeting growing demand for rare metals. How much platinum was extracted from the asteroid?"
+    type: multiple_choice
+    choices:
+      - 300 kilograms
+      - 400 kilograms
+      - 500 kilograms
+      - 600 kilograms
+    correctAnswer: 2
+    explanation: The article states that 500 kilograms of platinum was extracted from the asteroid.
+
+  - title: "Smart City Technology Implementation"
+    question: "Singapore has completed the world's most comprehensive smart city transformation, integrating artificial intelligence into every aspect of urban management. The system monitors traffic flow, air quality, energy consumption, and public safety using 100,000 sensors throughout the city. Urban planning director Dr. Wei Lin reports that the smart city infrastructure has reduced traffic congestion by 45% and energy consumption by 30%. Predictive algorithms anticipate maintenance needs for roads, bridges, and utilities before problems occur. Citizens access city services through a unified mobile app that handles everything from parking payments to government appointments. The system has prevented flooding by automatically adjusting drainage systems during heavy rainfall. Crime rates have decreased by 25% as AI-powered cameras detect suspicious activities and alert police instantly. Real-time data helps city planners make informed decisions about resource allocation and infrastructure development. The project cost $2 billion over five years but is expected to save $500 million annually in operational costs. Other major cities are studying Singapore's model for their own smart city initiatives. By how much has traffic congestion been reduced?"
+    type: multiple_choice
+    choices:
+      - 35%
+      - 40%
+      - 45%
+      - 50%
+    correctAnswer: 2
+    explanation: The article states that traffic congestion has been reduced by 45%.
+
+  - title: "Biodegradable Plastic Alternative"
+    question: "Scientists in Finland have created a fully biodegradable plastic alternative made from food waste that decomposes completely in just 60 days. The material, called BioplasPlus, is manufactured from vegetable peels, fruit rinds, and other organic waste that would otherwise end up in landfills. Dr. Anna Virtanen, lead researcher, explains that the material has the same strength and flexibility as traditional plastic but breaks down harmlessly in soil or water. The production process generates 70% fewer carbon emissions than conventional plastic manufacturing. Major food packaging companies have signed agreements to test BioplasPlus for product wrapping and containers. The material is safe for food contact and maintains freshness better than some traditional packaging. Laboratory tests show the biodegradable plastic can carry the same weight as petroleum-based plastics without breaking. Manufacturing facilities are being built in six countries to meet growing demand from environmentally conscious consumers. The innovation could significantly reduce the 8 million tons of plastic waste entering oceans annually. Production costs are currently 20% higher than traditional plastic but are expected to decrease as manufacturing scales up. How long does BioplasPlus take to decompose completely?"
+    type: multiple_choice
+    choices:
+      - 45 days
+      - 60 days
+      - 75 days
+      - 90 days
+    correctAnswer: 1
+    explanation: The article states that BioplasPlus decomposes completely in just 60 days.
+
+  - title: "Telemedicine Expansion Success"
+    question: "Rural healthcare access has improved dramatically as telemedicine programs now serve 25 million patients across remote areas worldwide. The global initiative, coordinated by HealthConnect International, uses satellite internet and mobile clinics equipped with diagnostic equipment. Dr. Robert Chen, the program director, reports that patient satisfaction rates exceed 90% and emergency transfers to distant hospitals have decreased by 60%. Specialist consultations that previously required days of travel can now be completed in minutes through video conferencing. The program trains local healthcare workers to operate portable diagnostic tools under remote physician guidance. Cost savings average $2,000 per patient compared to traditional healthcare delivery in remote areas. Advanced equipment includes portable X-ray machines, ultrasound devices, and laboratory testing kits that transmit results instantly to specialists. The initiative has been particularly successful in treating chronic conditions like diabetes and hypertension through regular remote monitoring. Government health departments report significant improvements in health outcomes for previously underserved populations. Expansion plans include adding mental health services and specialized pediatric care. How many patients does the telemedicine program serve worldwide?"
+    type: multiple_choice
+    choices:
+      - 20 million patients
+      - 25 million patients
+      - 30 million patients
+      - 35 million patients
+    correctAnswer: 1
+    explanation: The article states that telemedicine programs now serve 25 million patients.

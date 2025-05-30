@@ -1,0 +1,332 @@
+# English Reading Comprehension - Novels
+# 90-150 words each, 1-minute reading time
+quizzes:
+  - title: "The Mysterious Garden"
+    question: "Sarah discovered an old gate hidden behind thick ivy in her grandmother's backyard. Despite the rusty lock, she managed to push it open and stepped into what seemed like a forgotten world. The garden was overgrown with wild roses and mysterious herbs that filled the air with strange, sweet scents. In the center stood an ancient stone fountain, dry for decades but still beautiful. As she explored deeper, Sarah found a small wooden box buried beneath a lavender bush. Inside was a leather journal with faded ink describing magical plants and their properties. Her grandmother had been an herbalist, something the family had never mentioned. What does Sarah find in the center of the garden?"
+    type: multiple_choice
+    choices:
+      - An ancient stone fountain
+      - A wooden box
+      - A leather journal
+      - A lavender bush
+    correctAnswer: 0
+    explanation: The text states that in the center stood an ancient stone fountain.
+
+  - title: "The Night Train"
+    question: "The night train to Edinburgh pulled away from the platform with a low whistle that echoed through the empty station. Marcus settled into his compartment, watching the city lights fade into darkness through the window. He had been traveling for business, but this journey felt different somehow. The rhythmic clicking of wheels on tracks seemed to tell a story of its own. An elderly woman in the next seat was knitting quietly, her needles moving in perfect harmony with the train's motion. When she looked up and smiled, Marcus felt a strange sense of familiarity, as if he had met her before in a dream. Where is the train heading?"
+    type: multiple_choice
+    choices:
+      - London
+      - Edinburgh
+      - Manchester
+      - Glasgow
+    correctAnswer: 1
+    explanation: The text clearly states the train is going to Edinburgh.
+
+  - title: "The Artist's Studio"
+    question: "Elena had always been drawn to abandoned places, and the old artist's studio on Maple Street was no exception. The building had been empty for twenty years, but when she peered through the dusty windows, she could see canvases still propped against the walls. The landlord, Mr. Chen, finally agreed to let her rent the space for her own artwork. As she cleaned the studio, Elena discovered paintings hidden behind a false wall. They were signed by a famous artist who had supposedly died in Paris decades ago. The discovery would change everything she thought she knew about art history. Who signed the hidden paintings?"
+    type: multiple_choice
+    choices:
+      - Elena
+      - Mr. Chen
+      - The landlord
+      - A famous artist
+    correctAnswer: 3
+    explanation: The text mentions the paintings were signed by a famous artist.
+
+  - title: "The Storm"
+    question: "The storm hit the coastal town without warning, sending waves crashing over the seawall and flooding the main street. Captain Williams had seen many storms in his forty years at sea, but this one felt different. The lighthouse keeper, old Tom, was flashing emergency signals from his tower, warning ships to stay away from the dangerous rocks. In the harbor, fishing boats strained against their moorings as the wind howled like a banshee. By morning, the storm had passed, leaving behind a trail of seaweed and the sweet smell of salt air. The town would rebuild, as it always did. How long has Captain Williams been at sea?"
+    type: multiple_choice
+    choices:
+      - Twenty years
+      - Thirty years
+      - Forty years
+      - Fifty years
+    correctAnswer: 2
+    explanation: The text states Captain Williams had forty years at sea.
+
+  - title: "The Time Capsule"
+    question: "When renovating their century-old house, the Johnson family discovered a metal box buried beneath the kitchen floor. Inside were photographs, letters, and newspaper clippings from 1923. The letters revealed a love story between a young woman named Rose and a soldier named James who was preparing to leave for Europe. Rose had hidden their correspondence, along with his promise ring, hoping he would return safely. The newspaper clippings showed that James had indeed returned and they had married the following year. The Johnsons decided to contact the local historical society to preserve these precious memories. What year were the items from?"
+    type: multiple_choice
+    choices:
+      - 1922
+      - 1923
+      - 1924
+      - 1925
+    correctAnswer: 1
+    explanation: The text explicitly mentions the items were from 1923.
+
+  - title: "The Library Cat"
+    question: "Whiskers had been the unofficial mascot of the Riverside Public Library for seven years. Every morning, he would greet visitors at the entrance, purring softly as children petted him before story time. The librarian, Mrs. Patterson, had grown quite fond of the orange tabby who seemed to know exactly which books people needed. Visitors often commented that Whiskers would lead them to the perfect section, as if he understood their research needs. When the city council threatened to remove him due to new regulations, the entire community rallied to keep their beloved library cat. How long has Whiskers been at the library?"
+    type: multiple_choice
+    choices:
+      - Five years
+      - Six years
+      - Seven years
+      - Eight years
+    correctAnswer: 2
+    explanation: The text states Whiskers had been there for seven years.
+
+  - title: "The Midnight Baker"
+    question: "Every night at exactly midnight, the sweet aroma of fresh bread would drift through the quiet streets of Millbrook. The townspeople had grown accustomed to this mysterious occurrence, though no one had ever seen the baker at work. Young Tommy decided to solve the puzzle and hid behind the old oak tree near the bakery. At the stroke of twelve, he watched as a figure in white emerged from the shadows and began kneading dough in the moonlit window. The next morning, warm loaves appeared on doorsteps throughout the neighborhood, a gift from their anonymous benefactor. What time does the mysterious baking begin?"
+    type: multiple_choice
+    choices:
+      - 11:00 PM
+      - Midnight
+      - 1:00 AM
+      - Dawn
+    correctAnswer: 1
+    explanation: The text clearly states the baking begins at exactly midnight.
+
+  - title: "The Antique Shop"
+    question: "Mr. Goldstein's antique shop was filled with treasures from around the world. Chinese vases sat next to Victorian jewelry, while ancient books shared shelves with mechanical clocks that still kept perfect time. A young couple entered looking for a wedding gift and were immediately drawn to an ornate music box that played a haunting melody. When they opened it, they discovered a hidden compartment containing a letter written in French. Mr. Goldstein translated it for them, revealing it was a love letter from Napoleon to Josephine. The couple knew they had found something truly special. What language was the letter written in?"
+    type: multiple_choice
+    choices:
+      - English
+      - French
+      - Italian
+      - Spanish
+    correctAnswer: 1
+    explanation: The text explicitly states the letter was written in French.
+
+  - title: "The Mountain Cabin"
+    question: "After hiking for six hours through dense forest, Maya finally reached the remote cabin her grandfather had built fifty years ago. The wooden structure had weathered many storms but remained sturdy, surrounded by towering pine trees and a crystal-clear stream. Inside, she found his old journals documenting wildlife observations and weather patterns from decades past. Each entry revealed his deep connection to the wilderness and his concern for preserving this untouched landscape. Maya realized that continuing his work would be her way of honoring his memory and protecting the environment he loved so dearly. How long ago did her grandfather build the cabin?"
+    type: multiple_choice
+    choices:
+      - Forty years ago
+      - Fifty years ago
+      - Sixty years ago
+      - Seventy years ago
+    correctAnswer: 1
+    explanation: The text states the cabin was built fifty years ago.
+
+  - title: "The Music Box Dancer"
+    question: "In the dim light of the attic, Clara discovered her great-grandmother's music box, its delicate ballerina frozen in mid-spin. When she wound the tiny key, the dancer began to twirl to the gentle melody of 'Für Elise.' According to family legend, the music box had been a gift from a mysterious admirer who had seen her great-grandmother perform at the Paris Opera House in 1895. As the music played, Clara imagined the glamorous world of nineteenth-century ballet, with its elaborate costumes and passionate performances. She decided to restore the music box and learn more about her family's artistic heritage. What song does the music box play?"
+    type: multiple_choice
+    choices:
+      - Swan Lake
+      - The Nutcracker
+      - Für Elise
+      - Canon in D
+    correctAnswer: 2
+    explanation: The text specifically mentions the melody of 'Für Elise.'
+
+  - title: "The Garden Maze"
+    question: "Lord Pemberton's estate was famous for its elaborate hedge maze, planted in 1847 and carefully maintained for generations. Visitors often spent hours trying to reach the center, where a marble statue of Diana, the goddess of the hunt, stood waiting. Young Lucy had memorized the pattern from studying old maps in the estate's library and could navigate to the center in just fifteen minutes. She often went there to read quietly, enjoying the peaceful solitude away from the busy household. The maze had become her secret refuge, a place where she could dream and plan for her future adventures. When was the maze planted?"
+    type: multiple_choice
+    choices:
+      - 1845
+      - 1846
+      - 1847
+      - 1848
+    correctAnswer: 2
+    explanation: The text states the maze was planted in 1847.
+
+  - title: "The Clockmaker's Shop"
+    question: "Master Heinrich had been crafting timepieces for over forty years, and his small shop was filled with the gentle ticking of hundreds of clocks. Each clock was unique, from simple mantle pieces to elaborate grandfather clocks with intricate carvings. His apprentice, Peter, watched carefully as the old man adjusted the delicate springs and gears with practiced precision. Heinrich believed that time was precious and that his clocks helped people treasure each moment. When a wealthy collector offered to buy his entire workshop, Heinrich politely declined, saying that his craft was not for sale. How long has Heinrich been making clocks?"
+    type: multiple_choice
+    choices:
+      - Thirty years
+      - Forty years
+      - Fifty years
+      - Sixty years
+    correctAnswer: 1
+    explanation: The text states Heinrich had been crafting timepieces for over forty years.
+
+  - title: "The Moonlit Beach"
+    question: "Every full moon, Isabella walked along the deserted beach, collecting shells and sea glass that had washed ashore during the day. The moonlight created a silver path across the waves, and she felt a deep connection to the ocean's eternal rhythm. Tonight was different though – she discovered a message in a bottle half-buried in the sand. Inside was a poem written in elegant handwriting, dated exactly one year ago. The poem spoke of love and longing, signed only with the initials 'J.M.' Isabella wondered about the person who had cast their hopes into the sea, trusting the waves to carry their words to someone who would understand. When was the poem dated?"
+    type: multiple_choice
+    choices:
+      - Six months ago
+      - One year ago
+      - Two years ago
+      - Three years ago
+    correctAnswer: 1
+    explanation: The text clearly states the poem was dated exactly one year ago.
+
+  - title: "The Village Blacksmith"
+    question: "The rhythmic hammering from Thomas's forge could be heard throughout the village from dawn until dusk. He had learned the trade from his father, who had learned it from his grandfather, making their family the third generation of blacksmiths in Oakville. Thomas took pride in every horseshoe, gate, and tool he created, believing that quality craftsmanship was becoming a lost art in the modern world. Young apprentices came and went, but few had the patience and dedication required to master the ancient skills. Thomas hoped to find someone worthy of carrying on the family tradition. Which generation of blacksmiths is Thomas?"
+    type: multiple_choice
+    choices:
+      - First generation
+      - Second generation
+      - Third generation
+      - Fourth generation
+    correctAnswer: 2
+    explanation: The text states their family was the third generation of blacksmiths.
+
+  - title: "The Mysterious Painting"
+    question: "Art curator Dr. Martinez had spent months researching the newly discovered painting that had appeared at a small auction house in Barcelona. The portrait of a young woman in Renaissance dress bore similarities to works by Leonardo da Vinci, but something about the brushstrokes seemed different. Carbon dating confirmed the canvas was from the 16th century, and infrared analysis revealed multiple layers of paint, suggesting revisions typical of master artists. The auction house claimed it had been found in an abandoned monastery, wrapped in cloth and hidden behind a false wall. If authentic, it could be worth millions and rewrite art history. Where was the painting discovered?"
+    type: multiple_choice
+    choices:
+      - A museum
+      - An auction house
+      - A monastery
+      - A private collection
+    correctAnswer: 2
+    explanation: The text states it was found in an abandoned monastery.
+
+  - title: "The Lighthouse Keeper's Daughter"
+    question: "Emma had grown up in the lighthouse, helping her father maintain the beacon that guided ships safely to shore. Every evening at sunset, she would climb the spiral staircase to light the powerful lamp, a ritual she had performed since childhood. During fierce storms, she watched anxiously as ships battled the waves, knowing that their light was often the difference between safety and disaster. When her father retired, Emma became the first female lighthouse keeper in the region's history. She modernized the equipment while preserving the traditions that had kept sailors safe for generations. What position did Emma become the first woman to hold?"
+    type: multiple_choice
+    choices:
+      - Ship captain
+      - Harbor master
+      - Lighthouse keeper
+      - Coast guard
+    correctAnswer: 2
+    explanation: The text states Emma became the first female lighthouse keeper in the region.
+
+  - title: "The Secret Recipe"
+    question: "Grandmother Rosa's pasta sauce was legendary in Little Italy, but she had never written down the recipe. For sixty years, she had cooked by instinct, adding a pinch of this and a dash of that until the flavors were perfect. Her granddaughter Maria watched carefully, trying to memorize every step, but Rosa insisted that cooking came from the heart, not from measurements. As Rosa grew older, the family worried that the secret would be lost forever. Finally, Maria convinced her grandmother to teach her properly, spending an entire summer learning not just the ingredients, but the love and tradition that made the sauce truly special. How long had Rosa been making the sauce?"
+    type: multiple_choice
+    choices:
+      - Fifty years
+      - Sixty years
+      - Seventy years
+      - Eighty years
+    correctAnswer: 1
+    explanation: The text clearly states Rosa had been cooking for sixty years.
+
+  - title: "The Enchanted Forest"
+    question: "Deep in the ancient forest, where sunlight filtered through emerald leaves, lived a wise old owl named Athena. For centuries, she had watched over the woodland creatures, settling disputes and offering guidance to those who sought her wisdom. The forest animals respected her judgment and often brought their problems to her hollow in the great oak tree. One day, a young fox named Rusty arrived, lost and frightened after becoming separated from his family during a terrible storm. Athena listened patiently to his story and then called upon her network of forest friends to help reunite the fox with his loved ones. What is the owl's name?"
+    type: multiple_choice
+    choices:
+      - Athena
+      - Diana
+      - Minerva
+      - Luna
+    correctAnswer: 0
+    explanation: The text identifies the owl as Athena.
+
+  - title: "The Traveling Merchant"
+    question: "Abdul had been trading spices along the Silk Road for twenty-five years, carrying precious cargo from Constantinople to distant lands. His camel caravan was well-known in the markets of Damascus, where his saffron, cinnamon, and cardamom were prized for their exceptional quality. During long desert nights, he would tell stories of far-off places to fellow travelers gathered around the campfire. His tales of snow-capped mountains and bustling ports filled their imaginations with wonder about the world beyond the dunes. Despite offers to settle down and open a permanent shop, Abdul preferred the freedom of the open road. How long had Abdul been trading?"
+    type: multiple_choice
+    choices:
+      - Twenty years
+      - Twenty-five years
+      - Thirty years
+      - Thirty-five years
+    correctAnswer: 1
+    explanation: The text states Abdul had been trading for twenty-five years.
+
+  - title: "The Opera Singer"
+    question: "Madame Petrova's voice could fill the grandest opera house without any amplification, a gift that had brought audiences to tears in Vienna, Milan, and Paris. After thirty years on stage, she decided to retire at the peak of her career and dedicate herself to teaching young singers. Her final performance of 'La Traviata' received a standing ovation that lasted for twenty minutes. Students from around the world came to study at her academy, hoping to learn the secrets of her legendary technique. Though she no longer performed publicly, Madame Petrova's influence on the next generation of opera singers would be her greatest legacy. How long was her career on stage?"
+    type: multiple_choice
+    choices:
+      - Twenty-five years
+      - Thirty years
+      - Thirty-five years
+      - Forty years
+    correctAnswer: 1
+    explanation: The text states she had thirty years on stage.
+
+  - title: "The Mysterious Bookshop"
+    question: "Mr. Wickham's bookshop appeared ordinary during the day, but at midnight, something magical happened. The books would rearrange themselves on the shelves, and characters from beloved stories would step out of their pages to browse other tales. Alice would chat with Sherlock Holmes about mysteries, while Romeo sought advice from wise Gandalf. The shop cat, Merlin, was the only witness to these nightly gatherings, purring contentedly as literary heroes and villains mingled peacefully. By dawn, everyone returned to their stories, and the shop resumed its normal appearance, leaving only a faint scent of adventure in the air. What is the name of the shop cat?"
+    type: multiple_choice
+    choices:
+      - Merlin
+      - Gandalf
+      - Sherlock
+      - Romeo
+    correctAnswer: 0
+    explanation: The text identifies the shop cat as Merlin.
+
+  - title: "The Mountain Village"
+    question: "High in the Alps, the village of Bergdorf had remained unchanged for centuries. Stone houses with red tile roofs clustered around a central square where a fountain bubbled cheerfully day and night. The villagers lived simply, growing their own vegetables and raising sheep on the mountainsides. Every Sunday, church bells would echo across the valley, calling families to gather for worship and community news. When tourists began discovering their remote paradise, the villagers had to decide whether to embrace change or preserve their traditional way of life. The debate would shape the future of their mountain home. What type of roofs do the houses have?"
+    type: multiple_choice
+    choices:
+      - Slate roofs
+      - Thatched roofs
+      - Red tile roofs
+      - Metal roofs
+    correctAnswer: 2
+    explanation: The text mentions stone houses with red tile roofs.
+
+  - title: "The Circus Performer"
+    question: "Marco had been born into a circus family and had been performing on the trapeze since he was seven years old. Now, at twenty-five, he was the star of the flying act, soaring through the air with grace and precision that left audiences breathless. His partner, Elena, had joined the circus three years ago, and together they had developed new routines that pushed the boundaries of aerial artistry. The circus traveled from town to town, bringing wonder and excitement to children and adults alike. Despite offers from larger shows, Marco remained loyal to the small family circus that had raised him. At what age did Marco start performing?"
+    type: multiple_choice
+    choices:
+      - Five years old
+      - Six years old
+      - Seven years old
+      - Eight years old
+    correctAnswer: 2
+    explanation: The text states Marco had been performing since he was seven years old.
+
+  - title: "The Castle Library"
+    question: "The ancient library in Ravenshollow Castle contained over ten thousand books, some dating back to the 12th century. Brother Augustine, the monastery's librarian, spent his days carefully preserving these precious manuscripts and helping scholars with their research. The vaulted ceilings and stained glass windows created an atmosphere of reverence and learning that had inspired generations of monks and visitors. Recently, a team of historians had arrived to digitize the rarest texts, ensuring that this knowledge would be preserved for future generations. Brother Augustine welcomed the project, understanding that tradition and progress could work together. How many books are in the library?"
+    type: multiple_choice
+    choices:
+      - Eight thousand
+      - Nine thousand
+      - Ten thousand
+      - Eleven thousand
+    correctAnswer: 2
+    explanation: The text states the library contained over ten thousand books.
+
+  - title: "The Midnight Garden"
+    question: "Professor Holloway's botanical garden was ordinary during daylight hours, but when darkness fell, the night-blooming flowers would open their petals and release enchanting fragrances into the cool air. Moonflowers unfurled like white silk scarves, while evening primroses glowed with a soft yellow light. Students often asked to study in the garden after hours, claiming that the peaceful atmosphere helped them concentrate better than any library. The professor allowed small groups to use the space, but only those who promised to respect the delicate ecosystem he had spent fifteen years creating. What did the professor spend fifteen years creating?"
+    type: multiple_choice
+    choices:
+      - A library
+      - A laboratory
+      - A botanical garden
+      - A greenhouse
+    correctAnswer: 2
+    explanation: The text refers to the botanical garden that Professor Holloway spent fifteen years creating.
+
+  - title: "The Steam Train"
+    question: "The old steam locomotive Number 47 had been faithfully serving the mountain route for forty years, carrying passengers through spectacular scenery of forests, rivers, and snow-capped peaks. Engineer Joe Morrison had been at the controls for the last fifteen years and knew every curve and gradient of the track by heart. The train's whistle had become a familiar sound to the mountain communities, signaling the arrival of mail, supplies, and visitors from the outside world. When the railway company announced plans to replace the steam train with a modern diesel engine, local residents started a campaign to preserve their beloved locomotive. How long had the train been in service?"
+    type: multiple_choice
+    choices:
+      - Thirty years
+      - Forty years
+      - Fifty years
+      - Sixty years
+    correctAnswer: 1
+    explanation: The text states the locomotive had been serving for forty years.
+
+  - title: "The Violin Maker"
+    question: "Master craftsman Giovanni spent six months creating each violin, carefully selecting the wood and allowing it to age properly before beginning the delicate work of shaping and assembly. His workshop in a quiet corner of Venice had been in his family for four generations, and the walls were lined with tools passed down from his great-grandfather. Musicians traveled from around the world to commission instruments from Giovanni, knowing that his violins possessed a unique tone and resonance. Each violin was a work of art, combining centuries-old techniques with Giovanni's personal innovations. He believed that patience and passion were the most important ingredients in creating something truly beautiful. How long does Giovanni spend creating each violin?"
+    type: multiple_choice
+    choices:
+      - Three months
+      - Six months
+      - Nine months
+      - One year
+    correctAnswer: 1
+    explanation: The text clearly states Giovanni spent six months creating each violin.
+
+  - title: "The Desert Oasis"
+    question: "After three days of traveling across the burning desert sands, the caravan finally reached the oasis of Zafira, where palm trees provided blessed shade and fresh water bubbled up from underground springs. Travelers rested here for several days, allowing their camels to recover and their water supplies to be replenished. The oasis was managed by a wise old man named Hassan, who had lived there for thirty years and knew the stories of every merchant and pilgrim who had passed through. His small adobe house was filled with gifts from grateful travelers - carpets from Persia, silks from China, and spices from India. How long had Hassan lived at the oasis?"
+    type: multiple_choice
+    choices:
+      - Twenty years
+      - Thirty years
+      - Forty years
+      - Fifty years
+    correctAnswer: 1
+    explanation: The text states Hassan had lived at the oasis for thirty years.
+
+  - title: "The Midnight Writer"
+    question: "Charlotte preferred to write her novels during the quiet hours after midnight, when the world was asleep and her imagination could roam freely. Her study overlooked the city, and she found inspiration in the twinkling lights of distant windows and the occasional sound of late-night traffic. For five years, she had been working on her masterpiece, a sweeping historical romance set in 18th-century Scotland. Publishers had shown interest in her earlier works, but this novel was different - it was the story she had always dreamed of telling. As dawn approached, Charlotte would reluctantly close her laptop, knowing she would return to her fictional world the next night. How long had Charlotte been working on her masterpiece?"
+    type: multiple_choice
+    choices:
+      - Three years
+      - Four years
+      - Five years
+      - Six years
+    correctAnswer: 2
+    explanation: The text states Charlotte had been working on her masterpiece for five years.
+
+  - title: "The Sailmaker's Art"
+    question: "Old Captain Murphy had retired from the sea twenty years ago, but he still practiced the ancient art of sailmaking in his workshop by the harbor. His hands, weathered by decades of salt spray and hard work, moved with practiced skill as he cut and stitched the heavy canvas. Young sailors would bring their torn sails to Murphy, knowing that his repairs would be stronger than the original material. He took pride in using traditional techniques passed down through generations of seafaring families. As he worked, Murphy would tell stories of storms he had weathered and distant ports he had visited, keeping maritime traditions alive for a new generation. How long ago did Captain Murphy retire?"
+    type: multiple_choice
+    choices:
+      - Fifteen years ago
+      - Twenty years ago
+      - Twenty-five years ago
+      - Thirty years ago
+    correctAnswer: 1
+    explanation: The text states Captain Murphy had retired twenty years ago.
