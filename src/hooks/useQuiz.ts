@@ -153,36 +153,34 @@ export function useQuizHook() {
     }
   }, []);
 
-  // 利用可能なジャンル一覧を取得（単元は必要になったときだけ取得）
+  // 利用可能なジャンル一覧を取得（genres.tsから取得）
   const fetchGenres = useCallback(async (defaultClassType: string = '公式') => {
     try {
       setLoading(true);
       
-      // ジャンルコレクションから取得
-      const genresRef = collection(db, 'genres');
-      const genresSnap = await getDocs(genresRef);
+      // genres.tsからジャンル一覧を取得
+      const { genreClasses } = await import('@/constants/genres');
       
-      const genreArray: string[] = [];
+      // 'すべて'クラスからジャンル名を抽出
+      const allGenresClass = genreClasses.find(gc => gc.name === 'すべて');
+      const genreArray: string[] = allGenresClass ? 
+        allGenresClass.genres.map(genre => genre.name) : [];
       
-      // ジャンル名のリストだけを取得
-      genresSnap.forEach(doc => {
-        genreArray.push(doc.id);
-      });
+      console.log('[useQuiz.fetchGenres] genres.tsから取得したジャンル一覧:', genreArray);
       
       setGenres(genreArray);
       
       // 最初のジャンルの単元を取得（デフォルトクラスタイプで）
-      // unitsの状態に依存せず、最初のジャンルの単元を常に取得するように変更
       if (genreArray.length > 0) {
         fetchUnitsForGenre(genreArray[0], defaultClassType);
       }
     } catch (err) {
-      console.error('Error fetching genres:', err);
+      console.error('Error fetching genres from genres.ts:', err);
       setError('ジャンル一覧の取得中にエラーが発生しました');
     } finally {
       setLoading(false);
     }
-  }, [fetchUnitsForGenre]); // unitsを依存配列から削除
+  }, [fetchUnitsForGenre]);
 
   // 特定のクイズを取得
   const fetchQuiz = useCallback(async (genreId: string, unitId: string, quizId: string, classType?: string) => {

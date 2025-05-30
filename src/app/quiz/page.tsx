@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
@@ -53,7 +53,7 @@ export default function QuizPage() {
   const [waitingRoomsLastFetch, setWaitingRoomsLastFetch] = useState(0);
 
   // ジャンル変更時に対応する単元データをロード
-  const handleGenreChange = (genre: string) => {
+  const handleGenreChange = useCallback((genre: string) => {
     setSelectedGenre(genre);
     
     // 選択されたジャンルの単元がまだロードされていなければロード
@@ -61,18 +61,22 @@ export default function QuizPage() {
     if (!units[`${genre}_${selectedClassType}`]) {
       fetchUnitsForGenre(genre, selectedClassType);
     }
-  };
+  }, [selectedClassType, units, fetchUnitsForGenre]);
 
 
   useEffect(() => {
-    // ジャンル情報を取得
-    fetchGenres();
+    // ジャンル情報を取得（初回のみ）
+    if (genres.length === 0) {
+      fetchGenres();
+    }
+  }, []); // 空の依存配列で初回のみ実行
 
-    // ジャンルが読み込まれたら最初のジャンルを選択
+  // ジャンルが読み込まれたら最初のジャンルを選択
+  useEffect(() => {
     if (genres.length > 0 && !selectedGenre) {
       handleGenreChange(genres[0]);
     }
-  }, [fetchGenres, genres, selectedGenre, handleGenreChange]);
+  }, [genres, selectedGenre, handleGenreChange]);
 
   // クラスタイプが変更されたときに単元データを再取得
   useEffect(() => {
@@ -144,6 +148,16 @@ export default function QuizPage() {
         return <FaGlobe className="text-blue-500" />;
       case '数学':
         return <FaCalculator className="text-green-500" />;
+      case '政治経済':
+        return <FaTrophy className="text-purple-500" />;
+      case '英語':
+        return <FaBookOpen className="text-red-500" />;
+      case '物理':
+        return <FaCalculator className="text-cyan-500" />;
+      case '情報':
+        return <FaGamepad className="text-gray-500" />;
+      case '雑学':
+        return <FaBookOpen className="text-yellow-500" />;
       default:
         return <FaBookOpen className="text-indigo-500" />;
     }
