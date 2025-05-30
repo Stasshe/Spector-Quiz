@@ -249,8 +249,8 @@ export default function QuizPage() {
         throw new Error('AI生成クイズルームの作成に失敗しました');
       }
     } catch (err) {
-      console.error('[handleAIQuizGenerated] エラー:', err);
-      alert(`エラーが発生しました: ${err instanceof Error ? err.message : '不明なエラー'}`);
+      console.error('[handleAIQuizGenerated] ルーム作成エラー:', err);
+      alert(`ルーム作成でエラーが発生しました: ${err instanceof Error ? err.message : '不明なエラー'}`);
     } finally {
       if (!confirmRoomSwitch) {
         setLoading(false);

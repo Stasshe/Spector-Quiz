@@ -71,6 +71,14 @@ export const SCORING = {
   EXP_PERFECT_ANSWER: 5, // 完答時の経験値
 };
 
+export const AI = {
+  
+  MODEL_NAME: 'gemini-1.5-flash', // AIモデル名
+
+  MAXRETRYS: 2, // AIの最大リトライ回数
+}
+
+
 /**
  * ジャンルに応じた制限時間を取得
  * @param genre ジャンル名

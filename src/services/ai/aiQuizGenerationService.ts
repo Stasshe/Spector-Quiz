@@ -3,6 +3,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { Timestamp, collection, doc, runTransaction } from 'firebase/firestore';
 import * as yaml from 'js-yaml';
 import { QUIZ_UNIT } from '@/config/quizConfig';
+import { AI } from '@/config/quizConfig';
 
 // AI生成クイズのインターフェース
 interface AIGeneratedQuiz {
@@ -31,70 +32,72 @@ export class AIQuizGenerationService {
   }
 
   private static getModel() {
-    return this.getGenAI().getGenerativeModel({ model: 'gemini-1.5-flash' });
+    return this.getGenAI().getGenerativeModel({ model: AI.MODEL_NAME });
   }
 
   /**
-   * Gemini APIを使ってクイズを生成する
+   * Gemini APIを使ってクイズを生成する（リトライ機能付き）
    */
   static async generateQuizzes(
     topic: string,
     count: number = QUIZ_UNIT.MAX_QUESTIONS_PER_UNIT,
     questionType: 'mixed' | 'multiple_choice' | 'input' = 'mixed'
   ): Promise<AIQuizUnit> {
-    try {
-      console.log(`[AIQuizGeneration] クイズ生成開始: ${topic}, 問題数: ${count}`);
+    const maxRetries = AI.MAXRETRYS; // 最大試行回数
+    let lastError: Error | null = null;
 
-      const prompt = this.createPrompt(topic, count, questionType);
-      
-      const model = this.getModel();
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      const text = response.text();
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`[AIQuizGeneration] クイズ生成開始 (試行 ${attempt}/${maxRetries}): ${topic}, 問題数: ${count}`);
 
-      console.log('[AIQuizGeneration] Gemini APIレスポンス受信');
+        const prompt = this.createPrompt(topic, count, questionType);
+        
+        const model = this.getModel();
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const rawText = response.text();
 
-      // YAMLをパースして検証
-      const parsedData = yaml.load(text) as AIQuizUnit;
-      const validatedData = this.validateAndFixQuizData(parsedData, topic);
+        console.log(`[AIQuizGeneration] Gemini APIレスポンス受信 (試行 ${attempt})`);
 
-      console.log(`[AIQuizGeneration] クイズ生成完了: ${validatedData.quizzes.length}問`);
-      return validatedData;
+        // YAMLコードブロックタグを除去
+        const cleanedText = this.cleanYamlResponse(rawText);
+        console.log(`[AIQuizGeneration] YAML清浄化完了 (試行 ${attempt})`);
 
-    } catch (error) {
-      console.error('[AIQuizGeneration] エラー:', error);
-      
-      // エラーの詳細情報を取得
-      let errorMessage = 'クイズ生成中にエラーが発生しました';
-      let shouldUseFallback = false;
-      
-      if (error && typeof error === 'object' && 'message' in error) {
-        const errorMsg = error.message as string;
-        if (errorMsg.includes('API key') || errorMsg.includes('invalid')) {
-          errorMessage = 'APIキーが無効または設定されていません。管理者に連絡してください。';
-        } else if (errorMsg.includes('404') || errorMsg.includes('not found') || errorMsg.includes('models/gemini-1.5-flash')) {
-          errorMessage = 'AIモデルが利用できません。フォールバック機能を使用します。';
-          shouldUseFallback = true;
-        } else if (errorMsg.includes('quota') || errorMsg.includes('limit')) {
-          errorMessage = 'API利用制限に達しています。フォールバック機能を使用します。';
-          shouldUseFallback = true;
-        } else {
-          errorMessage = `AI生成エラー: ${errorMsg}`;
-          shouldUseFallback = true;
+        // YAMLをパースして検証
+        const parsedData = yaml.load(cleanedText) as AIQuizUnit;
+        const validatedData = this.validateAndFixQuizData(parsedData, topic, count);
+
+        console.log(`[AIQuizGeneration] クイズ生成完了: ${validatedData.quizzes.length}問`);
+        return validatedData;
+
+      } catch (error) {
+        console.error(`[AIQuizGeneration] 試行 ${attempt} でエラー:`, error);
+        lastError = error instanceof Error ? error : new Error('不明なエラー');
+        
+        // APIキーエラーやモデル利用不可の場合は即座に失敗
+        if (error && typeof error === 'object' && 'message' in error) {
+          const errorMsg = error.message as string;
+          if (errorMsg.includes('API key') || errorMsg.includes('invalid')) {
+            throw new Error('APIキーが無効または設定されていません。管理者に連絡してください。');
+          }
+          if (errorMsg.includes('404') || errorMsg.includes('not found') || errorMsg.includes(`models/${AI.MODEL_NAME}`)) {
+            throw new Error('AIモデルが利用できません。時間をおいて再度お試しください。');
+          }
         }
-      } else {
-        shouldUseFallback = true;
+        
+        // 最大試行回数に達した場合
+        if (attempt === maxRetries) {
+          break;
+        }
+        
+        // 次の試行まで少し待機
+        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
       }
-      
-      // フォールバック機能を使用する場合
-      if (shouldUseFallback) {
-        console.log('[AIQuizGeneration] フォールバック機能を使用してクイズを生成します');
-        return this.createFallbackQuizzes(topic, count);
-      }
-      
-      // カスタムエラーをスローして呼び出し元に詳細を伝える
-      throw new Error(errorMessage);
     }
+
+    // 全ての試行が失敗した場合
+    const errorMessage = lastError?.message || 'クイズ生成中にエラーが発生しました';
+    throw new Error(`AI生成に${maxRetries}回失敗しました。${errorMessage}\n\n別のトピックで再度お試しください。`);
   }
 
   /**
@@ -114,57 +117,71 @@ export class AIQuizGenerationService {
 
     return `
 あなたは教育コンテンツの専門家です。「${topic}」に関するクイズを10問作成してください。
-難易度は、中堅国公立から難関私立大学入試くらいです。
+${topic}です。難易度は、中堅国公立から難関私立大学入試くらいです。
 高校生向けです。中学生で習うような簡単すぎる内容が入らないように注意してください。
 カタカナの読み方は、十分に注意して、教科書と同じになるようにしてください。
 explanationは長過ぎないように。短くても良いです。長い場合は"で囲ってください。
 選択肢の数は3~5つまで。
+
 【要求仕様】
 - 問題形式: ${typeDescription[questionType]}
-- 出力形式: YAML形式で厳密に従うこと
+- 出力形式: 生のYAML形式（コードブロック不要）
 
 【YAML形式の例】
-\`\`\`yaml
-title: ${topic}クイズ
-description: ${topic}に関する基礎から応用までの問題集
+title: 雑学クイズ
+description: 雑学に関するクイズ集
 quizzes:
-  - title: 問題のタイトル
-    question: 問題文をここに記載
+  - title: 日本の首都
+    question: "日本の首都はどこですか？"
     type: multiple_choice
     choices:
-      - 選択肢1
-      - 選択肢2
-      - 選択肢3
-      - 選択肢4
-    correctAnswer: 選択肢2
-    explanation: 解説文をここに記載
+      - 大阪
+      - 東京
+      - 京都
+    correctAnswer: 東京
+    explanation: 東京都は1868年に日本の首都となりました。
 
-  - title: 記述問題のタイトル
-    question: 記述問題の問題文
+  - title: G7加盟国
+    question: 次のうちG7（主要国首脳会議）加盟国はどれですか？
+    type: multiple_choice
+    choices:
+      - カナダ
+      - ロシア
+      - 中国
+      - オーストラリア
+      - インド
+    correctAnswer: カナダ
+    explanation: G7加盟国は、アメリカ、日本、イギリス、フランス、ドイツ、イタリア、カナダの7か国です。
+
+  - title: 富士山の高さ
+    question: 富士山の標高は何メートルですか？
     type: input
-    correctAnswer: 正解
+    correctAnswer: 3776
     acceptableAnswers:
-      - 別解1
-      - 別解2
-    explanation: 解説文
-\`\`\`
+      - "3,776"
+      - "約3800"
+    explanation: 富士山の正確な標高は3,776メートルです。
 
 【重要な制約】
 1. 選択肢問題は必ず3〜5つの選択肢を用意
-2. correctAnswerは選択肢のテキストと完全一致させる
+2. correctAnswerは選択肢のテキストと完全一致させる（インデックス番号ではなく）
 3. 記述問題の場合、acceptableAnswersで表記揺れを考慮
 4. 全ての問題に解説を付ける
 5. 事実に基づいた正確な内容のみ
 6. YAMLの構文エラーがないよう注意
 
-上記の仕様に従って、${topic}に関する10問のクイズをYAML形式で生成してください。\`\`\`yaml と \`\`\` は不要です。直接YAMLを出力してください。
+【出力指示】
+\`\`\`yaml や \`\`\` などのコードブロック記号は一切使用せず、
+title: から始まる生のYAMLテキストのみを出力してください。
+
+上記の仕様に従って、${topic}に関する10問のクイズをYAML形式で生成してください。
 `;
   }
 
   /**
    * 生成されたクイズデータを検証・修正
    */
-  private static validateAndFixQuizData(data: any, topic: string): AIQuizUnit {
+  private static validateAndFixQuizData(data: any, topic: string, expectedCount: number = 10): AIQuizUnit {
     if (!data || typeof data !== 'object') {
       throw new Error('無効なデータ形式');
     }
@@ -181,17 +198,28 @@ quizzes:
     }
 
     // 各クイズの検証・修正
+    const validationErrors: string[] = [];
     data.quizzes.forEach((quiz: any, index: number) => {
       try {
         const validatedQuiz = this.validateSingleQuiz(quiz, index);
         result.quizzes.push(validatedQuiz);
       } catch (error) {
-        console.warn(`[AIQuizGeneration] クイズ${index + 1}をスキップ:`, error);
+        const errorMsg = error instanceof Error ? error.message : '不明なエラー';
+        validationErrors.push(`クイズ${index + 1}: ${errorMsg}`);
+        console.warn(`[AIQuizGeneration] クイズ${index + 1}の検証エラー:`, error);
       }
     });
 
     if (result.quizzes.length === 0) {
-      throw new Error('有効なクイズが生成されませんでした');
+      const errorDetails = validationErrors.length > 0 
+        ? `\n検証エラー詳細:\n${validationErrors.join('\n')}` 
+        : '';
+      throw new Error(`有効なクイズが生成されませんでした。${errorDetails}`);
+    }
+
+    // 生成されたクイズが少なすぎる場合も警告
+    if (result.quizzes.length < Math.min(5, expectedCount / 2)) {
+      console.warn(`[AIQuizGeneration] 生成されたクイズ数が少なすぎます: ${result.quizzes.length}問`);
     }
 
     return result;
@@ -247,30 +275,6 @@ quizzes:
       correctAnswer: String(quiz.correctAnswer).slice(0, 100),
       acceptableAnswers: quiz.acceptableAnswers || [],
       explanation: quiz.explanation || ''
-    };
-  }
-
-  /**
-   * フォールバック用の基本クイズ
-   */
-  private static createFallbackQuizzes(topic: string, count: number): AIQuizUnit {
-    const fallbackQuizzes: AIGeneratedQuiz[] = [];
-    
-    for (let i = 1; i <= Math.min(count, 3); i++) {
-      fallbackQuizzes.push({
-        title: `${topic}の基礎問題${i}`,
-        question: `${topic}に関する基本的な問題です。`,
-        type: 'input',
-        correctAnswer: `${topic}`,
-        acceptableAnswers: [],
-        explanation: `${topic}に関する基本的な知識です。`
-      });
-    }
-
-    return {
-      title: `${topic}フォールバッククイズ`,
-      description: `${topic}に関する基本的なクイズ（AI生成失敗時のフォールバック）`,
-      quizzes: fallbackQuizzes
     };
   }
 
@@ -333,5 +337,24 @@ quizzes:
       console.error('[AIQuizGeneration] 保存エラー:', error);
       throw new Error('生成したクイズの保存に失敗しました');
     }
+  }
+
+  /**
+   * YAMLレスポンスからコードブロックタグを除去
+   */
+  private static cleanYamlResponse(rawText: string): string {
+    // コードブロックタグを除去
+    let cleanedText = rawText
+      .replace(/^```yaml\s*\n?/gim, '') // 開始タグを除去
+      .replace(/^```\s*$/gim, '') // 終了タグを除去
+      .replace(/^`{1,2}yaml\s*\n?/gim, '') // バッククォート1-2個の開始タグ
+      .replace(/^`{1,2}\s*$/gim, '') // バッククォート1-2個の終了タグ
+      .trim();
+
+    // デバッグ用：清浄化前後のテキストをログ出力
+    console.log('[AIQuizGeneration] Raw text (最初の200文字):', rawText.substring(0, 200));
+    console.log('[AIQuizGeneration] Cleaned text (最初の200文字):', cleanedText.substring(0, 200));
+
+    return cleanedText;
   }
 }

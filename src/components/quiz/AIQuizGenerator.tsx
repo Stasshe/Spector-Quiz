@@ -100,6 +100,10 @@ const AIQuizGenerator: React.FC<AIQuizGeneratorProps> = ({
         progress: 0
       });
       setErrorMessage(error instanceof Error ? error.message : 'クイズ生成中にエラーが発生しました');
+      
+      // エラーが発生した場合は親コンポーネントに通知しない
+      // （重複したエラーメッセージを防ぐため）
+      return;
     }
   };
 
