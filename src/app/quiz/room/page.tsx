@@ -8,10 +8,9 @@ import { useAuth } from '@/hooks/useAuth';
 import { useLeader, judgeCorrectness } from '@/hooks/useLeader';
 import { useQuiz } from '@/hooks/useQuiz';
 import { useQuizRoom } from '@/hooks/useQuizRoom';
-import { RoomStatus } from '@/types/room';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useEffect, useRef, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { FaSignOutAlt } from 'react-icons/fa';
 
 // ローディングフォールバックコンポーネント
@@ -30,14 +29,8 @@ function QuizRoomContent() {
   const roomId = params.get('id') || '';
   const router = useRouter();
   const { quizRoom, isLeader, currentQuiz, hasAnsweringRight } = useQuiz();
-  const { useRoomListener, exitRoom, updateUserStatsOnRoomComplete } = useQuizRoom();
+  const { useRoomListener, exitRoom } = useQuizRoom();
   const { startQuizGame, handleBuzzer, submitAnswer, fetchCurrentQuiz } = useLeader(roomId);
-  
-  // 統計更新のステータスを追跡
-  const [statsUpdated, setStatsUpdated] = useState(false);
-  
-  // 以前のルームステータスを追跡
-  const prevStatusRef = useRef<RoomStatus | null>(null);
   
   // ユーザーが現在のクイズで不正解したかどうかを追跡
   const [hasFailedCurrentQuiz, setHasFailedCurrentQuiz] = useState(false);
@@ -126,40 +119,6 @@ function QuizRoomContent() {
       router.push('/quiz');
     }
   };
-
-  // ルームのステータスが完了に変わったときに統計情報を更新
-  useEffect(() => {
-    if (!room || !currentUser || statsUpdated) return;
-    
-    // 非同期処理を行うための内部関数
-    const updateStats = async () => {
-      try {
-        // 引数は1つのみ（roomId）に修正
-        const updated = await updateUserStatsOnRoomComplete(roomId);
-        if (updated) {
-          setStatsUpdated(true);
-          console.log('ユーザー統計情報を更新しました');
-        } else {
-          console.log('統計情報の更新はスキップされました（ユーザー情報なし）');
-          // エラーではないのでゲームプレイは続行
-          setStatsUpdated(true);
-        }
-      } catch (err) {
-        console.error('統計更新エラー:', err);
-        // エラーが発生してもゲームプレイを続行できるように統計更新済みとマーク
-        setStatsUpdated(true);
-      }
-    };
-    
-    // ルームステータスが「待機中」または「進行中」から「完了」に変わった場合
-    if ((prevStatusRef.current === 'waiting' || prevStatusRef.current === 'in_progress') && 
-        room.status === 'completed') {
-      updateStats();
-    }
-    
-    // 現在のステータスを記録
-    prevStatusRef.current = room.status;
-  }, [room, currentUser, roomId, updateUserStatsOnRoomComplete, statsUpdated]);
 
   // displayRoomの計算（roomが存在する場合のみ）
   const displayRoom = room ? (quizRoom || room) : null;

@@ -16,7 +16,6 @@ import {
 import { db, usersDb } from '../../config/firebase';
 import type { QuizRoom, RoomListing } from '../../types/room';
 import { writeMonitor } from '@/utils/firestoreWriteMonitor';
-import { updateAllQuizStats } from './index';
 
 
 // getRoomById関数はparticipationService.tsに統合されました
@@ -77,52 +76,6 @@ export async function fetchAvailableRooms(
   } catch (err) {
     console.error('Error fetching available rooms:', err);
     throw new Error('利用可能なルームの取得中にエラーが発生しました');
-  }
-}
-
-
-/**
- * ルームが完了したとき（全問終了時）に統計を更新する関数
- * @returns {boolean} 統計が更新されたかどうか
- */
-export async function updateUserStatsOnRoomComplete(
-  roomId: string,
-  currentUserId?: string | null
-): Promise<boolean> {
-  // currentUserIdが指定されていない場合は引数として渡されたroomIdから取得する
-  if (!currentUserId) {
-    // ユーザー情報がない場合は早期リターン
-    return false;
-  }
-  
-  try {
-    // ルーム情報を取得
-    const roomRef = doc(db, 'quiz_rooms', roomId);
-    const roomSnap = await getDoc(roomRef);
-    
-    if (!roomSnap.exists()) {
-      console.log('ルームが既に削除されています。統計は別の方法で更新済みの可能性があります。');
-      return true; // エラーではなく成功として扱う
-    }
-    
-    const roomData = roomSnap.data() as QuizRoom;
-    
-    // 既に統計が更新済みの場合はスキップ
-    if (roomData.statsUpdated) {
-      console.log('このルームの統計は既に更新済みです');
-      return true;
-    }
-    
-    // ユーザーの参加情報を確認
-    if (!roomData.participants || !roomData.participants[currentUserId]) {
-      throw new Error('このルームに参加していません');
-    }
-    
-    // 最適化された統計更新を使用
-    return await updateAllQuizStats(roomId, roomData, { uid: currentUserId });
-  } catch (err) {
-    console.error('ルーム統計の更新中にエラーが発生しました:', err);
-    return false;
   }
 }
 

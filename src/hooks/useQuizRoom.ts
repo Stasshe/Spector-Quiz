@@ -1,8 +1,8 @@
 'use client';
 
-import { doc, getDoc, onSnapshot, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { db, usersDb } from '../config/firebase';
 import { useAuth } from '../context/AuthContext';
 import { useQuiz } from '../context/QuizContext';
@@ -17,12 +17,10 @@ import {
   fetchAvailableRooms,
   findOrCreateRoom,
   findOrCreateRoomWithUnit,
-  finishQuiz,
   getRoomById,
   joinRoom,
   leaveRoom,
   subscribeToAvailableRooms,
-  updateUserStatsOnRoomComplete,
   updateAllQuizStats
 } from '../services/quizRoom';
 import { writeMonitor } from '../utils/firestoreWriteMonitor';
@@ -1081,38 +1079,6 @@ export function useQuizRoom() {
   }, [currentUser, isRoomLeader]);
 
   /**
-   * クイズを終了する (リーダー用) - 簡略版
-   * 実際のゲーム終了処理はuseLeaderで実行される
-   */
-  const finishQuizGame = useCallback(async (roomId: string) => {
-    if (!currentUser || !isRoomLeader) {
-      setError('クイズを終了する権限がありません');
-      return false;
-    }
-
-    try {
-      setLoading(true);
-      
-      // ルーム状態を完了に設定（ローカル状態のみ）
-      if (currentRoom) {
-        setCurrentRoom({
-          ...currentRoom,
-          status: 'completed'
-        });
-      }
-      
-      console.log(`[useQuizRoom] ルーム ${roomId} のローカル状態を完了に設定しました`);
-      return true;
-    } catch (err) {
-      console.error('[useQuizRoom] ルーム状態更新に失敗しました', err);
-      setError('ルーム状態の更新に失敗しました');
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  }, [currentUser, isRoomLeader, currentRoom]);
-
-  /**
    * 結果ランキングを取得する
    */
   const fetchResultRanking = useCallback(async (roomId: string) => {
@@ -1213,15 +1179,9 @@ export function useQuizRoom() {
             
             // ルームのステータスが変わったかを確認
             if (previousStatus !== null && previousStatus !== roomData.status) {
-              // ルームが完了状態になったら統計情報を更新
+              // ルームが完了状態になったらログ出力のみ
               if (roomData.status === 'completed') {
-                updateUserStatsOnRoomComplete(docSnap.id).catch(err => {
-                  console.error('統計更新エラー:', err);
-                });
-                
-                // statsUpdatedフラグが設定されない場合のバックアップは無効化
-                // ユーザーが手動で退出するまで結果画面に留まる
-                console.log('クイズが完了しました。統計更新処理が完了しました。ユーザーの操作を待機します。');
+                console.log('クイズが完了しました。統計更新は専用のuseEffectで処理されます。');
               }
             }
             
@@ -1474,7 +1434,6 @@ export function useQuizRoom() {
     availableRooms,
     useRoomListener,
     currentRoom,
-    updateUserStatsOnRoomComplete,
     loading,
     error,
     currentWaitingRoomId,
@@ -1500,7 +1459,6 @@ export function useQuizRoom() {
     
     // ルーム操作
     startQuizGame,
-    finishQuizGame,
     
     // クイズ操作
     handleQuizClick,

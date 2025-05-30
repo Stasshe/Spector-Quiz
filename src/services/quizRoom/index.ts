@@ -232,9 +232,59 @@ export const finishQuiz = async (roomId: string): Promise<boolean> => {
     });
     
     console.log(`[finishQuiz] ルーム ${roomId} のステータスを完了に更新しました`);
+    
+    // 5秒後にルームを自動削除
+    setTimeout(async () => {
+      try {
+        await deleteCompletedRoom(roomId);
+      } catch (error) {
+        console.error(`[finishQuiz] ルーム ${roomId} の自動削除に失敗:`, error);
+      }
+    }, 5000);
+    
     return true;
   } catch (err) {
     console.error('[finishQuiz] ルーム完了処理中にエラー:', err);
+    return false;
+  }
+};
+
+/**
+ * 完了したルームを削除する関数
+ */
+export const deleteCompletedRoom = async (roomId: string): Promise<boolean> => {
+  try {
+    const roomRef = doc(db, 'quiz_rooms', roomId);
+    const roomSnap = await getDoc(roomRef);
+    
+    if (!roomSnap.exists()) {
+      console.log(`[deleteCompletedRoom] ルーム ${roomId} は既に削除されています`);
+      return true;
+    }
+    
+    const roomData = roomSnap.data() as QuizRoom;
+    
+    // 完了状態のルームのみ削除
+    if (roomData.status !== 'completed') {
+      console.warn(`[deleteCompletedRoom] ルーム ${roomId} は完了状態ではありません (状態: ${roomData.status})`);
+      return false;
+    }
+    
+    // 関連する回答データを削除
+    try {
+      await cleanupRoomAnswersById(roomId);
+    } catch (cleanupError) {
+      console.warn(`[deleteCompletedRoom] ルーム ${roomId} の回答データ削除に失敗:`, cleanupError);
+      // 回答削除の失敗はルーム削除をブロックしない
+    }
+    
+    // ルームを削除
+    await deleteDoc(roomRef);
+    console.log(`[deleteCompletedRoom] ルーム ${roomId} を削除しました`);
+    
+    return true;
+  } catch (err) {
+    console.error(`[deleteCompletedRoom] ルーム ${roomId} の削除中にエラー:`, err);
     return false;
   }
 };
@@ -337,7 +387,7 @@ export const updateAllQuizStats = async (
     const userStatsSuccess = await updateUserStats(roomId, roomData, user.uid);
     
     // ルーム完了フラグの設定は削除（ルーム自体が削除されるため不要）
-    // useLeaderのfinishQuizGameで5秒後にルーム全体が削除される
+    
     
     return userStatsSuccess;
   } catch (error) {
