@@ -3,6 +3,7 @@
 import { db, usersDb } from '@/config/firebase';
 import { QuizRoom } from '@/types/room';
 import { ParticipantInfo } from '@/types/user';
+import { deleteAIGeneratedQuizUnit } from '@/services/quizRoom';
 import {
   deleteDoc,
   deleteField,
@@ -247,6 +248,18 @@ export async function leaveRoomService(
       } catch (answersErr) {
         console.warn(`[leaveRoomService] ルーム(${roomId})の回答データ削除中にエラー:`, answersErr);
         // 回答削除のエラーは無視して続行
+      }
+      
+      // AI生成ジャンルの場合、単元を削除
+      try {
+        if (roomData.genre === 'AI生成' && roomData.unitId) {
+          console.log(`[leaveRoomService] AI生成クイズユニットを削除中: ${roomData.unitId}`);
+          await deleteAIGeneratedQuizUnit(roomData.genre, roomData.unitId);
+          console.log(`[leaveRoomService] AI生成クイズユニット削除完了: ${roomData.unitId}`);
+        }
+      } catch (aiCleanupErr) {
+        console.error('[leaveRoomService] AI生成クイズユニット削除エラー:', aiCleanupErr);
+        // クリーンアップ失敗はルーム削除をブロックしない
       }
       
       // ルームを削除
