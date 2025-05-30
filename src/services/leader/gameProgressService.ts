@@ -79,9 +79,8 @@ export class GameProgressService {
       console.log(`[moveToNextQuestion] クイズIDs: ${JSON.stringify(quizIds)}`);
       
       if (nextIndex >= quizIds.length) {
-        // 全問題が終了した場合、ゲーム終了処理を実行
-        console.log('[moveToNextQuestion] 全問題終了 - ゲーム終了処理を開始');
-        await GameProgressService.finishQuizGame(roomId, quizRoom, isLeader);
+        // 全問題が終了した場合、ゲーム終了処理は呼び出し元で実行
+        console.log('[moveToNextQuestion] 全問題終了 - 呼び出し元でゲーム終了処理を実行してください');
         return;
       }
       
@@ -140,10 +139,20 @@ export class GameProgressService {
       } else {
         console.warn('統計更新は失敗しましたが、処理を続行します');
       }
+
+      // AI生成ジャンルの場合、クイズ単元を削除
+      if (quizRoom.genre === 'AI生成' && quizRoom.unitId) {
+        try {
+          await this.deleteAIGeneratedQuizUnit(quizRoom.genre, quizRoom.unitId);
+          console.log(`AI生成クイズ単元を削除しました: ${quizRoom.unitId}`);
+        } catch (error) {
+          console.error('AI生成クイズ単元の削除に失敗しました:', error);
+        }
+      }
       
       console.log(`Quiz room ${roomId} completed - scheduling deletion in 10 seconds`);
       
-      // 10秒後にルームを削除（結果表示と統計更新の時間確保）
+      // 5秒後にルームを削除（結果表示と統計更新の時間確保）
       setTimeout(async () => {
         try {
           // まず、各参加者のcurrentRoomIdをnullに設定して参照を解除
@@ -215,6 +224,37 @@ export class GameProgressService {
           console.error('Failed to mark room as inactive after game finish error:', markError);
         }
       }
+    }
+  }
+
+  // AI生成クイズ単元を削除する（サブコレクション含む）
+  static async deleteAIGeneratedQuizUnit(genre: string, unitId: string) {
+    try {
+      console.log(`[GameProgressService] AI生成クイズ単元削除開始: ${genre}/${unitId}`);
+
+      // サブコレクション（クイズ）を先に削除
+      const quizzesRef = collection(db, 'genres', genre, 'official_quiz_units', unitId, 'quizzes');
+      const quizzesSnapshot = await getDocs(quizzesRef);
+
+      if (!quizzesSnapshot.empty) {
+        console.log(`[GameProgressService] ${quizzesSnapshot.size}個のクイズを削除中...`);
+        
+        // 並列でクイズを削除
+        const deleteQuizPromises = quizzesSnapshot.docs.map(doc => deleteDoc(doc.ref));
+        await Promise.allSettled(deleteQuizPromises);
+        
+        console.log(`[GameProgressService] サブコレクションのクイズを削除完了`);
+      }
+
+      // 単元ドキュメント自体を削除
+      const unitRef = doc(db, 'genres', genre, 'official_quiz_units', unitId);
+      await deleteDoc(unitRef);
+      
+      console.log(`[GameProgressService] AI生成クイズ単元削除完了: ${unitId}`);
+      
+    } catch (error) {
+      console.error(`[GameProgressService] AI生成クイズ単元削除エラー:`, error);
+      throw error;
     }
   }
 }

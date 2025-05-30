@@ -14,6 +14,7 @@ import {
   cleanupRoomAnswers,
   createRoom,
   createRoomWithUnit,
+  deleteAIGeneratedQuizUnit,
   fetchAvailableRooms,
   findOrCreateRoom,
   findOrCreateRoomWithUnit,
@@ -1093,6 +1094,18 @@ export function useQuizRoom() {
       const success = await finishQuiz(roomId);
       
       if (success) {
+        // AI生成クイズの場合はクリーンアップを実行
+        if (currentRoom && currentRoom.genre === 'AI生成' && currentRoom.unitId) {
+          try {
+            console.log(`[useQuizRoom] AI生成クイズユニットを削除中: ${currentRoom.unitId}`);
+            await deleteAIGeneratedQuizUnit(currentRoom.genre, currentRoom.unitId);
+            console.log(`[useQuizRoom] AI生成クイズユニット削除完了: ${currentRoom.unitId}`);
+          } catch (cleanupError) {
+            console.error('[useQuizRoom] AI生成クイズユニット削除エラー:', cleanupError);
+            // クリーンアップ失敗はゲーム終了をブロックしない
+          }
+        }
+        
         // 統計を更新（引数は1つのみに修正）
         await updateUserStatsOnRoomComplete(roomId);
         

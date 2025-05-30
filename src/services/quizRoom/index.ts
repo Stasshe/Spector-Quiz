@@ -3,7 +3,7 @@
 import { db, usersDb, usersAuth } from '@/config/firebase';
 import { SCORING } from '@/config/quizConfig';
 import { QuizRoom } from '@/types/room';
-import { doc, getDoc, updateDoc, serverTimestamp, writeBatch, increment } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, serverTimestamp, writeBatch, increment, collection, getDocs, deleteDoc } from 'firebase/firestore';
 import { hasRankUp, calculateUserRankInfo, generateRankUpMessage } from '@/utils/rankCalculator';
 import { calculateTotalExperience, generateScoreCalculationLog } from '@/utils/scoreCalculator';
 
@@ -356,5 +356,38 @@ export const cleanupRoomAnswers = async (roomId: string): Promise<boolean> => {
   } catch (err) {
     console.error('Error cleaning up room answers:', err);
     return false;
+  }
+};
+
+/**
+ * AI生成クイズ単元を削除する（サブコレクション含む）
+ */
+const deleteAIGeneratedQuizUnit = async (genre: string, unitId: string): Promise<void> => {
+  try {
+    console.log(`[QuizRoom] AI生成クイズ単元削除開始: ${genre}/${unitId}`);
+
+    // サブコレクション（クイズ）を先に削除
+    const quizzesRef = collection(db, 'genres', genre, 'official_quiz_units', unitId, 'quizzes');
+    const quizzesSnapshot = await getDocs(quizzesRef);
+
+    if (!quizzesSnapshot.empty) {
+      console.log(`[QuizRoom] ${quizzesSnapshot.size}個のクイズを削除中...`);
+      
+      // 並列でクイズを削除
+      const deleteQuizPromises = quizzesSnapshot.docs.map(doc => deleteDoc(doc.ref));
+      await Promise.allSettled(deleteQuizPromises);
+      
+      console.log(`[QuizRoom] サブコレクションのクイズを削除完了`);
+    }
+
+    // 単元ドキュメント自体を削除
+    const unitRef = doc(db, 'genres', genre, 'official_quiz_units', unitId);
+    await deleteDoc(unitRef);
+    
+    console.log(`[QuizRoom] AI生成クイズ単元削除完了: ${unitId}`);
+    
+  } catch (error) {
+    console.error(`[QuizRoom] AI生成クイズ単元削除エラー:`, error);
+    throw error;
   }
 };
