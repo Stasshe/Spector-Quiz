@@ -152,10 +152,10 @@ export class AnswerService {
       return;
     }
     
-    // 空文字列の解答をチェック
+    // 空文字列の解答をチェック（ただし、時間切れの場合は強制処理）
     if (!answer || !answer.trim()) {
-      console.log('空の解答は受け付けられません');
-      return;
+      console.log('空の解答 - 時間切れによる強制不正解処理と仮定');
+      // 空の解答は基本的に不正解として処理
     }
     
     try {

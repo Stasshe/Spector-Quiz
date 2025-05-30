@@ -410,6 +410,19 @@ function QuizRoomContent() {
                               console.error('[QuizRoomPage] 回答送信中にエラーが発生しました:', error);
                             }
                           }}
+                          onTimeout={async () => {
+                            try {
+                              console.log('[QuizRoomPage] 回答制限時間切れ - 強制的に不正解処理');
+                              // 時間切れの場合、空の回答で強制送信（不正解扱い）
+                              await submitAnswer('');
+                              
+                              // ローカルの間違えフラグを設定
+                              console.log('[QuizRoomPage] 時間切れのため、ローカルの間違えフラグを設定します');
+                              setHasFailedCurrentQuiz(true);
+                            } catch (error) {
+                              console.error('[QuizRoomPage] 時間切れ処理中にエラーが発生しました:', error);
+                            }
+                          }}
                         />
                       </motion.div>
                     )}

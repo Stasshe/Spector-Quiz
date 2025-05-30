@@ -19,6 +19,7 @@ export default function AnswerInput({ quiz, onSubmit, onTimeout }: AnswerInputPr
   const [submitAttempts, setSubmitAttempts] = useState(0);
   const [timeLeft, setTimeLeft] = useState(TIMING.ANSWER_TIMEOUT / 1000); // 秒単位
   const [isTimerActive, setIsTimerActive] = useState(false);
+  const [isTimeUp, setIsTimeUp] = useState(false); // 時間切れ状態
   const submitTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const networkCheckTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const answerTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -31,6 +32,7 @@ export default function AnswerInput({ quiz, onSubmit, onTimeout }: AnswerInputPr
     if (hasAnsweringRight && !isTimerActive) {
       console.log('回答権を取得 - タイマーを開始します');
       setIsTimerActive(true);
+      setIsTimeUp(false); // 時間切れ状態をリセット
       setTimeLeft(TIMING.ANSWER_TIMEOUT / 1000);
       
       // 1秒ごとにカウントダウン
@@ -38,11 +40,24 @@ export default function AnswerInput({ quiz, onSubmit, onTimeout }: AnswerInputPr
         setTimeLeft(prevTime => {
           const newTime = prevTime - 1;
           
+          // 残り3秒以下でバイブレーション（モバイルデバイスの場合）
+          if (newTime <= 3 && newTime > 0) {
+            if ('vibrate' in navigator) {
+              navigator.vibrate(100); // 100ms のバイブレーション
+            }
+          }
+          
           // 時間切れの場合
           if (newTime <= 0) {
             console.log('回答制限時間切れ - 強制的に不正解処理');
             clearInterval(timer);
             setIsTimerActive(false);
+            setIsTimeUp(true); // 時間切れ状態を設定
+            
+            // 最終警告バイブレーション
+            if ('vibrate' in navigator) {
+              navigator.vibrate([200, 100, 200]); // 長めのパターン
+            }
             
             // 時間切れの場合、空の回答で強制送信（不正解扱い）
             if (onTimeout) {
@@ -165,6 +180,13 @@ export default function AnswerInput({ quiz, onSubmit, onTimeout }: AnswerInputPr
       return;
     }
 
+    // タイマーを停止
+    if (answerTimerRef.current) {
+      clearInterval(answerTimerRef.current);
+      answerTimerRef.current = null;
+    }
+    setIsTimerActive(false);
+
     setIsSubmitting(true);
     setLastSubmitTime(Date.now());
 
@@ -189,6 +211,13 @@ export default function AnswerInput({ quiz, onSubmit, onTimeout }: AnswerInputPr
       console.warn('送信が制限されています');
       return;
     }
+
+    // タイマーを停止
+    if (answerTimerRef.current) {
+      clearInterval(answerTimerRef.current);
+      answerTimerRef.current = null;
+    }
+    setIsTimerActive(false);
 
     setIsSubmitting(true);
     setLastSubmitTime(Date.now());
@@ -231,6 +260,13 @@ export default function AnswerInput({ quiz, onSubmit, onTimeout }: AnswerInputPr
         color: 'text-blue-600 bg-blue-50 border-blue-200'
       };
     }
+    if (isTimeUp) {
+      return {
+        text: '時間切れです！',
+        icon: <FaClock className="mr-2" />,
+        color: 'text-red-600 bg-red-50 border-red-200'
+      };
+    }
     return null;
   };
 
@@ -250,9 +286,22 @@ export default function AnswerInput({ quiz, onSubmit, onTimeout }: AnswerInputPr
           </div>
           {/* 回答制限時間の表示 */}
           {hasAnsweringRight && isTimerActive ? (
-            <div className={`text-sm font-bold ${timeLeft <= 3 ? 'text-red-600 animate-pulse' : 'text-yellow-700'}`}>
-              <FaClock className="inline mr-1" />
-              残り時間: {timeLeft}秒
+            <div className="flex flex-col space-y-2">
+              <div className={`text-sm font-bold flex items-center ${timeLeft <= 3 ? 'text-red-600 animate-pulse' : 'text-yellow-700'}`}>
+                <FaClock className="mr-1" />
+                残り時間: {timeLeft}秒
+              </div>
+              {/* タイマープログレスバー */}
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div 
+                  className={`h-2 rounded-full transition-all duration-1000 ease-linear ${
+                    timeLeft <= 3 ? 'bg-red-500' : timeLeft <= 5 ? 'bg-yellow-500' : 'bg-green-500'
+                  }`}
+                  style={{ 
+                    width: `${(timeLeft / (TIMING.ANSWER_TIMEOUT / 1000)) * 100}%` 
+                  }}
+                />
+              </div>
             </div>
           ) : (
             <div className="text-sm text-yellow-700">
