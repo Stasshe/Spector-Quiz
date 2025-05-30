@@ -40,19 +40,26 @@ export const TIMING = {
 
 
 export const QUIZ_UNIT = {
+  // ルーム関連
   MAX_QUIZES_PER_ROOM: 10, // 各ルームの最大クイズ数
 
-
-  // クイズユニットの最大数
+  // 単元関連
   MAX_UNITS: 100, // 最大100ユニット
-  // クイズユニットの最大問題数
   MAX_QUESTIONS_PER_UNIT: 10, // 各ユニットの最大問題数
-  // クイズユニットの最大選択肢数
-  MAX_CHOICES_PER_QUESTION: 4, // 各問題の最大選択肢数
-  // クイズユニットの最大タイトル長
+  
+  // テキスト長制限
   MAX_TITLE_LENGTH: 50, // タイトルの最大文字数
-  // クイズユニットの最大説明長
   MAX_DESCRIPTION_LENGTH: 200, // 説明の最大文字数
+  MAX_QUESTION_LENGTH: 300, // 問題文の最大文字数
+  MAX_CORRECT_ANSWER_LENGTH: 30, // 正解の最大文字数
+  MAX_CHOICE_LENGTH: 50, // 選択肢の最大文字数
+  MAX_EXPLANATION_LENGTH: 500, // 解説の最大文字数
+  MAX_ACCEPTABLE_ANSWER_LENGTH: 200, // 許容回答の最大文字数
+  
+  // 選択肢関連
+  MIN_CHOICES: 3, // 最小選択肢数
+  MAX_CHOICES: 5, // 最大選択肢数
+  
 }
 
 // スコア関連の設定

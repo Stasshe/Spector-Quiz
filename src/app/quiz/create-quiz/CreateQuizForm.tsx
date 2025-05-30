@@ -8,7 +8,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { FaArrowLeft, FaSpinner, FaUpload } from 'react-icons/fa';
-import { TIMING } from '@/config/quizConfig';
+import { TIMING, QUIZ_UNIT } from '@/config/quizConfig';
 
 // コンポーネントのインポート
 import BasicInfoForm from './components/BasicInfoForm';
@@ -227,8 +227,26 @@ export default function CreateQuizForm() {
       return false;
     }
     
+    // タイトルの長さチェック
+    if (title.length > QUIZ_UNIT.MAX_TITLE_LENGTH) {
+      setErrorMessage(`単元のタイトルは${QUIZ_UNIT.MAX_TITLE_LENGTH}文字以内で入力してください`);
+      return false;
+    }
+    
+    // 説明の長さチェック
+    if (description.length > QUIZ_UNIT.MAX_DESCRIPTION_LENGTH) {
+      setErrorMessage(`単元の説明は${QUIZ_UNIT.MAX_DESCRIPTION_LENGTH}文字以内で入力してください`);
+      return false;
+    }
+    
     if (quizzes.length === 0) {
       setErrorMessage('少なくとも1つのクイズを追加してください');
+      return false;
+    }
+    
+    // クイズ数の上限チェック
+    if (quizzes.length > QUIZ_UNIT.MAX_QUESTIONS_PER_UNIT) {
+      setErrorMessage(`1つの単元には最大${QUIZ_UNIT.MAX_QUESTIONS_PER_UNIT}個までのクイズを追加できます`);
       return false;
     }
     

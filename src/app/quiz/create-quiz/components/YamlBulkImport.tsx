@@ -4,6 +4,7 @@ import { FC, useState } from 'react';
 import { FaFileImport, FaSpinner } from 'react-icons/fa';
 import yaml from 'js-yaml';
 import { Quiz, QuizType } from '@/types/quiz';
+import { QUIZ_UNIT } from '@/config/quizConfig';
 
 
 interface YamlBulkImportProps {
@@ -67,8 +68,8 @@ const YamlBulkImport: FC<YamlBulkImportProps> = ({
     if (!yamlQuiz.title || typeof yamlQuiz.title !== 'string' || !yamlQuiz.title.trim()) {
       errors.push(`${index + 1}番目のクイズでタイトルが入力されていません`);
     } else {
-      if (yamlQuiz.title.length > 50) {
-        errors.push(`${index + 1}番目のクイズでエラー: タイトルは50文字以内で入力してください`);
+      if (yamlQuiz.title.length > QUIZ_UNIT.MAX_TITLE_LENGTH) {
+        errors.push(`${index + 1}番目のクイズでエラー: タイトルは${QUIZ_UNIT.MAX_TITLE_LENGTH}文字以内で入力してください`);
       }
     }
 
@@ -76,8 +77,8 @@ const YamlBulkImport: FC<YamlBulkImportProps> = ({
     if (!yamlQuiz.question || typeof yamlQuiz.question !== 'string' || !yamlQuiz.question.trim()) {
       errors.push(`${index + 1}番目のクイズでエラー: 問題文が入力されていません`);
     } else {
-      if (yamlQuiz.question.length > 100) {
-        errors.push(`${index + 1}番目のクイズでエラー: 問題文は100文字以内で入力してください`);
+      if (yamlQuiz.question.length > QUIZ_UNIT.MAX_QUESTION_LENGTH) {
+        errors.push(`${index + 1}番目のクイズでエラー: 問題文は${QUIZ_UNIT.MAX_QUESTION_LENGTH}文字以内で入力してください`);
       }
     }
 
@@ -88,8 +89,8 @@ const YamlBulkImport: FC<YamlBulkImportProps> = ({
       errors.push(`${index + 1}番目のクイズでエラー: 正解が入力されていません`);
     } else {
       const correctAnswerStr = String(yamlQuiz.correctAnswer);
-      if (correctAnswerStr.length > 30) {
-        errors.push(`${index + 1}番目のクイズでエラー: 正解は30文字以内で入力してください`);
+      if (correctAnswerStr.length > QUIZ_UNIT.MAX_CORRECT_ANSWER_LENGTH) {
+        errors.push(`${index + 1}番目のクイズでエラー: 正解は${QUIZ_UNIT.MAX_CORRECT_ANSWER_LENGTH}文字以内で入力してください`);
       }
     }
 
@@ -104,11 +105,11 @@ const YamlBulkImport: FC<YamlBulkImportProps> = ({
       if (!yamlQuiz.choices || !Array.isArray(yamlQuiz.choices)) {
         errors.push(`${index + 1}番目のクイズでエラー: 選択式問題には選択肢（choices）が必要です`);
       } else {
-        if (yamlQuiz.choices.length < 3) {
-          errors.push(`${index + 1}番目のクイズでエラー: 選択肢は最低3つ必要です`);
+        if (yamlQuiz.choices.length < QUIZ_UNIT.MIN_CHOICES) {
+          errors.push(`${index + 1}番目のクイズでエラー: 選択肢は最低${QUIZ_UNIT.MIN_CHOICES}つ必要です`);
         }
-        if (yamlQuiz.choices.length > 5) {
-          errors.push(`${index + 1}番目のクイズでエラー: 選択肢は最大5つまでです`);
+        if (yamlQuiz.choices.length > QUIZ_UNIT.MAX_CHOICES) {
+          errors.push(`${index + 1}番目のクイズでエラー: 選択肢は最大${QUIZ_UNIT.MAX_CHOICES}つまでです`);
         }
 
         // 選択肢が全て入力されているかチェック
@@ -121,8 +122,8 @@ const YamlBulkImport: FC<YamlBulkImportProps> = ({
 
         // 選択肢の長さチェック
         yamlQuiz.choices.forEach((choice: any, i: number) => {
-          if (typeof choice === 'string' && choice.length > 100) {
-            errors.push(`${index + 1}番目のクイズでエラー: 選択肢${i + 1}は100文字以内で入力してください`);
+          if (typeof choice === 'string' && choice.length > QUIZ_UNIT.MAX_CHOICE_LENGTH) {
+            errors.push(`${index + 1}番目のクイズでエラー: 選択肢${i + 1}は${QUIZ_UNIT.MAX_CHOICE_LENGTH}文字以内で入力してください`);
           }
         });
 
@@ -162,8 +163,8 @@ const YamlBulkImport: FC<YamlBulkImportProps> = ({
         yamlQuiz.acceptableAnswers.forEach((answer: any, i: number) => {
           if (typeof answer !== 'string') {
             errors.push(`${index + 1}番目のクイズでエラー: 許容回答${i + 1}は文字列である必要があります`);
-          } else if (answer.length > 200) {
-            errors.push(`${index + 1}番目のクイズでエラー: 許容回答${i + 1}は200文字以内で入力してください`);
+          } else if (answer.length > QUIZ_UNIT.MAX_ACCEPTABLE_ANSWER_LENGTH) {
+            errors.push(`${index + 1}番目のクイズでエラー: 許容回答${i + 1}は${QUIZ_UNIT.MAX_ACCEPTABLE_ANSWER_LENGTH}文字以内で入力してください`);
           }
         });
       }
@@ -171,8 +172,8 @@ const YamlBulkImport: FC<YamlBulkImportProps> = ({
 
     // 解説の検証（オプション）
     if (yamlQuiz.explanation && typeof yamlQuiz.explanation === 'string') {
-      if (yamlQuiz.explanation.length > 500) {
-        errors.push(`${index + 1}番目のクイズでエラー: 解説は500文字以内で入力してください`);
+      if (yamlQuiz.explanation.length > QUIZ_UNIT.MAX_EXPLANATION_LENGTH) {
+        errors.push(`${index + 1}番目のクイズでエラー: 解説は${QUIZ_UNIT.MAX_EXPLANATION_LENGTH}文字以内で入力してください`);
       }
     }
 
