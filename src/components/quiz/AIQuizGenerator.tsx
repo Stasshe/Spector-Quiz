@@ -160,12 +160,12 @@ const AIQuizGenerator: React.FC<AIQuizGeneratorProps> = ({
           </label>
           <select
             value={questionType}
-            onChange={(e) => setQuestionType(e.target.value as 'mixed' | 'multiple_choice' | 'input')}
+            onChange={(e) => setQuestionType(e.target.value as 'multiple_choice' | 'mixed' | 'input')}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
             disabled={isProcessing}
           >
-            <option value="mixed">混合（選択式 + 記述式）</option>
             <option value="multiple_choice">選択式のみ</option>
+            <option value="mixed">混合（選択式 + 記述式）</option>
             <option value="input">記述式のみ</option>
           </select>
         </div>
