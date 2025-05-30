@@ -362,7 +362,7 @@ export const cleanupRoomAnswers = async (roomId: string): Promise<boolean> => {
 /**
  * AI生成クイズ単元を削除する（サブコレクション含む）
  */
-const deleteAIGeneratedQuizUnit = async (genre: string, unitId: string): Promise<void> => {
+export const deleteAIGeneratedQuizUnit = async (genre: string, unitId: string): Promise<void> => {
   try {
     console.log(`[QuizRoom] AI生成クイズ単元削除開始: ${genre}/${unitId}`);
 
