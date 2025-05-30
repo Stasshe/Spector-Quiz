@@ -8,6 +8,7 @@ import { useQuiz } from '@/context/QuizContext';
 import { useQuizHook } from '@/hooks/useQuiz';
 import { useQuizRoom } from '@/hooks/useQuizRoom';
 import { genreClasses } from '@/constants/genres';
+import { TIMING } from '@/config/quizConfig';
 import RoomSwitchConfirmModal from '@/components/layout/RoomSwitchConfirmModal';
 import { 
   FaBookOpen,
@@ -50,6 +51,7 @@ export default function QuizPage() {
   const [loading, setLoading] = useState(false);
   const [waitingRooms, setWaitingRooms] = useState<RoomListing[]>([]);
   const [sortBy, setSortBy] = useState<'participants' | 'popularity' | 'newest'>('participants');
+  const [isButtonsDisabled, setIsButtonsDisabled] = useState(false);
   const router = useRouter();
 
   const [waitingRoomsLastFetch, setWaitingRoomsLastFetch] = useState(0);
@@ -177,7 +179,15 @@ export default function QuizPage() {
 
   // 既存のルームに参加
   const joinExistingRoom = async (roomId: string) => {
+    // ボタン無効化中の場合は処理を停止
+    if (isButtonsDisabled) {
+      console.log('[page.joinExistingRoom] ボタンが無効化中のため処理をスキップ');
+      return;
+    }
+
     try {
+      // ボタンを無効化
+      setIsButtonsDisabled(true);
       setLoading(true);
       
       console.log(`[page.joinExistingRoom] ルーム参加開始: ${roomId}`);
@@ -213,6 +223,11 @@ export default function QuizPage() {
       if (!confirmRoomSwitch) {
         setLoading(false);
       }
+      
+      // 設定した時間後にボタンを再有効化
+      setTimeout(() => {
+        setIsButtonsDisabled(false);
+      }, TIMING.ROOM_JOIN_BUTTON_DISABLE_TIME);
     }
   };
 
@@ -260,8 +275,15 @@ export default function QuizPage() {
 
   // 単元でプレイする
   const playWithUnit = async (genre: string, unitName: string, unitId: string) => {
+    // ボタンが無効化されている場合は早期リターン
+    if (isButtonsDisabled) {
+      return;
+    }
+
     try {
       setLoading(true);
+      // ボタン無効化
+      setIsButtonsDisabled(true);
       
       try {
         if (!unitId) {
@@ -312,6 +334,11 @@ export default function QuizPage() {
       if (!confirmRoomSwitch) {
         setLoading(false);
       }
+      
+      // ボタン再有効化 (一定時間後)
+      setTimeout(() => {
+        setIsButtonsDisabled(false);
+      }, TIMING.ROOM_JOIN_BUTTON_DISABLE_TIME);
     }
   };
 
@@ -561,7 +588,12 @@ export default function QuizPage() {
                     <div className="flex justify-end mt-2">
                       <button
                         onClick={() => joinExistingRoom(room.roomId)}
-                        className="w-full flex items-center justify-center p-2 rounded-lg bg-indigo-500 text-white hover:bg-indigo-600 transition-colors"
+                        disabled={isButtonsDisabled}
+                        className={`w-full flex items-center justify-center p-2 rounded-lg transition-colors ${
+                          isButtonsDisabled 
+                            ? 'bg-gray-400 text-gray-600 cursor-not-allowed' 
+                            : 'bg-indigo-500 text-white hover:bg-indigo-600'
+                        }`}
                       >
                         <FaPlay className="mr-2" /> 参加する
                       </button>
@@ -632,7 +664,12 @@ export default function QuizPage() {
                               <div className="flex justify-center">
                                 <button
                                   onClick={() => playWithUnit(selectedGenre, unit.name, unit.id)}
-                                  className="w-full flex items-center justify-center p-2 rounded-lg bg-indigo-500 text-white hover:bg-indigo-600 transition-colors"
+                                  disabled={isButtonsDisabled}
+                                  className={`w-full flex items-center justify-center p-2 rounded-lg transition-colors ${
+                                    isButtonsDisabled
+                                      ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
+                                      : 'bg-indigo-500 text-white hover:bg-indigo-600'
+                                  }`}
                                 >
                                   <FaPlay className="mr-2" /> {waitingRoomCount > 0 ? '参加する' : 'プレイする'}
                                 </button>

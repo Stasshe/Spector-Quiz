@@ -13,6 +13,9 @@ export const TIMING = {
   // 解答制限時間（早押し後の制限時間）
   ANSWER_TIMEOUT: 8000, // 8秒
   
+  // ルーム参加ボタン無効化時間（連打防止）
+  ROOM_JOIN_BUTTON_DISABLE_TIME: 4000, // 秒
+  
   // 問題の制限時間（デフォルト）
   QUESTION_TIMEOUT: 30000,
   // ジャンル別制限時間（ミリ秒）
