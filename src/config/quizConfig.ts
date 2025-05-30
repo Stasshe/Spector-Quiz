@@ -48,7 +48,7 @@ export const QUIZ_UNIT = {
 
   // 単元関連
   MAX_UNITS: 100, // 最大100ユニット
-  MAX_QUESTIONS_PER_UNIT: 10, // 各ユニットの最大問題数
+  MAX_QUESTIONS_PER_UNIT: 100, // 各ユニットの最大問題数
   
   // テキスト長制限
   MAX_TITLE_LENGTH: 50, // タイトルの最大文字数
