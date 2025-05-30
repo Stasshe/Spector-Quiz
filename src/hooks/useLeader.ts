@@ -1399,8 +1399,8 @@ export function useLeader(roomId: string) {
         } catch (error) {
           console.error('解答権リセット中にエラーが発生しました:', error);
         }
-      }, 1500); // 1.5秒後にチェック
-      
+      }, 1000); // 1秒後にチェック
+
     } catch (error) {
       console.error('不正解時の自動進行処理でエラーが発生しました:', error);
     }

@@ -65,47 +65,47 @@ const YamlBulkImport: FC<YamlBulkImportProps> = ({
 
     // タイトルの検証
     if (!yamlQuiz.title || typeof yamlQuiz.title !== 'string' || !yamlQuiz.title.trim()) {
-      errors.push(String(index),'番目のクイズでタイトルが入力されていません');
+      errors.push(`${index + 1}番目のクイズでタイトルが入力されていません`);
     } else {
       if (yamlQuiz.title.length > 50) {
-        errors.push(String(index),'番目のクイズでエラー,タイトルは50文字以内で入力してください');
+        errors.push(`${index + 1}番目のクイズでエラー: タイトルは50文字以内で入力してください`);
       }
     }
 
     // 問題文の検証
     if (!yamlQuiz.question || typeof yamlQuiz.question !== 'string' || !yamlQuiz.question.trim()) {
-      errors.push(String(index),'番目のクイズでエラー,問題文が入力されていません');
+      errors.push(`${index + 1}番目のクイズでエラー: 問題文が入力されていません`);
     } else {
       if (yamlQuiz.question.length > 100) {
-        errors.push(String(index),'番目のクイズでエラー,問題文は100文字以内で入力してください');
+        errors.push(`${index + 1}番目のクイズでエラー: 問題文は100文字以内で入力してください`);
       }
     }
 
     // 正解の検証
     if (!yamlQuiz.correctAnswer || typeof yamlQuiz.correctAnswer !== 'string' || !yamlQuiz.correctAnswer.trim()) {
-      errors.push(String(index),'番目のクイズでエラー,正解が入力されていません');
+      errors.push(`${index + 1}番目のクイズでエラー: 正解が入力されていません`);
     } else {
       if (yamlQuiz.correctAnswer.length > 30) {
-        errors.push(String(index),'番目のクイズでエラー,正解は30文字以内で入力してください');
+        errors.push(`${index + 1}番目のクイズでエラー: 正解は30文字以内で入力してください`);
       }
     }
 
     // タイプの検証
     const validTypes = ['multiple_choice', 'input'];
     if (!yamlQuiz.type || !validTypes.includes(yamlQuiz.type)) {
-      errors.push(`${String(index)}番目のクイズでエラー,問題タイプが無効です。使用可能なタイプ: ${validTypes.join(', ')}`);
+      errors.push(`${index + 1}番目のクイズでエラー: 問題タイプが無効です。使用可能なタイプ: ${validTypes.join(', ')}`);
     }
 
     // 選択式問題の場合の追加検証
     if (yamlQuiz.type === 'multiple_choice') {
       if (!yamlQuiz.choices || !Array.isArray(yamlQuiz.choices)) {
-        errors.push(String(index),'番目のクイズでエラー,選択式問題には選択肢（choices）が必要です');
+        errors.push(`${index + 1}番目のクイズでエラー: 選択式問題には選択肢（choices）が必要です`);
       } else {
         if (yamlQuiz.choices.length < 3) {
-          errors.push(String(index),'番目のクイズでエラー,選択肢は最低3つ必要です');
+          errors.push(`${index + 1}番目のクイズでエラー: 選択肢は最低3つ必要です`);
         }
         if (yamlQuiz.choices.length > 5) {
-          errors.push(String(index),'番目のクイズでエラー,選択肢は最大5つまでです');
+          errors.push(`${index + 1}番目のクイズでエラー: 選択肢は最大5つまでです`);
         }
 
         // 選択肢が全て入力されているかチェック
@@ -113,13 +113,13 @@ const YamlBulkImport: FC<YamlBulkImportProps> = ({
           !choice || typeof choice !== 'string' || !choice.trim()
         );
         if (emptyChoices.length > 0) {
-          errors.push(String(index),'番目のクイズでエラー,全ての選択肢を入力してください');
+          errors.push(`${index + 1}番目のクイズでエラー: 全ての選択肢を入力してください`);
         }
 
         // 選択肢の長さチェック
         yamlQuiz.choices.forEach((choice: any, i: number) => {
           if (typeof choice === 'string' && choice.length > 100) {
-            errors.push(`${String(index)}番目のクイズでエラー,選択肢${i + 1}は100文字以内で入力してください`);
+            errors.push(`${index + 1}番目のクイズでエラー: 選択肢${i + 1}は100文字以内で入力してください`);
           }
         });
 
@@ -131,7 +131,7 @@ const YamlBulkImport: FC<YamlBulkImportProps> = ({
              parseInt(yamlQuiz.correctAnswer) < yamlQuiz.choices.length);
           
           if (!isValidAnswer) {
-            errors.push(String(index),'番目のクイズでエラー,正解が選択肢に含まれていません（選択肢のテキストまたは0から始まるインデックス番号を指定してください）');
+            errors.push(`${index + 1}番目のクイズでエラー: 正解が選択肢に含まれていません（選択肢のテキストまたは0から始まるインデックス番号を指定してください）`);
           }
         }
 
@@ -141,7 +141,7 @@ const YamlBulkImport: FC<YamlBulkImportProps> = ({
           .filter((choice: string) => choice !== '');
         const uniqueChoices = new Set(trimmedChoices);
         if (uniqueChoices.size !== trimmedChoices.length) {
-          errors.push(String(index),'番目のクイズでエラー,選択肢に重複があります');
+          errors.push(`${index + 1}番目のクイズでエラー: 選択肢に重複があります`);
         }
       }
     }
@@ -150,14 +150,14 @@ const YamlBulkImport: FC<YamlBulkImportProps> = ({
     if (yamlQuiz.type === 'input') {
       // 許容回答の検証
       if (yamlQuiz.acceptableAnswers && !Array.isArray(yamlQuiz.acceptableAnswers)) {
-        errors.push('許容回答（acceptableAnswers）は配列である必要があります');
+        errors.push(`${index + 1}番目のクイズでエラー: 許容回答（acceptableAnswers）は配列である必要があります`);
       } else if (yamlQuiz.acceptableAnswers) {
         // 許容回答の各項目をチェック
         yamlQuiz.acceptableAnswers.forEach((answer: any, i: number) => {
           if (typeof answer !== 'string') {
-            errors.push(`${String(index)}番目のクイズでエラー,許容回答${i + 1}は文字列である必要があります`);
+            errors.push(`${index + 1}番目のクイズでエラー: 許容回答${i + 1}は文字列である必要があります`);
           } else if (answer.length > 200) {
-            errors.push(`${String(index)}番目のクイズでエラー,許容回答${i + 1}は200文字以内で入力してください`);
+            errors.push(`${index + 1}番目のクイズでエラー: 許容回答${i + 1}は200文字以内で入力してください`);
           }
         });
       }
@@ -166,7 +166,7 @@ const YamlBulkImport: FC<YamlBulkImportProps> = ({
     // 解説の検証（オプション）
     if (yamlQuiz.explanation && typeof yamlQuiz.explanation === 'string') {
       if (yamlQuiz.explanation.length > 500) {
-        errors.push(`${String(index)}番目のクイズでエラー,解説は500文字以内で入力してください`);
+        errors.push(`${index + 1}番目のクイズでエラー: 解説は500文字以内で入力してください`);
       }
     }
 
@@ -223,7 +223,7 @@ const YamlBulkImport: FC<YamlBulkImportProps> = ({
             if (yamlQuiz.type === 'multiple_choice' && yamlQuiz.choices) {
               // 数字のみの文字列かつ有効なインデックスの場合
               if (/^\d+$/.test(yamlQuiz.correctAnswer)) {
-                const index = parseInt(yamlQuiz.correctAnswer);
+                const index = parseInt(yamlQuiz.correctAnswer, 10);
                 if (index >= 0 && index < yamlQuiz.choices.length) {
                   correctAnswer = yamlQuiz.choices[index];
                 }
