@@ -82,10 +82,13 @@ const YamlBulkImport: FC<YamlBulkImportProps> = ({
     }
 
     // 正解の検証
-    if (!yamlQuiz.correctAnswer || typeof yamlQuiz.correctAnswer !== 'string' || !yamlQuiz.correctAnswer.trim()) {
+    if (yamlQuiz.correctAnswer === undefined || yamlQuiz.correctAnswer === null || 
+        (typeof yamlQuiz.correctAnswer !== 'string' && typeof yamlQuiz.correctAnswer !== 'number') ||
+        (typeof yamlQuiz.correctAnswer === 'string' && !yamlQuiz.correctAnswer.trim())) {
       errors.push(`${index + 1}番目のクイズでエラー: 正解が入力されていません`);
     } else {
-      if (yamlQuiz.correctAnswer.length > 30) {
+      const correctAnswerStr = String(yamlQuiz.correctAnswer);
+      if (correctAnswerStr.length > 30) {
         errors.push(`${index + 1}番目のクイズでエラー: 正解は30文字以内で入力してください`);
       }
     }
@@ -124,11 +127,14 @@ const YamlBulkImport: FC<YamlBulkImportProps> = ({
         });
 
         // 正解が選択肢に含まれているかチェック（テキストまたはインデックス）
-        if (yamlQuiz.correctAnswer && yamlQuiz.choices) {
+        if (yamlQuiz.correctAnswer !== undefined && yamlQuiz.correctAnswer !== null && yamlQuiz.choices) {
+          const correctAnswerStr = String(yamlQuiz.correctAnswer);
+          const correctAnswerNum = typeof yamlQuiz.correctAnswer === 'number' ? yamlQuiz.correctAnswer : 
+            (/^\d+$/.test(correctAnswerStr) ? parseInt(correctAnswerStr, 10) : null);
+          
           const isValidAnswer = yamlQuiz.choices.includes(yamlQuiz.correctAnswer) || 
-            (/^\d+$/.test(yamlQuiz.correctAnswer) && 
-             parseInt(yamlQuiz.correctAnswer) >= 0 && 
-             parseInt(yamlQuiz.correctAnswer) < yamlQuiz.choices.length);
+            yamlQuiz.choices.includes(correctAnswerStr) ||
+            (correctAnswerNum !== null && correctAnswerNum >= 0 && correctAnswerNum < yamlQuiz.choices.length);
           
           if (!isValidAnswer) {
             errors.push(`${index + 1}番目のクイズでエラー: 正解が選択肢に含まれていません（選択肢のテキストまたは0から始まるインデックス番号を指定してください）`);
@@ -221,9 +227,12 @@ const YamlBulkImport: FC<YamlBulkImportProps> = ({
             // correctAnswerがインデックス番号の場合、実際の選択肢テキストに変換
             let correctAnswer = yamlQuiz.correctAnswer;
             if (yamlQuiz.type === 'multiple_choice' && yamlQuiz.choices) {
-              // 数字のみの文字列かつ有効なインデックスの場合
-              if (/^\d+$/.test(yamlQuiz.correctAnswer)) {
-                const index = parseInt(yamlQuiz.correctAnswer, 10);
+              // 数値型の場合または数字のみの文字列の場合
+              const correctAnswerStr = String(yamlQuiz.correctAnswer);
+              const isNumericIndex = typeof yamlQuiz.correctAnswer === 'number' || /^\d+$/.test(correctAnswerStr);
+              
+              if (isNumericIndex) {
+                const index = typeof yamlQuiz.correctAnswer === 'number' ? yamlQuiz.correctAnswer : parseInt(correctAnswerStr, 10);
                 if (index >= 0 && index < yamlQuiz.choices.length) {
                   correctAnswer = yamlQuiz.choices[index];
                 }
@@ -235,7 +244,7 @@ const YamlBulkImport: FC<YamlBulkImportProps> = ({
               question: yamlQuiz.question,
               type: quizType,
               choices: yamlQuiz.choices || [],
-              correctAnswer: correctAnswer,
+              correctAnswer: String(correctAnswer),
               acceptableAnswers: yamlQuiz.acceptableAnswers || [],
               explanation: yamlQuiz.explanation || '',
               genre,
