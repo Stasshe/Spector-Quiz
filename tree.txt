@@ -1,13 +1,15 @@
 .
 ├── Developer-Management
 │   ├── Markdown
-│   │   ├── CERTIFICATION.md
-│   │   ├── Certificate2.md
-│   │   ├── DB-structure.md
-│   │   ├── OPTIMIZATION_SUMMARY.md
-│   │   ├── QUOTA_OPTIMIZATION_REPORT.md
-│   │   ├── firebase.quota.md
-│   │   └── test-output.md
+│   │   ├── QUIZ-FLOW-DIAGRAM.md
+│   │   └── old
+│   │       ├── CERTIFICATION.md
+│   │       ├── Certificate2.md
+│   │       ├── DB-structure.md
+│   │       ├── OPTIMIZATION_SUMMARY.md
+│   │       ├── QUOTA_OPTIMIZATION_REPORT.md
+│   │       ├── firebase.quota.md
+│   │       └── test-output.md
 │   └── official-quiz
 │       ├── 世界史
 │       │   ├── 中世
@@ -31,29 +33,126 @@
 │       │       ├── 市民革命.yaml
 │       │       ├── 帝国主義.yaml
 │       │       └── 産業革命.yaml
-│       └── 日本史
-│           ├── 中世
-│           │   ├── 室町時代.yaml
-│           │   ├── 戦国時代.yaml
-│           │   └── 鎌倉時代.yaml
-│           ├── 古代
-│           │   ├── 古墳時代.yaml
-│           │   ├── 奈良時代.yaml
-│           │   ├── 平安時代.yaml
-│           │   ├── 弥生時代.yaml
-│           │   ├── 縄文時代.yaml
-│           │   └── 飛鳥時代.yaml
-│           ├── 現代
-│           │   ├── 令和.yaml
-│           │   ├── 平成.yaml
-│           │   └── 昭和後期.yaml
-│           ├── 近世
-│           │   ├── 安土桃山時代.yaml
-│           │   └── 江戸時代.yaml
-│           └── 近代
-│               ├── 大正時代.yaml
-│               ├── 明治時代.yaml
-│               └── 昭和前期.yaml
+│       ├── 情報
+│       │   ├── 基礎
+│       │   │   ├── コンピュータの基礎.yaml
+│       │   │   └── プログラミング入門.yaml
+│       │   └── 応用
+│       │       ├── セキュリティ.yaml
+│       │       ├── データベース.yaml
+│       │       └── ネットワーク.yaml
+│       ├── 政治経済
+│       │   ├── 政治
+│       │   │   ├── 国際政治.yaml
+│       │   │   ├── 政治思想.yaml
+│       │   │   └── 日本の政治.yaml
+│       │   ├── 現代社会
+│       │   │   ├── 国際関係.yaml
+│       │   │   ├── 情報社会.yaml
+│       │   │   └── 環境問題.yaml
+│       │   └── 経済
+│       │       ├── マクロ経済.yaml
+│       │       ├── ミクロ経済.yaml
+│       │       ├── 市場経済.yaml
+│       │       └── 経済の基礎.yaml
+│       ├── 数学
+│       │   ├── ベクトル
+│       │   │   ├── ベクトルの基礎.yaml
+│       │   │   └── ベクトルの演算.yaml
+│       │   ├── 数A
+│       │   │   ├── 平面図形.yaml
+│       │   │   ├── 座標幾何.yaml
+│       │   │   └── 空間図形.yaml
+│       │   ├── 数C
+│       │   │   └── 複素数平面.yaml
+│       │   ├── 数I
+│       │   │   ├── 2次方程式.yaml
+│       │   │   ├── 三角関数.yaml
+│       │   │   └── 因数分解.yaml
+│       │   ├── 数II
+│       │   │   ├── 微分.yaml
+│       │   │   ├── 数列.yaml
+│       │   │   └── 積分.yaml
+│       │   └── 数学Ⅲ
+│       │       ├── 微分.yaml
+│       │       ├── 極限.yaml
+│       │       └── 積分.yaml
+│       ├── 日本史
+│       │   ├── 中世
+│       │   │   ├── 室町時代.yaml
+│       │   │   ├── 戦国時代.yaml
+│       │   │   └── 鎌倉時代.yaml
+│       │   ├── 古代
+│       │   │   ├── 古墳時代.yaml
+│       │   │   ├── 奈良時代.yaml
+│       │   │   ├── 平安時代.yaml
+│       │   │   ├── 弥生時代.yaml
+│       │   │   ├── 縄文時代.yaml
+│       │   │   └── 飛鳥時代.yaml
+│       │   ├── 現代
+│       │   │   ├── 令和.yaml
+│       │   │   ├── 平成.yaml
+│       │   │   └── 昭和後期.yaml
+│       │   ├── 近世
+│       │   │   ├── 安土桃山時代.yaml
+│       │   │   └── 江戸時代.yaml
+│       │   └── 近代
+│       │       ├── 大正時代.yaml
+│       │       ├── 明治時代.yaml
+│       │       └── 昭和前期.yaml
+│       ├── 物理
+│       │   ├── 光学
+│       │   │   ├── レンズ.yaml
+│       │   │   ├── 光の性質.yaml
+│       │   │   └── 干渉.yaml
+│       │   ├── 力学
+│       │   │   ├── エネルギー.yaml
+│       │   │   ├── 波動.yaml
+│       │   │   └── 運動の法則.yaml
+│       │   ├── 原子物理
+│       │   │   ├── 原子構造.yaml
+│       │   │   ├── 放射線.yaml
+│       │   │   └── 核反応.yaml
+│       │   ├── 波動
+│       │   │   ├── 光波.yaml
+│       │   │   └── 音波.yaml
+│       │   ├── 熱力学
+│       │   │   ├── エネルギー変換.yaml
+│       │   │   └── 熱の移動.yaml
+│       │   └── 電磁気
+│       │       ├── 磁場.yaml
+│       │       ├── 電場.yaml
+│       │       └── 電磁誘導.yaml
+│       ├── 英語
+│       │   ├── 速読
+│       │   │   ├── エッセイ.yaml
+│       │   │   ├── ニュース記事.yaml
+│       │   │   └── 小説.yaml
+│       │   └── 長文読解
+│       │       ├── エッセイ.yaml
+│       │       ├── ニュース記事.yaml
+│       │       └── 小説.yaml
+│       └── 雑学
+│           ├── TV・映画
+│           │   ├── アニメ.yaml
+│           │   ├── 人気ドラマ.yaml
+│           │   └── 映画の名作.yaml
+│           ├── スポーツ
+│           │   ├── オリンピック.yaml
+│           │   ├── サッカー.yaml
+│           │   └── 野球.yaml
+│           ├── 最近のニュース
+│           │   ├── 国内ニュース.yaml
+│           │   ├── 国際ニュース.yaml
+│           │   └── 経済ニュース.yaml
+│           ├── 生活
+│           │   ├── 健康.yaml
+│           │   ├── 趣味・娯楽.yaml
+│           │   └── 食文化.yaml
+│           └── 科学
+│               ├── 化学.yaml
+│               ├── 物理.yaml
+│               └── 生物.yaml
 ├── LICENSE
 ├── README.md
 ├── firebase.rules
@@ -129,6 +228,7 @@
 │   │   └── quiz
 │   │       ├── AnswerInput
 │   │       │   └── index.tsx
+│   │       ├── CountdownTimer.tsx
 │   │       ├── ParticipantList
 │   │       │   └── index.tsx
 │   │       ├── QuizQuestion
@@ -175,9 +275,9 @@
 ├── tsconfig.tsbuildinfo
 └── version
 
-51 directories, 124 files
+82 directories, 193 files
 
 src/*.ts, *.tsx の統計:
-合計行数: 14925
-合計文字数: 495236
-合計ファイルサイズ(bytes): 574347
+合計行数: 15390
+合計文字数: 515509
+合計ファイルサイズ(bytes): 597952
