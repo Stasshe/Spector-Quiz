@@ -438,7 +438,7 @@ export class AnswerService {
             roomRef,
             moveToNextQuestion
           );
-        }, 1000); // 1.0秒後に状況をチェック
+        }, 500); // 1.0秒 → 0.5秒に短縮
       } else {
         console.log('[非リーダー] 不正解のため、リーダーによる処理を待機します');
         // 非リーダーの場合、リーダーが処理しない場合のフォールバック
@@ -697,7 +697,7 @@ export class AnswerService {
     try {
       console.log('不正解時の自動進行処理を開始します');
       
-      // 1.5秒後に全員の解答状況をチェック（リーダーが処理）
+      // 0.8秒後に全員の解答状況をチェック（リーダーが処理）
       setTimeout(async () => {
         try {
           console.log('間違えた答えの後、全員の解答状況をチェックします');
@@ -763,7 +763,7 @@ export class AnswerService {
         } catch (error) {
           console.error('解答権リセット中にエラーが発生しました:', error);
         }
-      }, 1000); // 1秒後にチェック
+      }, 500); // 0.5秒後にチェック
 
     } catch (error) {
       console.error('不正解時の自動進行処理でエラーが発生しました:', error);
