@@ -109,6 +109,8 @@ export class AIQuizGenerationService {
     questionType: 'mixed' | 'multiple_choice' | 'input'
   ): string {
 
+    const isEnLongPassage = topic.includes('英語長文')||topic.includes('長文')||topic.includes('英語') ? true : false;
+
     const typeDescription: Record<'mixed' | 'multiple_choice' | 'input', string> = {
       mixed: '選択肢問題と記述問題を混合',
       multiple_choice: '選択肢問題のみ',
@@ -122,7 +124,8 @@ ${topic}です。難易度は、中堅国公立から難関私立大学入試く
 カタカナの読み方は、十分に注意して、教科書と同じになるようにしてください。
 explanationは長過ぎないように。短くても良いです。長い場合は"で囲ってください。
 選択肢の数は3~5つまでで、全て文字列型で表現してください。
-入力式の回答は長くなり過ぎないように。そうでないと、合わなくってしまいます。
+入力式の回答は長くなり過ぎないように、また一単語のみになるように。
+${isEnLongPassage ? 'questionのところに本文（50~100語）と質問を一緒にして入れてください。' : ''}
 
 【要求仕様】
 - 問題形式: ${typeDescription[questionType]}

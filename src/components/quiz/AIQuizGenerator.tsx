@@ -101,7 +101,7 @@ const AIQuizGenerator: React.FC<AIQuizGeneratorProps> = ({
           message: '',
           progress: 0
         });
-      }, 8000);
+      }, 15000);
 
     } catch (error) {
       console.error('[AIQuizGenerator] エラー:', error);
