@@ -2,7 +2,8 @@
 # 日本史・縄文時代です。難易度は、中堅国公立から難関私立大学入試くらいです。
 # 高校生向けです。中学生で習うような簡単すぎる内容が入らないように注意してください。
 # カタカナの読み方は、十分に注意して、教科書と同じになるようにしてください。
-# question, choices, explanationにはLaTeXが使えます。
+# explanationは長過ぎないように。短くても良いです。
+# multiple_choiceのcorrectAnswerは、選択肢のインデックス番号を指定してください。
 # このYAMLフォーマットを使用して、複数のクイズを一度にインポートできます。
 # 選択肢の数は3~5つまで。
 quizzes:
@@ -13,7 +14,7 @@ quizzes:
       - 大阪
       - 東京
       - 京都
-    correctAnswer: 東京
+    correctAnswer: 1
     explanation: 東京都は1868年に日本の首都となりました。
 
   - title: G7加盟国
@@ -25,7 +26,7 @@ quizzes:
       - 中国
       - オーストラリア
       - インド
-    correctAnswer: カナダ
+    correctAnswer: 0
     explanation: G7加盟国は、アメリカ、日本、イギリス、フランス、ドイツ、イタリア、カナダの7か国です。
 
   - title: 富士山の高さ

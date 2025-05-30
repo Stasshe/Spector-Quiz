@@ -178,18 +178,17 @@ stateDiagram-v2
             [*] --> InputWaiting : 入力待機
             InputWaiting --> AnswerSubmitted : 解答提出
             InputWaiting --> AnswerTimeout : 解答時間切れ
-            
-            state "解答判定" as Judging {
-                AnswerSubmitted --> Correct : 正解判定
-                AnswerSubmitted --> Incorrect : 不正解判定
-                AnswerTimeout --> Timeout : タイムアウト
-            }
         }
         
         Answering --> Judging : 解答処理
         QuestionDisplay --> Judging : 問題タイムアウト
         
-        state "結果表示" as Judging {
+        state Judging {
+            [*] --> AnswerCheck : 解答チェック
+            AnswerCheck --> Correct : 正解判定
+            AnswerCheck --> Incorrect : 不正解判定
+            AnswerCheck --> Timeout : タイムアウト判定
+            
             Correct --> ScoreUpdate : スコア更新
             Incorrect --> NextCheck : 次問題チェック
             Timeout --> NextCheck : 次問題チェック
@@ -400,113 +399,79 @@ sequenceDiagram
 
 ```mermaid
 graph TB
-    subgraph "同期エラー処理"
+    subgraph "実際のエラー処理"
         SE1[DB書き込み失敗] --> SE2{エラー種別判定}
-        SE2 -->|ネットワークエラー| SE3[再試行処理]
-        SE2 -->|権限エラー| SE4[権限確認]
-        SE2 -->|データ競合| SE5[競合解決]
+        SE2 -->|permission-denied| SE3[権限エラー処理]
+        SE2 -->|ネットワークエラー| SE4[接続エラー処理]
+        SE2 -->|その他| SE5[一般エラー処理]
         
-        SE3 --> SE6[指数バックオフ再試行]
-        SE4 --> SE7[認証状態確認]
-        SE5 --> SE8[最新状態取得]
+        SE3 --> SE6[処理スキップ]
+        SE4 --> SE7[エラーログ出力]
+        SE5 --> SE8[フォールバック処理]
         
-        SE6 --> SE9{再試行成功?}
-        SE7 --> SE10{認証OK?}
-        SE8 --> SE11[ローカル状態修正]
-        
-        SE9 -->|Yes| SE12[正常状態復旧]
-        SE9 -->|No| SE13[ユーザー通知]
-        SE10 -->|Yes| SE14[処理継続]
-        SE10 -->|No| SE15[再認証要求]
-        SE11 --> SE12
+        SE6 --> SE9[ユーザー通知]
+        SE7 --> SE10[処理継続]
+        SE8 --> SE11[状態復旧]
     end
     
-    subgraph "状態整合性チェック"
-        SC1[定期整合性チェック] --> SC2[ローカルとDB比較]
-        SC2 --> SC3{整合性OK?}
-        SC3 -->|No| SC4[不整合検出]
-        SC3 -->|Yes| SC5[チェック継続]
-        
-        SC4 --> SC6[優先度判定]
-        SC6 -->|DB優先| SC7[ローカル状態上書き]
-        SC6 -->|ローカル優先| SC8[DB状態上書き]
-        SC6 -->|マージ必要| SC9[状態マージ処理]
-        
-        SC7 --> SC10[UI再描画]
-        SC8 --> SC11[DB書き込み]
-        SC9 --> SC12[マージ結果適用]
+    subgraph "Firebase監視エラー"
+        RT1[onSnapshot切断] --> RT2[エラーハンドラー]
+        RT2 --> RT3[切断ログ出力]
+        RT3 --> RT4[監視継続]
     end
     
-    subgraph "リアルタイム監視異常"
-        RT1[onSnapshot切断] --> RT2[切断検出]
-        RT2 --> RT3[再接続試行]
-        RT3 --> RT4{再接続成功?}
-        RT4 -->|Yes| RT5[監視再開]
-        RT4 -->|No| RT6[ポーリング切替]
-        
-        RT5 --> RT7[状態同期確認]
-        RT6 --> RT8[定期的状態取得]
-        RT7 --> RT9[差分適用]
-        RT8 --> RT10[手動同期処理]
+    subgraph "早押し競合処理"
+        CO1[同時早押し検出] --> CO2[タイムスタンプ順序]
+        CO2 --> CO3[最初の解答者選択]
+        CO3 --> CO4[他解答者キャンセル]
+        CO4 --> CO5[解答権確定]
     end
     
-    subgraph "競合状態処理"
-        CO1[同時早押し検出] --> CO2[タイムスタンプ比較]
-        CO2 --> CO3[最早押し判定]
-        CO3 --> CO4[重複解答者削除]
-        CO4 --> CO5[正式解答者確定]
-        
-        CO6[同時解答提出] --> CO7[解答順序確認]
-        CO7 --> CO8[最初の解答採用]
-        CO8 --> CO9[後続解答無効化]
-        
-        CO10[状態更新競合] --> CO11[楽観的ロック確認]
-        CO11 --> CO12[バージョン確認]
-        CO12 --> CO13{バージョンOK?}
-        CO13 -->|Yes| CO14[更新実行]
-        CO13 -->|No| CO15[最新取得後再試行]
+    subgraph "実際のクリーンアップ"
+        CL1[useEffect cleanup] --> CL2[onSnapshotリスナー解除]
+        CL2 --> CL3[unsubscribeBuzzer実行]
+        CL3 --> CL4[unsubscribeCorrect実行]
+        CL4 --> CL5[リソース解放完了]
     end
 ```
 
-## 性能最適化・監視詳細図
+## 実装されている最適化・監視詳細図
 
 ```mermaid
 graph LR
-    subgraph "書き込み最適化"
-        WO1[firestoreWriteMonitor] --> WO2[書き込み回数監視]
-        WO2 --> WO3[バッチ処理判定]
-        WO3 --> WO4[必要最小限更新]
-        WO4 --> WO5[差分更新のみ]
+    subgraph "実装されている書き込み最適化"
+        WO1[writeMonitor.logOperation] --> WO2[Firestore書き込み監視]
+        WO2 --> WO3[操作ログ記録]
+        WO3 --> WO4[パフォーマンス追跡]
         
-        WO6[状態変更バッファリング] --> WO7[300ms内変更統合]
-        WO7 --> WO8[一括更新実行]
+        WO5[updateDoc最小化] --> WO6[必要な時のみ更新]
+        WO6 --> WO7[serverTimestamp使用]
     end
     
-    subgraph "読み取り最適化"
-        RO1[onSnapshot最適化] --> RO2[必要フィールドのみ監視]
-        RO2 --> RO3[不要な再描画防止]
-        RO3 --> RO4[useCallback使用]
-        RO4 --> RO5[useMemo使用]
+    subgraph "実装されているリソース管理"
+        RM1[useEffect cleanup] --> RM2[unsubscribe関数]
+        RM2 --> RM3[Firebaseリスナー解除]
+        RM3 --> RM4[メモリリーク防止]
         
-        RO6[ローカルキャッシュ] --> RO7[前回値との比較]
-        RO7 --> RO8[変更時のみ更新]
+        RM5[Promise.allSettled] --> RM6[並列処理エラー回避]
+        RM6 --> RM7[部分的失敗許容]
     end
     
-    subgraph "メモリ管理"
-        MM1[useEffect cleanup] --> MM2[リスナー解除]
-        MM2 --> MM3[タイマークリア]
-        MM3 --> MM4[イベントハンドラー削除]
+    subgraph "実装されているエラー監視"
+        EM1[console.log/error] --> EM2[詳細なログ出力]
+        EM2 --> EM3[エラートレース]
+        EM3 --> EM4[デバッグ支援]
         
-        MM5[ガベージコレクション] --> MM6[不要オブジェクト削除]
-        MM6 --> MM7[メモリリーク防止]
+        EM5[try-catch包括] --> EM6[エラー捕捉]
+        EM6 --> EM7[フォールバック処理]
     end
     
-    subgraph "エラー監視"
-        EM1[Firebase Analytics] --> EM2[エラー発生率監視]
-        EM2 --> EM3[パフォーマンス測定]
-        EM3 --> EM4[ユーザー体験監視]
+    subgraph "実装されているタイムアウト制御"
+        TO1[setTimeout管理] --> TO2[解答制限時間]
+        TO2 --> TO3[次問題遅延]
+        TO3 --> TO4[ルーム削除遅延]
         
-        EM5[Console.log出力] --> EM6[デバッグ情報記録]
-        EM6 --> EM7[エラートレース]
+        TO5[TIMING設定] --> TO6[設定可能な時間制御]
+        TO6 --> TO7[ゲームフロー調整]
     end
 ```
