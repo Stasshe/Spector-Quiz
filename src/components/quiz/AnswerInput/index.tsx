@@ -1,25 +1,91 @@
 import { useState, FormEvent, useRef, useEffect } from 'react';
 import { Quiz } from '@/types/quiz';
-import { FaPaperPlane, FaWifi, FaExclamationTriangle } from 'react-icons/fa';
+import { FaPaperPlane, FaWifi, FaExclamationTriangle, FaClock } from 'react-icons/fa';
 import LatexRenderer from '@/components/latex/LatexRenderer';
 import { useQuiz } from '@/context/QuizContext';
+import { TIMING } from '@/config/quizConfig';
 
 interface AnswerInputProps {
   quiz: Quiz | null;
   onSubmit: (answer: string) => void | Promise<void>;
+  onTimeout?: () => void; // タイムアウト時のコールバック
 }
 
-export default function AnswerInput({ quiz, onSubmit }: AnswerInputProps) {
+export default function AnswerInput({ quiz, onSubmit, onTimeout }: AnswerInputProps) {
   const [answer, setAnswer] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [lastSubmitTime, setLastSubmitTime] = useState(0);
   const [submitAttempts, setSubmitAttempts] = useState(0);
+  const [timeLeft, setTimeLeft] = useState(TIMING.ANSWER_TIMEOUT / 1000); // 秒単位
+  const [isTimerActive, setIsTimerActive] = useState(false);
   const submitTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const networkCheckTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const answerTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // クイズコンテキストから解答権の状態を取得
   const { hasAnsweringRight } = useQuiz();
+
+  // 回答権を取得した時にタイマーを開始
+  useEffect(() => {
+    if (hasAnsweringRight && !isTimerActive) {
+      console.log('回答権を取得 - タイマーを開始します');
+      setIsTimerActive(true);
+      setTimeLeft(TIMING.ANSWER_TIMEOUT / 1000);
+      
+      // 1秒ごとにカウントダウン
+      const timer = setInterval(() => {
+        setTimeLeft(prevTime => {
+          const newTime = prevTime - 1;
+          
+          // 時間切れの場合
+          if (newTime <= 0) {
+            console.log('回答制限時間切れ - 強制的に不正解処理');
+            clearInterval(timer);
+            setIsTimerActive(false);
+            
+            // 時間切れの場合、空の回答で強制送信（不正解扱い）
+            if (onTimeout) {
+              onTimeout();
+            } else {
+              // フォールバック: 空の回答を送信
+              onSubmit('');
+            }
+            
+            return 0;
+          }
+          
+          return newTime;
+        });
+      }, 1000);
+      
+      answerTimerRef.current = timer;
+    } else if (!hasAnsweringRight && isTimerActive) {
+      // 回答権を失った場合はタイマーを停止
+      console.log('回答権を失った - タイマーを停止します');
+      setIsTimerActive(false);
+      if (answerTimerRef.current) {
+        clearInterval(answerTimerRef.current);
+        answerTimerRef.current = null;
+      }
+    }
+
+    return () => {
+      if (answerTimerRef.current) {
+        clearInterval(answerTimerRef.current);
+        answerTimerRef.current = null;
+      }
+    };
+  }, [hasAnsweringRight, isTimerActive, onTimeout, onSubmit]);
+
+  // コンポーネントがアンマウントされる時のクリーンアップ
+  useEffect(() => {
+    return () => {
+      if (answerTimerRef.current) {
+        clearInterval(answerTimerRef.current);
+      }
+    };
+  }, []);
 
   // ネットワーク状況を監視
   useEffect(() => {
@@ -183,9 +249,16 @@ export default function AnswerInput({ quiz, onSubmit }: AnswerInputProps) {
             </span>
           </div>
           {/* 回答制限時間の表示 */}
-          <div className="text-sm text-yellow-700">
-            <span className="font-medium">制限時間: 8秒</span>
-          </div>
+          {hasAnsweringRight && isTimerActive ? (
+            <div className={`text-sm font-bold ${timeLeft <= 3 ? 'text-red-600 animate-pulse' : 'text-yellow-700'}`}>
+              <FaClock className="inline mr-1" />
+              残り時間: {timeLeft}秒
+            </div>
+          ) : (
+            <div className="text-sm text-yellow-700">
+              <span className="font-medium">制限時間: {TIMING.ANSWER_TIMEOUT / 1000}秒</span>
+            </div>
+          )}
         </div>
       </div>
 
