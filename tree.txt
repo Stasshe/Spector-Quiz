@@ -226,6 +226,7 @@
 │   │   │   ├── RoomSwitchConfirmModal.tsx
 │   │   │   └── WaitingRoomFloating.tsx
 │   │   └── quiz
+│   │       ├── AIQuizGenerator.tsx
 │   │       ├── AnswerInput
 │   │       │   └── index.tsx
 │   │       ├── CountdownTimer.tsx
@@ -254,6 +255,8 @@
 │   │   ├── useQuiz.ts
 │   │   └── useQuizRoom.ts
 │   ├── services
+│   │   ├── ai
+│   │   │   └── aiQuizGenerationService.ts
 │   │   ├── leader
 │   │   │   ├── answerService.ts
 │   │   │   ├── gameMonitoringService.ts
@@ -281,9 +284,9 @@
 ├── tsconfig.tsbuildinfo
 └── version
 
-83 directories, 198 files
+84 directories, 200 files
 
 src/*.ts, *.tsx の統計:
-合計行数: 15758
-合計文字数: 520228
-合計ファイルサイズ(bytes): 602333
+合計行数: 16256
+合計文字数: 536183
+合計ファイルサイズ(bytes): 621204
