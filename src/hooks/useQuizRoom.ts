@@ -14,7 +14,6 @@ import {
   cleanupRoomAnswers,
   createRoom,
   createRoomWithUnit,
-  deleteAIGeneratedQuizUnit,
   fetchAvailableRooms,
   findOrCreateRoom,
   findOrCreateRoomWithUnit,
@@ -1080,7 +1079,8 @@ export function useQuizRoom() {
   }, [currentUser, isRoomLeader]);
 
   /**
-   * クイズを終了する (リーダー用)
+   * クイズを終了する (リーダー用) - 簡略版
+   * 実際のゲーム終了処理はuseLeaderで実行される
    */
   const finishQuizGame = useCallback(async (roomId: string) => {
     if (!currentUser || !isRoomLeader) {
@@ -1091,39 +1091,19 @@ export function useQuizRoom() {
     try {
       setLoading(true);
       
-      const success = await finishQuiz(roomId);
-      
-      if (success) {
-        // AI生成クイズの場合はクリーンアップを実行
-        if (currentRoom && currentRoom.genre === 'AI生成' && currentRoom.unitId) {
-          try {
-            console.log(`[useQuizRoom] AI生成クイズユニットを削除中: ${currentRoom.unitId}`);
-            await deleteAIGeneratedQuizUnit(currentRoom.genre, currentRoom.unitId);
-            console.log(`[useQuizRoom] AI生成クイズユニット削除完了: ${currentRoom.unitId}`);
-          } catch (cleanupError) {
-            console.error('[useQuizRoom] AI生成クイズユニット削除エラー:', cleanupError);
-            // クリーンアップ失敗はゲーム終了をブロックしない
-          }
-        }
-        
-        // 統計を更新（引数は1つのみに修正）
-        await updateUserStatsOnRoomComplete(roomId);
-        
-        // ルーム状態を完了に設定
-        if (currentRoom) {
-          setCurrentRoom({
-            ...currentRoom,
-            status: 'completed'
-          });
-        }
-        
-        return true;
+      // ルーム状態を完了に設定（ローカル状態のみ）
+      if (currentRoom) {
+        setCurrentRoom({
+          ...currentRoom,
+          status: 'completed'
+        });
       }
       
-      return false;
+      console.log(`[useQuizRoom] ルーム ${roomId} のローカル状態を完了に設定しました`);
+      return true;
     } catch (err) {
-      console.error('クイズの終了に失敗しました', err);
-      setError('クイズの終了に失敗しました');
+      console.error('[useQuizRoom] ルーム状態更新に失敗しました', err);
+      setError('ルーム状態の更新に失敗しました');
       return false;
     } finally {
       setLoading(false);

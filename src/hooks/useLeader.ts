@@ -7,6 +7,7 @@ import { GameProgressService } from '@/services/leader/gameProgressService';
 import { GameMonitoringService } from '@/services/leader/gameMonitoringService';
 import { TimerService } from '@/services/leader/timerService';
 import { AnswerService } from '@/services/leader/answerService';
+import { finishQuiz, updateUserStatsOnRoomComplete, deleteAIGeneratedQuizUnit } from '@/services/quizRoom';
 import { useCallback, useEffect } from 'react';
 
 export function useLeader(roomId: string) {
@@ -41,6 +42,49 @@ export function useLeader(roomId: string) {
   // 次の問題に進む
   const moveToNextQuestion = useCallback(async () => {
     if (!quizRoom) return;
+    
+    // 次のインデックスを計算
+    const nextIndex = quizRoom.currentQuizIndex + 1;
+    const quizIds = quizRoom.quizIds || [];
+    
+    // 全問題が終了した場合、ゲーム終了処理を実行
+    if (nextIndex >= quizIds.length) {
+      console.log('[useLeader] 全問題終了 - ゲーム終了処理を実行します');
+      
+      if (!isLeader) {
+        console.log('[useLeader] リーダーではないため終了処理をスキップします');
+        return;
+      }
+
+      try {
+        // ルームステータスを完了に更新
+        const success = await finishQuiz(roomId);
+        
+        if (success) {
+          // AI生成クイズの場合はクリーンアップを実行
+          if (quizRoom.genre === 'AI生成' && quizRoom.unitId) {
+            try {
+              console.log(`[useLeader] AI生成クイズユニットを削除中: ${quizRoom.unitId}`);
+              await deleteAIGeneratedQuizUnit(quizRoom.genre, quizRoom.unitId);
+              console.log(`[useLeader] AI生成クイズユニット削除完了: ${quizRoom.unitId}`);
+            } catch (cleanupError) {
+              console.error('[useLeader] AI生成クイズユニット削除エラー:', cleanupError);
+              // クリーンアップ失敗はゲーム終了をブロックしない
+            }
+          }
+          
+          // 統計を更新
+          await updateUserStatsOnRoomComplete(roomId);
+          console.log('[useLeader] ゲーム終了処理が完了しました');
+        }
+      } catch (error) {
+        console.error('[useLeader] ゲーム終了処理中にエラー:', error);
+      }
+      
+      return;
+    }
+    
+    // まだ問題が残っている場合は次の問題に進む
     return await GameProgressService.moveToNextQuestion(
       roomId,
       quizRoom,
