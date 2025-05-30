@@ -28,7 +28,7 @@ function QuizRoomContent() {
   const params = useSearchParams();
   const roomId = params.get('id') || '';
   const router = useRouter();
-  const { quizRoom, isLeader, currentQuiz, hasAnsweringRight } = useQuiz();
+  const { quizRoom, isLeader, currentQuiz, hasAnsweringRight, setHasAnsweringRight } = useQuiz();
   const { useRoomListener, exitRoom } = useQuizRoom();
   const { startQuizGame, handleBuzzer, submitAnswer, fetchCurrentQuiz } = useLeader(roomId);
   
@@ -178,6 +178,23 @@ function QuizRoomContent() {
       setHasFailedCurrentQuiz(true);
     }
   }, [displayRoom, currentUser]);
+
+  // 回答権の状態を監視
+  useEffect(() => {
+    if (!room || !currentUser) {
+      return;
+    }
+    
+    const currentAnswerer = room.currentState?.currentAnswerer;
+    const hasRight = currentAnswerer === currentUser.uid;
+    
+    // 状態が変更された場合のみログ出力と更新
+    if (hasRight !== hasAnsweringRight) {
+      console.log(`[QuizRoomPage] 回答権状態変更: ${hasAnsweringRight} -> ${hasRight}`);
+      console.log(`[QuizRoomPage] 現在の回答者: ${currentAnswerer}, 自分のUID: ${currentUser.uid}`);
+      setHasAnsweringRight(hasRight);
+    }
+  }, [room, currentUser, hasAnsweringRight, setHasAnsweringRight]);
 
   // ルーム情報が読み込まれていない場合のローディング表示
   if (!room) {

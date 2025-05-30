@@ -23,22 +23,44 @@ export default function AnswerInput({ quiz, onSubmit, onTimeout }: AnswerInputPr
   const submitTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const networkCheckTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const answerTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isTimerRunningRef = useRef(false); // タイマーが実行中かどうかを追跡
+  const onTimeoutRef = useRef(onTimeout);
+  const onSubmitRef = useRef(onSubmit);
+
+  // 最新の値を参照できるようにrefを更新
+  useEffect(() => {
+    onTimeoutRef.current = onTimeout;
+    onSubmitRef.current = onSubmit;
+  }, [onTimeout, onSubmit]);
 
   // クイズコンテキストから解答権の状態を取得
   const { hasAnsweringRight } = useQuiz();
 
+  // デバッグ用：hasAnsweringRightの変化をログ出力
+  useEffect(() => {
+    console.log(`[AnswerInput] hasAnsweringRight状態変更: ${hasAnsweringRight}`);
+    console.log(`[AnswerInput] 現在のタイマー状態 - isTimerActive: ${isTimerActive}, timeLeft: ${timeLeft}`);
+  }, [hasAnsweringRight]);
+
   // 回答権を取得した時にタイマーを開始
   useEffect(() => {
-    if (hasAnsweringRight && !isTimerActive) {
+    console.log(`[AnswerInput] useEffect実行 - hasAnsweringRight: ${hasAnsweringRight}, isTimerRunning: ${isTimerRunningRef.current}`);
+    
+    if (hasAnsweringRight && !isTimerRunningRef.current) {
       console.log('回答権を取得 - タイマーを開始します');
+      console.log(`初期制限時間: ${TIMING.ANSWER_TIMEOUT}ms (${TIMING.ANSWER_TIMEOUT / 1000}秒)`);
+      
+      isTimerRunningRef.current = true; // タイマー実行フラグを設定
       setIsTimerActive(true);
       setIsTimeUp(false); // 時間切れ状態をリセット
       setTimeLeft(TIMING.ANSWER_TIMEOUT / 1000);
       
       // 1秒ごとにカウントダウン
       const timer = setInterval(() => {
+        console.log('setInterval コールバック実行');
         setTimeLeft(prevTime => {
           const newTime = prevTime - 1;
+          console.log(`タイマー更新: ${prevTime} -> ${newTime}`);
           
           // 残り3秒以下でバイブレーション（モバイルデバイスの場合）
           if (newTime <= 3 && newTime > 0) {
@@ -50,7 +72,10 @@ export default function AnswerInput({ quiz, onSubmit, onTimeout }: AnswerInputPr
           // 時間切れの場合
           if (newTime <= 0) {
             console.log('回答制限時間切れ - 強制的に不正解処理');
+            console.log('onTimeout 関数:', onTimeout);
+            console.log('onSubmit 関数:', onSubmit);
             clearInterval(timer);
+            isTimerRunningRef.current = false; // タイマー実行フラグをリセット
             setIsTimerActive(false);
             setIsTimeUp(true); // 時間切れ状態を設定
             
@@ -60,11 +85,22 @@ export default function AnswerInput({ quiz, onSubmit, onTimeout }: AnswerInputPr
             }
             
             // 時間切れの場合、空の回答で強制送信（不正解扱い）
-            if (onTimeout) {
-              onTimeout();
+            // setIntervalのコールバック内ではawaitを使えないため、Promise.resolve()で実行
+            if (onTimeoutRef.current) {
+              console.log('onTimeout コールバックを実行します');
+              Promise.resolve(onTimeoutRef.current()).then(() => {
+                console.log('onTimeout コールバック実行完了');
+              }).catch((error) => {
+                console.error('onTimeout コールバック実行中にエラー:', error);
+              });
             } else {
+              console.log('onTimeout が存在しないため、フォールバック実行');
               // フォールバック: 空の回答を送信
-              onSubmit('');
+              Promise.resolve(onSubmitRef.current('')).then(() => {
+                console.log('フォールバック実行完了');
+              }).catch((error) => {
+                console.error('フォールバック実行中にエラー:', error);
+              });
             }
             
             return 0;
@@ -74,10 +110,13 @@ export default function AnswerInput({ quiz, onSubmit, onTimeout }: AnswerInputPr
         });
       }, 1000);
       
+      console.log('setInterval タイマー作成完了:', timer);
       answerTimerRef.current = timer;
-    } else if (!hasAnsweringRight && isTimerActive) {
+      console.log('answerTimerRef.current に設定:', answerTimerRef.current);
+    } else if (!hasAnsweringRight && isTimerRunningRef.current) {
       // 回答権を失った場合はタイマーを停止
       console.log('回答権を失った - タイマーを停止します');
+      isTimerRunningRef.current = false;
       setIsTimerActive(false);
       if (answerTimerRef.current) {
         clearInterval(answerTimerRef.current);
@@ -85,13 +124,16 @@ export default function AnswerInput({ quiz, onSubmit, onTimeout }: AnswerInputPr
       }
     }
 
+    // クリーンアップは回答権を失った時のみ実行
     return () => {
-      if (answerTimerRef.current) {
+      if (!hasAnsweringRight && answerTimerRef.current) {
+        console.log('useEffect クリーンアップ - タイマー停止（回答権なし）');
         clearInterval(answerTimerRef.current);
         answerTimerRef.current = null;
+        isTimerRunningRef.current = false;
       }
     };
-  }, [hasAnsweringRight, isTimerActive, onTimeout, onSubmit]);
+  }, [hasAnsweringRight]); // isTimerActive を依存配列から除外
 
   // コンポーネントがアンマウントされる時のクリーンアップ
   useEffect(() => {
@@ -185,6 +227,7 @@ export default function AnswerInput({ quiz, onSubmit, onTimeout }: AnswerInputPr
       clearInterval(answerTimerRef.current);
       answerTimerRef.current = null;
     }
+    isTimerRunningRef.current = false;
     setIsTimerActive(false);
 
     setIsSubmitting(true);
@@ -217,6 +260,7 @@ export default function AnswerInput({ quiz, onSubmit, onTimeout }: AnswerInputPr
       clearInterval(answerTimerRef.current);
       answerTimerRef.current = null;
     }
+    isTimerRunningRef.current = false;
     setIsTimerActive(false);
 
     setIsSubmitting(true);
