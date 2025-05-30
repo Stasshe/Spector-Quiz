@@ -1,0 +1,110 @@
+quizzes:
+  - title: Vocabulary - Synonym
+    question: "Which word is closest in meaning to 'profound'?"
+    type: multiple_choice
+    choices:
+      - shallow
+      - deep
+      - simple
+      - obvious
+    correctAnswer: 1
+    explanation: "Profound means 'deep' or 'having great depth of understanding.'"
+
+  - title: Grammar - Conditional
+    question: "If I _____ more time, I would have finished the project."
+    type: multiple_choice
+    choices:
+      - have
+      - had
+      - had had
+      - would have
+    correctAnswer: 2
+    explanation: "This is a third conditional sentence requiring 'had had' (past perfect) in the if-clause."
+
+  - title: Vocabulary - Academic Word
+    question: "The research findings were quite _____."
+    type: multiple_choice
+    choices:
+      - significance
+      - significant
+      - significantly
+      - signify
+    correctAnswer: 1
+    explanation: "An adjective is needed after the linking verb 'were.'"
+
+  - title: Reading Comprehension
+    question: "In academic writing, what does 'furthermore' primarily indicate?"
+    type: multiple_choice
+    choices:
+      - contrast
+      - addition
+      - conclusion
+      - cause
+    correctAnswer: 1
+    explanation: "'Furthermore' is a transition word used to add supporting information."
+
+  - title: Vocabulary - Phrasal Verb
+    question: "The meeting was _____ until next week."
+    type: multiple_choice
+    choices:
+      - put off
+      - put on
+      - put up
+      - put down
+    correctAnswer: 0
+    explanation: "'Put off' means to postpone or delay something."
+
+  - title: Grammar - Perfect Tenses
+    question: "By the time you arrive, I _____ dinner."
+    type: multiple_choice
+    choices:
+      - will finish
+      - will have finished
+      - finish
+      - am finishing
+    correctAnswer: 1
+    explanation: "Future perfect is used for actions completed before a future time."
+
+  - title: Vocabulary - Formal Expression
+    question: "Which phrase is most appropriate for formal writing?"
+    type: multiple_choice
+    choices:
+      - a lot of
+      - lots of
+      - numerous
+      - tons of
+    correctAnswer: 2
+    explanation: "'Numerous' is the most formal and academic option."
+
+  - title: Grammar - Modal Verbs
+    question: "You _____ have told me earlier about the change."
+    type: multiple_choice
+    choices:
+      - should
+      - could
+      - would
+      - might
+    correctAnswer: 0
+    explanation: "'Should have' expresses regret about something that didn't happen."
+
+  - title: Vocabulary - Word Formation
+    question: "The _____ of the new policy was immediate."
+    type: multiple_choice
+    choices:
+      - implement
+      - implementation
+      - implementing
+      - implemented
+    correctAnswer: 1
+    explanation: "A noun is needed as the subject of the sentence."
+
+  - title: Reading Strategy
+    question: "What is the most effective strategy for speed reading?"
+    type: multiple_choice
+    choices:
+      - reading every word carefully
+      - skimming for main ideas
+      - translating mentally
+      - reading aloud
+    correctAnswer: 1
+    explanation: "Skimming for main ideas allows for faster comprehension."
