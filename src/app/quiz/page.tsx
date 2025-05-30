@@ -50,9 +50,6 @@ export default function QuizPage() {
   const [loading, setLoading] = useState(false);
   const [waitingRooms, setWaitingRooms] = useState<RoomListing[]>([]);
   const [sortBy, setSortBy] = useState<'participants' | 'popularity' | 'newest'>('participants');
-  const [showAIGenerator, setShowAIGenerator] = useState(false);
-  const [generatedUnitId, setGeneratedUnitId] = useState<string | null>(null);
-  const [generatedUnitName, setGeneratedUnitName] = useState<string | null>(null);
   const router = useRouter();
 
   const [waitingRoomsLastFetch, setWaitingRoomsLastFetch] = useState(0);
@@ -61,20 +58,13 @@ export default function QuizPage() {
   const handleGenreChange = useCallback((genre: string) => {
     setSelectedGenre(genre);
     
-    // AI生成ジャンルの場合は特別処理
-    if (genre === 'AI生成') {
-      setShowAIGenerator(true);
-      setGeneratedUnitId(null);
-      setGeneratedUnitName(null);
-      return;
-    }
-    
-    setShowAIGenerator(false);
-    
-    // 選択されたジャンルの単元がまだロードされていなければロード
-    // クラスタイプを考慮したキーを使用
-    if (!units[`${genre}_${selectedClassType}`]) {
-      fetchUnitsForGenre(genre, selectedClassType);
+    // AI生成ジャンル以外の場合は単元をロード
+    if (genre !== 'AI生成') {
+      // 選択されたジャンルの単元がまだロードされていなければロード
+      // クラスタイプを考慮したキーを使用
+      if (!units[`${genre}_${selectedClassType}`]) {
+        fetchUnitsForGenre(genre, selectedClassType);
+      }
     }
   }, [selectedClassType, units, fetchUnitsForGenre]);
 
@@ -227,48 +217,39 @@ export default function QuizPage() {
   };
 
   // AI生成クイズ完了後の処理
-  const handleAIQuizGenerated = (unitId: string, unitName: string) => {
+  const handleAIQuizGenerated = async (unitId: string, unitName: string) => {
     console.log(`[QuizPage] AI生成クイズが完了: ${unitId}, ${unitName}`);
-    setGeneratedUnitId(unitId);
-    setGeneratedUnitName(unitName);
     
-    // AI生成ジャンルの単元データを更新するためのリフレッシュ
-    if (selectedGenre === 'AI生成') {
-      fetchUnitsForGenre('AI生成', selectedClassType);
-    }
-  };
-
-  // AI生成クイズで開始
-  const startAIGeneratedQuiz = async () => {
-    if (!generatedUnitId || !generatedUnitName) {
-      alert('AI生成クイズが見つかりません');
-      return;
-    }
-
     try {
       setLoading(true);
       
+      // AI生成ジャンルの単元データを更新
+      if (selectedGenre === 'AI生成') {
+        fetchUnitsForGenre('AI生成', selectedClassType);
+      }
+      
+      // 即座にルームを作成して移動
       const result = await findOrCreateNewRoom(
-        `${generatedUnitName} ルーム`, 
+        `${unitName} ルーム`, 
         'AI生成', 
         selectedClassType, 
-        generatedUnitId
+        unitId
       );
       
       if (result === null) {
-        console.log('[startAIGeneratedQuiz] ルーム切り替え確認が必要な可能性があります');
+        console.log('[handleAIQuizGenerated] ルーム切り替え確認が必要な可能性があります');
         setLoading(false);
         return;
       }
       
       if (result) {
-        console.log(`[startAIGeneratedQuiz] AI生成クイズルーム作成成功: ${result}`);
+        console.log(`[handleAIQuizGenerated] AI生成クイズルーム作成成功: ${result}`);
         router.push(`/quiz/room?id=${result}`);
       } else {
         throw new Error('AI生成クイズルームの作成に失敗しました');
       }
     } catch (err) {
-      console.error('[startAIGeneratedQuiz] エラー:', err);
+      console.error('[handleAIQuizGenerated] エラー:', err);
       alert(`エラーが発生しました: ${err instanceof Error ? err.message : '不明なエラー'}`);
     } finally {
       if (!confirmRoomSwitch) {
@@ -599,61 +580,11 @@ export default function QuizPage() {
               transition={{ duration: 0.3 }}
               className="mb-8"
             >
-              {!showAIGenerator && generatedUnitId && generatedUnitName ? (
-                // AI生成完了後の状態
-                <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-                  <div className="flex items-center mb-4">
-                    <FaCheck className="text-green-600 text-xl mr-3" />
-                    <h3 className="text-lg font-semibold text-green-800">
-                      AI クイズ生成完了！
-                    </h3>
-                  </div>
-                  
-                  <div className="bg-white rounded-lg p-4 mb-4">
-                    <h4 className="font-medium text-gray-800 mb-2">{generatedUnitName}</h4>
-                    <p className="text-gray-600 text-sm mb-4">
-                      AIが生成したクイズが利用可能になりました。今すぐプレイしてみましょう！
-                    </p>
-                    
-                    <div className="flex gap-3">
-                      <button
-                        onClick={startAIGeneratedQuiz}
-                        disabled={loading}
-                        className="flex-1 flex items-center justify-center p-3 rounded-lg bg-green-500 text-white hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {loading ? (
-                          <>
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                            ルーム作成中...
-                          </>
-                        ) : (
-                          <>
-                            <FaPlay className="mr-2" />
-                            クイズを始める
-                          </>
-                        )}
-                      </button>
-                      
-                      <button
-                        onClick={() => {
-                          setShowAIGenerator(true);
-                          setGeneratedUnitId(null);
-                          setGeneratedUnitName(null);
-                        }}
-                        className="px-4 py-3 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
-                      >
-                        新しいクイズを生成
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                // AI生成フォーム
-                <AIQuizGenerator
-                  onQuizGenerated={handleAIQuizGenerated}
-                  className="mb-6"
-                />
-              )}
+              {/* AI生成フォーム */}
+              <AIQuizGenerator
+                onQuizGenerated={handleAIQuizGenerated}
+                className="mb-6"
+              />
             </motion.div>
           )}
 

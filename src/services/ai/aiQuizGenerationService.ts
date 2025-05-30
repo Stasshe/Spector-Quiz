@@ -31,7 +31,7 @@ export class AIQuizGenerationService {
   }
 
   private static getModel() {
-    return this.getGenAI().getGenerativeModel({ model: 'gemini-pro' });
+    return this.getGenAI().getGenerativeModel({ model: 'gemini-1.5-flash' });
   }
 
   /**
@@ -64,8 +64,36 @@ export class AIQuizGenerationService {
     } catch (error) {
       console.error('[AIQuizGeneration] エラー:', error);
       
-      // フォールバック: 基本的なクイズデータを返す
-      return this.createFallbackQuizzes(topic, count);
+      // エラーの詳細情報を取得
+      let errorMessage = 'クイズ生成中にエラーが発生しました';
+      let shouldUseFallback = false;
+      
+      if (error && typeof error === 'object' && 'message' in error) {
+        const errorMsg = error.message as string;
+        if (errorMsg.includes('API key') || errorMsg.includes('invalid')) {
+          errorMessage = 'APIキーが無効または設定されていません。管理者に連絡してください。';
+        } else if (errorMsg.includes('404') || errorMsg.includes('not found') || errorMsg.includes('models/gemini-1.5-flash')) {
+          errorMessage = 'AIモデルが利用できません。フォールバック機能を使用します。';
+          shouldUseFallback = true;
+        } else if (errorMsg.includes('quota') || errorMsg.includes('limit')) {
+          errorMessage = 'API利用制限に達しています。フォールバック機能を使用します。';
+          shouldUseFallback = true;
+        } else {
+          errorMessage = `AI生成エラー: ${errorMsg}`;
+          shouldUseFallback = true;
+        }
+      } else {
+        shouldUseFallback = true;
+      }
+      
+      // フォールバック機能を使用する場合
+      if (shouldUseFallback) {
+        console.log('[AIQuizGeneration] フォールバック機能を使用してクイズを生成します');
+        return this.createFallbackQuizzes(topic, count);
+      }
+      
+      // カスタムエラーをスローして呼び出し元に詳細を伝える
+      throw new Error(errorMessage);
     }
   }
 

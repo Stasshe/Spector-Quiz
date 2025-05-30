@@ -22,8 +22,6 @@ const AIQuizGenerator: React.FC<AIQuizGeneratorProps> = ({
 }) => {
   const { currentUser } = useAuth();
   const [topic, setTopic] = useState('');
-  const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
-  const [questionCount, setQuestionCount] = useState(5);
   const [questionType, setQuestionType] = useState<'mixed' | 'multiple_choice' | 'input'>('mixed');
   const [generationStep, setGenerationStep] = useState<GenerationStep>({
     step: 'idle',
@@ -55,7 +53,7 @@ const AIQuizGenerator: React.FC<AIQuizGeneratorProps> = ({
 
       const aiQuizUnit = await AIQuizGenerationService.generateQuizzes(
         topic,
-        questionCount,
+        10, // デフォルト問題数
         questionType
       );
 
@@ -136,41 +134,6 @@ const AIQuizGenerator: React.FC<AIQuizGeneratorProps> = ({
             disabled={isGenerating}
             maxLength={50}
           />
-        </div>
-
-        {/* 難易度選択 */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            難易度
-          </label>
-          <select
-            value={difficulty}
-            onChange={(e) => setDifficulty(e.target.value as 'easy' | 'medium' | 'hard')}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-            disabled={isGenerating}
-          >
-            <option value="easy">初級（中学生〜高校1年生程度）</option>
-            <option value="medium">中級（高校2〜3年生程度）</option>
-            <option value="hard">上級（大学受験〜大学生程度）</option>
-          </select>
-        </div>
-
-        {/* 問題数選択 */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            問題数
-          </label>
-          <select
-            value={questionCount}
-            onChange={(e) => setQuestionCount(parseInt(e.target.value))}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-            disabled={isGenerating}
-          >
-            <option value={3}>3問</option>
-            <option value={5}>5問</option>
-            <option value={7}>7問</option>
-            <option value={10}>10問</option>
-          </select>
         </div>
 
         {/* 問題形式選択 */}
