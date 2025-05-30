@@ -403,9 +403,8 @@ function QuizRoomContent() {
                     )}
                     
                     {/* 間違えた時のメッセージ表示 */}
-                    {isIncorrect && !isRevealed && displayRoom.currentState?.currentAnswerer && 
-                     Object.keys(displayRoom.participants).length > 1 && (
-                      <motion.div 
+                    {isIncorrect && !isRevealed && displayRoom.currentState?.currentAnswerer && (
+                      <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.4 }}

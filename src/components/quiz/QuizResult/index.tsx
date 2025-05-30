@@ -1,7 +1,9 @@
 import { Quiz } from '@/types/quiz';
 import { ParticipantInfo } from '@/types/user';
 import LatexRenderer from '@/components/latex/LatexRenderer';
+import CountdownTimer from '@/components/quiz/CountdownTimer';
 import { FaCheck, FaTimes } from 'react-icons/fa';
+import { TIMING } from '@/config/quizConfig';
 
 interface QuizResultProps {
   isCorrect: boolean;
@@ -17,17 +19,27 @@ export default function QuizResult({ isCorrect, quiz, answererId, participants }
 
   return (
     <div className={`mt-4 p-3 rounded-md max-h-96 overflow-y-auto ${isCorrect ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
-      <div className="flex items-start mb-3">
-        <div className={`flex items-center justify-center w-8 h-8 rounded-full flex-shrink-0 mr-3 ${isCorrect ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
-          {isCorrect ? <FaCheck size={16} /> : <FaTimes size={16} />}
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex items-start">
+          <div className={`flex items-center justify-center w-8 h-8 rounded-full flex-shrink-0 mr-3 ${isCorrect ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+            {isCorrect ? <FaCheck size={16} /> : <FaTimes size={16} />}
+          </div>
+          <div>
+            <h3 className={`font-bold text-base ${isCorrect ? 'text-green-800' : 'text-red-800'}`}>
+              {isCorrect ? '正解！' : '不正解...'}
+            </h3>
+            <p className="text-gray-600 text-sm">
+              {answererName} さんは{isCorrect ? '正解' : '不正解'}でした
+            </p>
+          </div>
         </div>
-        <div>
-          <h3 className={`font-bold text-base ${isCorrect ? 'text-green-800' : 'text-red-800'}`}>
-            {isCorrect ? '正解！' : '不正解...'}
-          </h3>
-          <p className="text-gray-600 text-sm">
-            {answererName} さんは{isCorrect ? '正解' : '不正解'}でした
-          </p>
+        
+        {/* カウントダウンタイマー */}
+        <div className="flex-shrink-0">
+          <CountdownTimer 
+            duration={TIMING.NEXT_QUESTION_DELAY}
+            className="text-xs"
+          />
         </div>
       </div>
 
