@@ -936,97 +936,6 @@ export function useQuizRoom() {
   }, []);
 
   /**
-   * クイズを開始する (リーダー用)
-   */
-  const startQuizGame = useCallback(async (roomId: string) => {
-    if (!currentUser || !isRoomLeader) {
-      setError('クイズを開始する権限がありません');
-      return false;
-    }
-
-    try {
-      setLoading(true);
-      
-      // 直接Firestoreを操作してクイズを開始（重要な状態変更のみupdatedAtを更新）
-      const roomRef = doc(db, 'quiz_rooms', roomId);
-      await updateDoc(roomRef, {
-        status: 'in_progress',
-        updatedAt: serverTimestamp()
-      });
-      
-      // ローディング状態を解除するための遅延
-      setTimeout(() => setLoading(false), 1000);
-      return true;
-    } catch (err) {
-      console.error('クイズの開始に失敗しました', err);
-      setError('クイズの開始に失敗しました');
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  }, [currentUser, isRoomLeader]);
-
-  /**
-   * クイズをクリックして解答権を得る
-   */
-  const handleQuizClick = useCallback(async (roomId: string) => {
-    if (!currentUser || !currentRoom || hasClickedQuiz) return;
-
-    try {
-      setHasClickedQuiz(true);
-      
-      // 書き込み監視：頻繁な更新の最適化効果を測定
-      writeMonitor.logOperation('updateDoc', `quiz_rooms/${roomId}`, 'クリック時間更新（updatedAt省略）');
-      
-      // 直接Firestoreを操作してクリック時間を登録（頻繁な更新はupdatedAtを省略し、書き込み回数削減）
-      const roomRef = doc(db, 'quiz_rooms', roomId);
-      const now = new Date();
-      
-      await updateDoc(roomRef, {
-        [`participants.${currentUser.uid}.clickTime`]: now.getTime()
-        // updatedAtを省略（頻繁な更新のため）
-      });
-      
-      return true;
-    } catch (err) {
-      console.error('クイズ解答権の取得に失敗しました', err);
-      setError('クイズ解答権の取得に失敗しました');
-      setHasClickedQuiz(false);
-      return false;
-    }
-  }, [currentUser, currentRoom, hasClickedQuiz]);
-
-  /**
-   * クイズの解答を送信
-   */
-  const submitQuizAnswer = useCallback(async (
-    roomId: string, 
-    quizId: string, 
-    answer: string
-  ) => {
-    if (!currentUser || !currentRoom) return false;
-
-    try {
-      // 実際の解答処理はuseLeaderで実装されているため、
-      // ここではスタブとして基本的な結果を返す
-      console.warn('submitQuizAnswer: この機能はuseLeaderで実装されています');
-      
-      // 結果を設定
-      setQuizResult({
-        isCorrect: true,
-        correctAnswer: answer,
-        explanation: '解答が送信されました'
-      });
-      
-      return true;
-    } catch (err) {
-      console.error('クイズの解答に失敗しました', err);
-      setError('クイズの解答に失敗しました');
-      return false;
-    }
-  }, [currentUser, currentRoom]);
-
-  /**
    * 次のクイズに進む (リーダー用)
    */
   const goToNextQuiz = useCallback(async (roomId: string) => {
@@ -1056,43 +965,6 @@ export function useQuizRoom() {
       setLoading(false);
     }
   }, [currentUser, isRoomLeader]);
-
-  /**
-   * 正解を表示する (リーダー用)
-   */
-  const showAnswer = useCallback(async (roomId: string) => {
-    if (!currentUser || !isRoomLeader) {
-      setError('正解を表示する権限がありません');
-      return false;
-    }
-
-    try {
-      // 実際の正解表示処理はuseLeaderで実装されているため、
-      // ここではスタブとして基本的な処理を行う
-      console.warn('showAnswer: この機能はuseLeaderで実装されています');
-      return true;
-    } catch (err) {
-      console.error('正解の表示に失敗しました', err);
-      setError('正解の表示に失敗しました');
-      return false;
-    }
-  }, [currentUser, isRoomLeader]);
-
-  /**
-   * 結果ランキングを取得する
-   */
-  const fetchResultRanking = useCallback(async (roomId: string) => {
-    try {
-      // 実際のランキング取得処理はuseLeaderで実装されているため、
-      // ここではスタブとして空の配列を返す
-      console.warn('fetchResultRanking: この機能は別の場所で実装されています');
-      return [];
-    } catch (err) {
-      console.error('ランキングの取得に失敗しました', err);
-      setError('ランキングの取得に失敗しました');
-      return [];
-    }
-  }, []);
 
   /**
    * ルーム情報リアルタイム監視
@@ -1457,16 +1329,9 @@ export function useQuizRoom() {
     exitRoom,
     findOrCreateNewRoom,
     
-    // ルーム操作
-    startQuizGame,
-    
     // クイズ操作
-    handleQuizClick,
     setCurrentQuizAnswer,
-    submitQuizAnswer,
     goToNextQuiz,
-    showAnswer,
-    fetchResultRanking,
     
     // ルーム切り替え処理
     setRoomToJoin,
