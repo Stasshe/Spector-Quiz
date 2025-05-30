@@ -18,6 +18,12 @@ export const genreClasses: GenreClass[] = [
     name: 'すべて',
     genres: [
       {
+        name: 'AI生成',
+        units: {
+          'AI': ['英語長文', '雑学']
+        }
+      },
+      {
         name: '日本史',
         units: {
           '古代': ['縄文時代', '弥生時代', '古墳時代', '飛鳥時代', '奈良時代', '平安時代'],
