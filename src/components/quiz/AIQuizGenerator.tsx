@@ -11,7 +11,7 @@ interface AIQuizGeneratorProps {
 }
 
 interface GenerationStep {
-  step: 'idle' | 'generating' | 'saving' | 'completed' | 'error';
+  step: 'idle' | 'generating' | 'saving' | 'completed' | 'waiting' | 'error';
   message: string;
   progress: number;
 }
@@ -79,18 +79,29 @@ const AIQuizGenerator: React.FC<AIQuizGeneratorProps> = ({
         progress: 100
       });
 
-      // 親コンポーネントに通知
+      // ステップ4: 待機期間（8秒）
+      setTimeout(() => {
+        setGenerationStep({
+          step: 'waiting',
+          message: 'ルームを準備しています...',
+          progress: 100
+        });
+      }, 2000);
+
+      // 親コンポーネントに通知（4秒後）
       setTimeout(() => {
         onQuizGenerated(unitId, unitName);
-        
-        // フォームをリセット
+      }, 4000);
+
+      // フォームリセット（8秒後）
+      setTimeout(() => {
         setTopic('');
         setGenerationStep({
           step: 'idle',
           message: '',
           progress: 0
         });
-      }, 2000);
+      }, 8000);
 
     } catch (error) {
       console.error('[AIQuizGenerator] エラー:', error);
@@ -109,7 +120,9 @@ const AIQuizGenerator: React.FC<AIQuizGeneratorProps> = ({
 
   const isGenerating = generationStep.step === 'generating' || generationStep.step === 'saving';
   const isCompleted = generationStep.step === 'completed';
+  const isWaiting = generationStep.step === 'waiting';
   const hasError = generationStep.step === 'error';
+  const isProcessing = isGenerating || isCompleted || isWaiting;
 
   return (
     <div className={`bg-gradient-to-br from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-6 ${className}`}>
@@ -135,7 +148,7 @@ const AIQuizGenerator: React.FC<AIQuizGeneratorProps> = ({
             onChange={(e) => setTopic(e.target.value)}
             placeholder="例: 英語長文読解、日本の歴史、基礎数学"
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-            disabled={isGenerating}
+            disabled={isProcessing}
             maxLength={50}
           />
         </div>
@@ -149,7 +162,7 @@ const AIQuizGenerator: React.FC<AIQuizGeneratorProps> = ({
             value={questionType}
             onChange={(e) => setQuestionType(e.target.value as 'mixed' | 'multiple_choice' | 'input')}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-            disabled={isGenerating}
+            disabled={isProcessing}
           >
             <option value="mixed">混合（選択式 + 記述式）</option>
             <option value="multiple_choice">選択式のみ</option>
@@ -159,26 +172,33 @@ const AIQuizGenerator: React.FC<AIQuizGeneratorProps> = ({
       </div>
 
       {/* 進行状況表示 */}
-      {(isGenerating || isCompleted || hasError) && (
+      {(isGenerating || isCompleted || isWaiting || hasError) && (
         <div className="mb-4">
           <div className="flex items-center mb-2">
             {isGenerating && <FaSpinner className="animate-spin text-purple-600 mr-2" />}
-            {isCompleted && <FaCheck className="text-green-600 mr-2" />}
+            {(isCompleted || isWaiting) && <FaCheck className="text-green-600 mr-2" />}
             {hasError && <FaExclamationTriangle className="text-red-600 mr-2" />}
             <span className={`text-sm font-medium ${
-              isCompleted ? 'text-green-600' : 
+              (isCompleted || isWaiting) ? 'text-green-600' : 
               hasError ? 'text-red-600' : 
               'text-purple-600'
             }`}>
               {generationStep.message}
             </span>
+            {isWaiting && (
+              <div className="ml-2 flex space-x-1">
+                <div className="w-1 h-1 bg-green-500 rounded-full animate-pulse"></div>
+                <div className="w-1 h-1 bg-green-500 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+                <div className="w-1 h-1 bg-green-500 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+              </div>
+            )}
           </div>
           
           {generationStep.progress > 0 && (
             <div className="w-full bg-gray-200 rounded-full h-2">
               <div 
                 className={`h-2 rounded-full transition-all duration-500 ${
-                  isCompleted ? 'bg-green-500' : 
+                  (isCompleted || isWaiting) ? 'bg-green-500' : 
                   hasError ? 'bg-red-500' : 
                   'bg-purple-500'
                 }`}
@@ -202,9 +222,9 @@ const AIQuizGenerator: React.FC<AIQuizGeneratorProps> = ({
       {/* 生成ボタン */}
       <button
         onClick={handleGenerate}
-        disabled={isGenerating || !topic.trim() || !currentUser}
+        disabled={isProcessing || !topic.trim() || !currentUser}
         className={`w-full py-3 px-4 rounded-md font-medium transition-colors ${
-          isGenerating || !topic.trim() || !currentUser
+          isProcessing || !topic.trim() || !currentUser
             ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
             : 'bg-purple-600 hover:bg-purple-700 text-white'
         }`}
@@ -213,6 +233,11 @@ const AIQuizGenerator: React.FC<AIQuizGeneratorProps> = ({
           <div className="flex items-center justify-center">
             <FaSpinner className="animate-spin mr-2" />
             クイズを生成中...
+          </div>
+        ) : isWaiting ? (
+          <div className="flex items-center justify-center">
+            <FaSpinner className="animate-spin mr-2" />
+            準備中...
           </div>
         ) : (
           <div className="flex items-center justify-center">
