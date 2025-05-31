@@ -22,7 +22,7 @@ const AIQuizGenerator: React.FC<AIQuizGeneratorProps> = ({
 }) => {
   const { currentUser } = useAuth();
   const [topic, setTopic] = useState('');
-  const [questionType, setQuestionType] = useState<'mixed' | 'multiple_choice' | 'input'>('mixed');
+  const [questionType, setQuestionType] = useState<'mixed' | 'multiple_choice' | 'input'>('multiple_choice');
   const [generationStep, setGenerationStep] = useState<GenerationStep>({
     step: 'idle',
     message: '',
