@@ -1,13 +1,13 @@
-# 🧠 Spector-Quiz 🎮
+# 🧠 Zap!-Quiz 🎮
 
 <div align="center">
-  <img src="public/file.svg" alt="Spector-Quiz Logo" width="150" />
+  <img src="public/favicon512x512.png" alt="Zap!-Quiz Logo" width="150" />
   <p><em>リアルタイムマルチプレイヤークイズで知識を競い合おう</em></p>
 </div>
 
-## 📚 Spector-Quizとは？
+## 📚 Zap!-Quizとは？
 
-Spector-Quizは、リアルタイムマルチプレイヤー対応のオンラインクイズアプリケーションです。友達や世界中のプレイヤーと一緒に、早押しクイズや記述式クイズを楽しむことができます。公式の世界史・日本史クイズから、ユーザーが作成したオリジナルクイズまで、幅広いジャンルのクイズでスキルを競い合えます。
+Zap!-Quizは、リアルタイムマルチプレイヤー対応のオンラインクイズアプリケーションです。友達や世界中のプレイヤーと一緒に、早押しクイズや記述式クイズを楽しむことができます。公式の世界史・日本史クイズから、ユーザーが作成したオリジナルクイズまで、幅広いジャンルのクイズでスキルを競い合えます。
 
 ### ✨ 主な特徴
 
@@ -32,8 +32,8 @@ Spector-Quizは、リアルタイムマルチプレイヤー対応のオンラ�
 1. リポジトリをクローン:
 
 ```bash
-git clone https://github.com/yourusername/Spector-Quiz.git
-cd Spector-Quiz
+git clone https://github.com/Stasshe/Zap!-Quiz.git
+cd Zap!-Quiz
 ```
 
 2. 依存関係をインストール:
@@ -254,5 +254,5 @@ npm run release
 
 <div align="center">
   <p>🧠 <strong>知識で競い合い、共に成長しよう！</strong> 🎮</p>
-  <p><em>Made with ❤️ by the Spector-Quiz Team</em></p>
+  <p><em>Made with ❤️ by the Zap!-Quiz Stasshe</em></p>
 </div>
